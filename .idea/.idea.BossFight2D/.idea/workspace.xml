@@ -5,22 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="55d2ec87-80b0-45ae-8b84-7535eff753b1" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackConfiguration.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackConfiguration.cs.meta" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.BossFight2D/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.BossFight2D/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackPhase.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackPhase.cs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/EnemyAttack.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/EnemyAttack.cs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/Attack.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/Attack.cs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/Bullet.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/Bullet.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Prefabs/Bullets/MenuBullet.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Prefabs/Bullets/MenuBullet.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Prefabs/Bullets/MenuBullet1.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Prefabs/Bullets/MenuBullet1.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Prefabs/Bullets/MenuBullet2.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Prefabs/Bullets/MenuBullet2.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Scenes/BossFight.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Scenes/BossFight.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/LowerResolution SDF.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/LowerResolution SDF.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackExecutorBase.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackExecutorBase.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Core/ObjectPool.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Core/ObjectPool.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -132,7 +122,8 @@
       <workItem from="1776988035263" duration="884000" />
       <workItem from="1777001740152" duration="2622000" />
       <workItem from="1777175044910" duration="7548000" />
-      <workItem from="1777433025097" duration="32120000" />
+      <workItem from="1777433025097" duration="33525000" />
+      <workItem from="1777745188782" duration="13281000" />
     </task>
     <servers />
   </component>

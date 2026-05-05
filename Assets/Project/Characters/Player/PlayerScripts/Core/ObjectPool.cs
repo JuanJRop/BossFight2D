@@ -29,7 +29,7 @@ namespace Project.Characters.Player.PlayerScripts.Core
         }
 
         public void ReturnObject(GameObject obj, GameObject prefab)
-        {
+        { 
             obj.SetActive(false);
 
             if (!poolDictionary.ContainsKey(prefab))
