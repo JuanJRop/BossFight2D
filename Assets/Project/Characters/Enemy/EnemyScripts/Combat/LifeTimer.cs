@@ -1,20 +1,50 @@
 using UnityEngine;
 
-public class LifeTimer : MonoBehaviour
+namespace Project.Characters.Enemy.EnemyScripts.Combat
 {
-    [SerializeField] private float lifeTime;
-    private float timer;
-    private void OnEnable()
+    public class LifeTimer : MonoBehaviour
     {
-        lifeTime = lifeTime;
-    }
-    public void Update()
-    {
-        timer -= Time.deltaTime;
+        [Header("Life Settings")]
+        [SerializeField] private float lifeTime = 3f;
 
-        if (timer <= 0)
+        private float timer;
+
+        #region Unity Lifecycle
+
+        private void OnEnable()
+        {
+            ResetTimer();
+        }
+
+        private void Update()
+        {
+            Tick();
+        }
+
+        #endregion
+
+        #region Logic
+
+        private void ResetTimer()
+        {
+            timer = lifeTime;
+        }
+
+        private void Tick()
+        {
+            timer -= Time.deltaTime;
+
+            if (timer <= 0f)
+            {
+                Deactivate();
+            }
+        }
+
+        private void Deactivate()
         {
             gameObject.SetActive(false);
         }
+
+        #endregion
     }
 }

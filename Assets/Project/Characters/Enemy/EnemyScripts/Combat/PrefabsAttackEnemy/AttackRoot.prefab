@@ -45,6 +45,8 @@ GameObject:
   - component: {fileID: 6648698243569285041}
   - component: {fileID: 712145790822512472}
   - component: {fileID: 2423646540649723466}
+  - component: {fileID: 7978507632148179893}
+  - component: {fileID: 4274018648620258067}
   m_Layer: 0
   m_Name: Container
   m_TagString: Untagged
@@ -114,7 +116,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 10
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7254916556583466657, guid: a2fe86c7bb575fa4c9b73ef2be446698, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -138,7 +140,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e93d442efc0fdf49884338e38351bb0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LifeTimer
-  lifeTime: 0
+  lifeTime: 5
 --- !u!61 &712145790822512472
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -212,3 +214,28 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 1
   m_Constraints: 0
+--- !u!114 &7978507632148179893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8385044605934569375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71d77c81d94fec4439d844ca35299e1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.AttackEntity
+--- !u!114 &4274018648620258067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8385044605934569375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05ee5ef288e597b49b988818f4f80b5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.HomingProjectile
+  data: {fileID: 11400000, guid: 4fd8611d1cf81b241aab73468f211c00, type: 2}

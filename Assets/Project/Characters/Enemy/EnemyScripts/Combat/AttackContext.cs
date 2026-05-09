@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Project.Characters.Enemy.EnemyScripts.Combat
 {
-    public class AttackContext
+    public abstract class AttackContext
     {
         public Transform firePoint;
         public Transform player;

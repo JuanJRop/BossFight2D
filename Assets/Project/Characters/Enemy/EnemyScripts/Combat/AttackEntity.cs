@@ -59,9 +59,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             rb.linearVelocity = Vector2.zero;
 
             if (trail != null)
-            {
                 trail.Clear();
-            }
+
             pool.ReturnObject(gameObject, prefab);
         }
     }

@@ -6,10 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="55d2ec87-80b0-45ae-8b84-7535eff753b1" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.BossFight2D/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.BossFight2D/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/LowerResolution SDF.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/LowerResolution SDF.asset" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackConfiguration.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackConfiguration.cs.meta" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackConfiguration.cs.meta" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackContext.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackData.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackData.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackEntity.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackEntity.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackExecutorBase.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackExecutorBase.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackFactory.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackFactory.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/HomingProjectile.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/HomingProjectile.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/LifeTimer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/LifeTimer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/PrefabsAttackEnemy/AttackRoot.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/PrefabsAttackEnemy/AttackRoot.prefab" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Project/Scenes/BossFight.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Scenes/BossFight.unity" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -25,8 +30,10 @@
     <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackData.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackExecutorBase.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/CilinderAttack.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/EnemyController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/HomingProjectile.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/RotationRadialAttack.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/SimpleAttackContext.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Controller/PlayerSoundController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Project/Scripts/Controller/DeathEvent.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Project/Scripts/Controller/InputManager.cs" root0="FORCE_HIGHLIGHTING" />
@@ -125,6 +132,7 @@
       <workItem from="1777433025097" duration="33525000" />
       <workItem from="1777745188782" duration="13281000" />
       <workItem from="1778067749396" duration="5273000" />
+      <workItem from="1778321028784" duration="14238000" />
     </task>
     <servers />
   </component>
