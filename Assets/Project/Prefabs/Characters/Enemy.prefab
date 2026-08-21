@@ -83,7 +83,7 @@ GameObject:
   - component: {fileID: 6172003671308867490}
   - component: {fileID: 2125033724389394215}
   - component: {fileID: 4204562694648455952}
-  - component: {fileID: 791486056515473304}
+  - component: {fileID: 6832211149300012345}
   m_Layer: 0
   m_Name: ContentEnemy
   m_TagString: Enemy
@@ -178,7 +178,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 00fe0d3bd679cf740b86d9121e7baf36, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Enemy.Movement.EnemyMove
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Movement.EnemyMove
   spots:
   - {fileID: 0}
   - {fileID: 0}
@@ -202,7 +202,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af52f8561a0abf049a3cf2ffd8020611, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Enemy.Core.Health
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Core.Health
   maxHealth: 2000
   flashTime: 0.3
   virtualCamera: {fileID: 0}
@@ -226,7 +226,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Controller.DeathEvent
   componentsToDisable:
   - {fileID: 4826814334081951953}
-  - {fileID: 0}
+  - {fileID: 4204562694648455952}
   rb2DsToDisable: {fileID: 3701382818455734294}
   animator: {fileID: 6008840217936887892}
   volumeLose: 0
@@ -491,15 +491,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92e0f987bc2d37a43ba9177caef88e6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.EnemyAttackController
-  factory: {fileID: 791486056515473304}
-  attackConfig: {fileID: 11400000, guid: 1c82e94be64e9ac4a8b55120bc314f1f, type: 2}
+  config: {fileID: 11400000, guid: f3b56959f7174f2a99ade13bd72c0b9c, type: 2}
   firePoint: {fileID: 1963928891665542140}
   player: {fileID: 0}
   pool: {fileID: 0}
   animator: {fileID: 6008840217936887892}
-  minDelay: 1
-  maxDelay: 3
---- !u!114 &791486056515473304
+  bossHealth: {fileID: 8939012618320290551}
+  phaseController: {fileID: 6832211149300012345}
+  movement: {fileID: 4826814334081951953}
+  bossBody: {fileID: 3701382818455734294}
+--- !u!114 &6832211149300012345
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -508,9 +509,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 8074365689003654122}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 467ade1d90f87c9419e023f08825fcb8, type: 3}
+  m_Script: {fileID: 11500000, guid: a9aa4ac2831a49e1b4d5316294612a11, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.AttackFactory
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Boss.BossPhaseController
+  bossHealth: {fileID: 8939012618320290551}
+  attackController: {fileID: 4204562694648455952}
+  phaseTwoThreshold: 0.4
 --- !u!1001 &4823027560398680669
 PrefabInstance:
   m_ObjectHideFlags: 0

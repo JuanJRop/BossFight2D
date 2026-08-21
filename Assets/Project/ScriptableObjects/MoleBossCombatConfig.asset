@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79ee004f76d44505a09097aa90838bd8, type: 3}
+  m_Name: MoleBossCombatConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.MoleBossCombatConfig
+  projectileData: {fileID: 11400000, guid: 4fd8611d1cf81b241aab73468f211c00, type: 2}
+  bulletDamage: 8
+  bulletSpeed: 7
+  bulletLifeTime: 8
+  rockVisualPrefab: {fileID: 100000, guid: 44bba67163af44a79a33ca56cfcb7401, type: 3}
+  rockImpactPrefab: {fileID: 6626158853465845310, guid: 3b6d5328c827ed54ab051a86bfcfa74b, type: 3}
+  dashChargeFxPrefab: {fileID: 100000, guid: 557a74f3f3f745078630b65591bb7eb1, type: 3}
+  phaseOneMinDelay: 0.65
+  phaseOneMaxDelay: 1.2
+  phaseTwoMinDelay: 0.42
+  phaseTwoMaxDelay: 0.82
+  phaseOneBurrowChance: 0.45
+  phaseTwoBurrowChance: 0.7
+  burrowHideTime: 0.55
+  phaseOneRecovery: 0.45
+  phaseTwoRecovery: 0.25
+  phaseTransitionTime: 1.25
+  phaseOneFanVolleys: 4
+  phaseTwoFanVolleys: 6
+  phaseOneFanProjectiles: 5
+  phaseTwoFanProjectiles: 7
+  phaseOneFanSpread: 16
+  phaseTwoFanSpread: 13
+  phaseOneRadialRings: 3
+  phaseTwoRadialRings: 4
+  phaseOneRadialCount: 18
+  phaseTwoRadialCount: 26
+  phaseOneSpiralSteps: 30
+  phaseTwoSpiralSteps: 46
+  phaseOneSpiralArms: 4
+  phaseTwoSpiralArms: 5
+  phaseOneCorridorWidth: 2.8
+  phaseTwoCorridorWidth: 2.3
+  phaseOneCorridorWaves: 10
+  phaseTwoCorridorWaves: 15
+  phaseOneCorridorSpacing: 0.72
+  phaseTwoCorridorSpacing: 0.58
+  phaseOneCrossfireGap: 2.8
+  phaseTwoCrossfireGap: 2.25
+  phaseOneCrossfireWaves: 8
+  phaseTwoCrossfireWaves: 13
+  phaseOneCrossfireSpacing: 0.78
+  phaseTwoCrossfireSpacing: 0.62
+  phaseOneRockCount: 10
+  phaseTwoRockCount: 18
+  rockWarningTime: 1
+  rockRadius: 1.35
+  rockDamage: 18
+  dashChargeTime: 0.85
+  dashSpeed: 15
+  dashMaxDistance: 10
+  dashHitRadius: 1.2
+  dashDamage: 22
+  dashPushForce: 13

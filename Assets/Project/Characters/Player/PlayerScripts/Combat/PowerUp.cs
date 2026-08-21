@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using Project.Scripts.Controller;
 using UnityEngine;
 
 namespace Project.Characters.Player.PlayerScripts.Combat
@@ -13,81 +13,104 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         [SerializeField] private float regenTime = 0.1f;
 
         private float currentMana;
+        private float regenTimer;
         private bool isActive;
-        
+
         public event Action<bool> OnPowerUpStateChanged;
         public event Action<float> OnManaChanged;
 
         public bool IsActive => isActive;
+        public float CurrentMana => currentMana;
+        public float MaxMana => maxMana;
 
-        void Start()
+        private void Start()
         {
+            maxMana = Mathf.Max(0.01f, maxMana);
             currentMana = maxMana;
-            isActive = false;
-            OnManaChanged?.Invoke(GetManaNormalized());
+            SetActive(false);
+            NotifyManaChanged();
         }
 
-        void Update()
+        private void Update()
         {
-            HandleInput();
+            if (UIManager.instance != null && UIManager.instance.IsPaused) return;
 
+            HandleInput();
             if (isActive)
-                HandleManaConsumption();
-            
-            // Iniciar la coroutine de regeneración constantemente (como en PlayerDodge)
-            StartCoroutine(RegenMana());
+            {
+                ConsumeMana();
+            }
+            else
+            {
+                RegenerateMana();
+            }
         }
 
         private void HandleInput()
         {
             if (Input.GetKeyDown(KeyCode.E) && currentMana >= maxMana && !isActive)
             {
-                ActivatePowerUp();
+                SetActive(true);
             }
         }
 
-        private void HandleManaConsumption()
+        private void ConsumeMana()
         {
-            currentMana -= drainSpeed * Time.deltaTime;
-            
-            if (currentMana <= 0)
+            currentMana = Mathf.Max(0f, currentMana - Mathf.Max(0f, drainSpeed) * Time.deltaTime);
+            NotifyManaChanged();
+
+            if (currentMana <= 0f)
             {
-                currentMana = 0;
-                DeactivatePowerUp();
+                SetActive(false);
             }
-            
+        }
+
+        private void RegenerateMana()
+        {
+            if (currentMana >= maxMana) return;
+
+            regenTimer += Time.deltaTime;
+            float interval = Mathf.Max(0.01f, regenTime);
+            if (regenTimer < interval) return;
+
+            regenTimer -= interval;
+            currentMana = Mathf.Min(maxMana, currentMana + Mathf.Max(0f, regenValue));
+            NotifyManaChanged();
+        }
+
+        private void SetActive(bool active)
+        {
+            if (isActive == active) return;
+
+            isActive = active;
+            regenTimer = 0f;
+            OnPowerUpStateChanged?.Invoke(isActive);
+        }
+
+        private void NotifyManaChanged()
+        {
             OnManaChanged?.Invoke(GetManaNormalized());
         }
 
-        private void ActivatePowerUp()
+        public void RestoreMana(float value)
         {
-            isActive = true;
-            OnPowerUpStateChanged?.Invoke(true);
-        }
-
-        private void DeactivatePowerUp()
-        {
-            isActive = false;
-            OnPowerUpStateChanged?.Invoke(false);
-        }
-
-        private IEnumerator RegenMana()
-        {
-            // Solo regenerar si NO está activo y la mana NO está llena
-            if (!isActive && currentMana < maxMana)
-            {
-                currentMana += regenValue * Time.deltaTime;
-                currentMana = Mathf.Min(currentMana, maxMana);
-                
-                OnManaChanged?.Invoke(GetManaNormalized());
-                
-                yield return new WaitForSeconds(regenTime);
-            }
+            SetActive(false);
+            currentMana = Mathf.Clamp(value, 0f, maxMana);
+            regenTimer = 0f;
+            NotifyManaChanged();
         }
 
         public float GetManaNormalized()
         {
-            return currentMana / maxMana;
+            return maxMana > 0f ? currentMana / maxMana : 0f;
+        }
+
+        private void OnValidate()
+        {
+            maxMana = Mathf.Max(0.01f, maxMana);
+            drainSpeed = Mathf.Max(0f, drainSpeed);
+            regenValue = Mathf.Max(0f, regenValue);
+            regenTime = Mathf.Max(0.01f, regenTime);
         }
     }
 }

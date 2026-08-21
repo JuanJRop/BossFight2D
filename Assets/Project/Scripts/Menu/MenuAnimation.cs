@@ -1,6 +1,7 @@
 using System.Collections;
-using UnityEngine;
 using DG.Tweening;
+using UnityEngine;
+
 namespace Project.Scripts.Menu
 {
     public class MenuAnimation : MonoBehaviour
@@ -10,33 +11,31 @@ namespace Project.Scripts.Menu
         [SerializeField] private Transform spawnPoint;
         [SerializeField] private Transform endPoint;
         [SerializeField] private float timeBullets = 1f;
+        [SerializeField] private float travelTime = 2f;
 
         [Header("Menu State")]
         [SerializeField] private bool isMenu = true;
 
         private void Start()
         {
-            if (isMenu)
-            {
-                StartCoroutine(MovementBullets());
-            }
+            if (isMenu) StartCoroutine(MovementBullets());
         }
+
         private IEnumerator MovementBullets()
         {
             while (isMenu)
             {
-                foreach (var bullet in spawner)
+                foreach (GameObject bullet in spawner)
                 {
-                    GameObject newBullet = Instantiate(
-                        bullet,
-                        spawnPoint.position,
-                        spawnPoint.rotation
-                    );
-                    newBullet.transform.DOMove(
-                        new Vector3(endPoint.position.x, endPoint.position.y, endPoint.position.z),
-                        2f
-                    );
-                    yield return new WaitForSeconds(timeBullets);
+                    if (bullet == null || spawnPoint == null || endPoint == null) continue;
+
+                    GameObject instance = Instantiate(bullet, spawnPoint.position, spawnPoint.rotation);
+                    instance.transform
+                        .DOMove(endPoint.position, Mathf.Max(0.01f, travelTime))
+                        .SetEase(Ease.Linear)
+                        .OnComplete(() => Destroy(instance));
+
+                    yield return new WaitForSeconds(Mathf.Max(0.01f, timeBullets));
                 }
             }
         }

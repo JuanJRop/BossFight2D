@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using Project.Characters.Player.PlayerScripts.Controller;
 using UnityEngine;
@@ -10,34 +9,69 @@ namespace Project.Scripts.Controller
         [SerializeField] private MonoBehaviour[] componentsToDisable;
         [SerializeField] private Rigidbody2D rb2DsToDisable;
         [SerializeField] private Animator animator;
-        [SerializeField][Range(0,0.5f)] private float volumeLose;
-        private PlayerSoundController playerSoundController;
-        [SerializeField] GameObject DeathMenu;
+        [SerializeField, Range(0f, 0.5f)] private float volumeLose;
+        [SerializeField] private GameObject DeathMenu;
+
+        private PlayerSoundController soundController;
+        private Coroutine openMenuRoutine;
+
         private void Awake()
         {
-            playerSoundController = GetComponent<PlayerSoundController>();
-            animator = GetComponent<Animator>();
-            rb2DsToDisable = GetComponent<Rigidbody2D>();
+            soundController = GetComponent<PlayerSoundController>();
+            if (animator == null) animator = GetComponent<Animator>();
+            if (rb2DsToDisable == null) rb2DsToDisable = GetComponent<Rigidbody2D>();
         }
 
         public void Die()
         {
-            playerSoundController.PlayLose(volumeLose);
-            foreach (var comp in componentsToDisable)
+            if (soundController != null) soundController.PlayLose(volumeLose);
+
+            foreach (MonoBehaviour componentToDisable in componentsToDisable ?? System.Array.Empty<MonoBehaviour>())
             {
-                comp.enabled = false;
+                if (componentToDisable != null) componentToDisable.enabled = false;
             }
-            rb2DsToDisable.linearVelocity =  Vector2.zero;
-            animator.SetTrigger("Die");
-            StartCoroutine(OpenUI());
+
+            if (rb2DsToDisable != null) rb2DsToDisable.linearVelocity = Vector2.zero;
+            if (animator != null) animator.SetTrigger("Die");
+
+            if (openMenuRoutine != null) StopCoroutine(openMenuRoutine);
+            openMenuRoutine = StartCoroutine(OpenUI());
         }
 
-        IEnumerator OpenUI()
+        public void Revive()
         {
-            yield return new WaitForSeconds(2);
-            UIManager.instance.YouDieManager(DeathMenu);
-        }
-        
+            if (openMenuRoutine != null)
+            {
+                StopCoroutine(openMenuRoutine);
+                openMenuRoutine = null;
+            }
 
+            foreach (MonoBehaviour componentToDisable in componentsToDisable ?? System.Array.Empty<MonoBehaviour>())
+            {
+                if (componentToDisable != null) componentToDisable.enabled = true;
+            }
+
+            if (rb2DsToDisable != null) rb2DsToDisable.linearVelocity = Vector2.zero;
+            if (animator != null)
+            {
+                animator.Rebind();
+                animator.Update(0f);
+            }
+
+            if (DeathMenu != null) DeathMenu.SetActive(false);
+            if (UIManager.instance != null) UIManager.instance.IsPaused = false;
+            Time.timeScale = 1f;
+        }
+
+        private IEnumerator OpenUI()
+        {
+            yield return new WaitForSeconds(2f);
+            openMenuRoutine = null;
+
+            if (UIManager.instance != null && DeathMenu != null)
+            {
+                UIManager.instance.YouDieManager(DeathMenu);
+            }
+        }
     }
 }

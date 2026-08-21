@@ -1,39 +1,34 @@
+using Project.Characters.Player.PlayerScripts.Core;
 using UnityEngine;
 
 namespace Project.Characters.Enemy.EnemyScripts.Combat
 {
     public class LifeTimer : MonoBehaviour
     {
-        [Header("Life Settings")]
         [SerializeField] private float lifeTime = 3f;
 
+        private ObjectPool pool;
+        private GameObject sourcePrefab;
         private float timer;
-
-        #region Unity Lifecycle
+        private bool configured;
 
         private void OnEnable()
         {
-            ResetTimer();
+            timer = Mathf.Max(0.1f, lifeTime);
+        }
+
+        public void Configure(ObjectPool sourcePool, GameObject prefab, float duration)
+        {
+            pool = sourcePool;
+            sourcePrefab = prefab;
+            lifeTime = Mathf.Max(0.1f, duration);
+            timer = lifeTime;
+            configured = pool != null && sourcePrefab != null;
         }
 
         private void Update()
         {
-            Tick();
-        }
-
-        #endregion
-
-        #region Logic
-
-        private void ResetTimer()
-        {
-            timer = lifeTime;
-        }
-
-        private void Tick()
-        {
             timer -= Time.deltaTime;
-
             if (timer <= 0f)
             {
                 Deactivate();
@@ -42,9 +37,21 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
 
         private void Deactivate()
         {
-            gameObject.SetActive(false);
-        }
+            AttackEntity entity = GetComponent<AttackEntity>();
+            if (configured && entity != null)
+            {
+                entity.ReturnToPool();
+                return;
+            }
 
-        #endregion
+            if (configured)
+            {
+                pool.ReturnObject(gameObject, sourcePrefab);
+            }
+            else
+            {
+                gameObject.SetActive(false);
+            }
+        }
     }
 }

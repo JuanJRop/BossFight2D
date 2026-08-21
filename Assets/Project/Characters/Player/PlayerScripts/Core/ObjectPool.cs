@@ -5,39 +5,82 @@ namespace Project.Characters.Player.PlayerScripts.Core
 {
     public class ObjectPool : MonoBehaviour
     {
-        private Dictionary<GameObject, Queue<GameObject>> poolDictionary = new();
+        private readonly Dictionary<GameObject, Queue<GameObject>> pools = new();
+        private readonly Dictionary<GameObject, GameObject> activeObjects = new();
+        private readonly HashSet<GameObject> queuedObjects = new();
 
         public GameObject GetObject(GameObject prefab)
         {
-            if (!poolDictionary.ContainsKey(prefab))
-            {
-                poolDictionary[prefab] = new Queue<GameObject>();
-            }
-
-            Queue<GameObject> pool = poolDictionary[prefab];
-
-            if (pool.Count > 0)
-            {
-                GameObject obj = pool.Dequeue();
-                obj.SetActive(true);
-                return obj;
-            }
-            else
-            {
-                return Instantiate(prefab);
-            }
+            return GetObject(prefab, Vector3.zero, Quaternion.identity);
         }
 
-        public void ReturnObject(GameObject obj, GameObject prefab)
-        { 
-            obj.SetActive(false);
-
-            if (!poolDictionary.ContainsKey(prefab))
+        public GameObject GetObject(GameObject prefab, Vector3 position, Quaternion rotation)
+        {
+            if (prefab == null)
             {
-                poolDictionary[prefab] = new Queue<GameObject>();
+                Debug.LogError("ObjectPool cannot spawn a null prefab.", this);
+                return null;
             }
 
-            poolDictionary[prefab].Enqueue(obj);
+            if (!pools.TryGetValue(prefab, out Queue<GameObject> pool))
+            {
+                pool = new Queue<GameObject>();
+                pools[prefab] = pool;
+            }
+
+            GameObject instance = null;
+            while (pool.Count > 0 && instance == null)
+            {
+                instance = pool.Dequeue();
+            }
+
+            if (instance == null)
+            {
+                instance = Instantiate(prefab, transform);
+            }
+
+            queuedObjects.Remove(instance);
+            activeObjects[instance] = prefab;
+            instance.transform.SetPositionAndRotation(position, rotation);
+            instance.SetActive(true);
+            return instance;
+        }
+
+        public void ReturnObject(GameObject instance, GameObject prefab)
+        {
+            if (instance == null) return;
+
+            if (prefab == null)
+            {
+                Destroy(instance);
+                return;
+            }
+
+            if (!queuedObjects.Add(instance)) return;
+
+            activeObjects.Remove(instance);
+            instance.SetActive(false);
+            instance.transform.SetParent(transform);
+
+            if (!pools.TryGetValue(prefab, out Queue<GameObject> pool))
+            {
+                pool = new Queue<GameObject>();
+                pools[prefab] = pool;
+            }
+
+            pool.Enqueue(instance);
+        }
+
+        public void ReturnAll()
+        {
+            var snapshot = new List<KeyValuePair<GameObject, GameObject>>(activeObjects);
+            foreach (KeyValuePair<GameObject, GameObject> entry in snapshot)
+            {
+                if (entry.Key != null)
+                {
+                    ReturnObject(entry.Key, entry.Value);
+                }
+            }
         }
     }
 }

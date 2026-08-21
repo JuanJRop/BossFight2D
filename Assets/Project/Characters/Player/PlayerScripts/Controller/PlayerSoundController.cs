@@ -12,37 +12,27 @@ namespace Project.Characters.Player.PlayerScripts.Controller
         [SerializeField] private AudioClip damage;
         [SerializeField] private AudioClip win;
         [SerializeField] private AudioClip lose;
-            
-        public void PlayFire(float volume)
-        {
-            audioSource.PlayOneShot(fire, volume);
-        }
 
-        public void PlayDodge(float volume)
-        {
-            audioSource.PlayOneShot(dodge, volume);
-        }
+        public void PlayFire(float volume) => Play(fire, volume);
+        public void PlayDodge(float volume) => Play(dodge, volume);
+        public void PlayReload(float volume) => Play(reload, volume);
+        public void PlayWin(float volume) => Play(win, volume);
+        public void PlayLose(float volume) => Play(lose, volume);
 
         public void PlayDamage(AudioClip clip, float volume)
         {
-            audioSource.PlayOneShot(damage, volume);
+            Play(clip != null ? clip : damage, volume);
         }
-        
+
         public void PlayWalk(AudioClip clip, float volume)
         {
-            audioSource.PlayOneShot(walk, volume);
+            Play(clip != null ? clip : walk, volume);
         }
-        public void PlayReload(float volume)
+
+        private void Play(AudioClip clip, float volume)
         {
-            audioSource.PlayOneShot(reload, volume);
-        }
-        public void PlayWin(float volume)
-        {
-            audioSource.PlayOneShot(win, volume);
-        }
-        public void PlayLose(float volume)
-        {
-            audioSource.PlayOneShot(lose, volume);
+            if (audioSource == null || clip == null) return;
+            audioSource.PlayOneShot(clip, Mathf.Clamp01(volume));
         }
     }
 }

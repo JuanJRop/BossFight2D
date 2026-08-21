@@ -7,25 +7,45 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
     {
         public override void Execute(AttackContext ctx)
         {
-            ShootAtPlayer(ctx);
-        }
+            if (ctx == null || ctx.player == null || ctx.firePoint == null || ctx.pool == null || ctx.data == null)
+                return;
 
-        private void ShootAtPlayer(AttackContext ctx)
-        {
-            if (ctx.player == null) return;
+            if (ctx.data.BulletPrefab == null) return;
 
-            Vector2 direction = (ctx.player.position - ctx.firePoint.position).normalized;
+            Rigidbody2D playerBody = ctx.player.GetComponent<Rigidbody2D>();
+            if (playerBody == null) playerBody = ctx.player.GetComponentInChildren<Rigidbody2D>();
+            Vector2 targetPosition = playerBody != null ? playerBody.position : (Vector2)ctx.player.position;
+            Vector2 direction = (targetPosition - (Vector2)ctx.firePoint.position).normalized;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 
-            GameObject bullet = ctx.pool.GetObject(ctx.data.bulletPrefab);
-            AttackEntity entity = bullet.GetComponent<AttackEntity>();
+            GameObject bullet = ctx.pool.GetObject(
+                ctx.data.BulletPrefab,
+                ctx.firePoint.position,
+                Quaternion.Euler(0f, 0f, angle)
+            );
 
-            entity.SetPool(ctx.pool, ctx.data.bulletPrefab, BulletOwner.Enemy, ctx.data.damage);
+            if (bullet == null) return;
 
-            Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-            rb.linearVelocity = direction * ctx.data.speed;
+            AttackEntity entity = bullet.GetComponentInChildren<AttackEntity>(true);
+            Rigidbody2D body = bullet.GetComponentInChildren<Rigidbody2D>(true);
+            if (entity == null || body == null)
+            {
+                ctx.pool.ReturnObject(bullet, ctx.data.BulletPrefab);
+                Debug.LogError("Enemy projectile requires AttackEntity and Rigidbody2D.", bullet);
+                return;
+            }
 
-            if (ctx.animator != null)
-                ctx.animator.SetTrigger("Attack");
+            entity.SetPool(
+                ctx.pool,
+                ctx.data.BulletPrefab,
+                bullet,
+                BulletOwner.Enemy,
+                ctx.data.Damage,
+                ctx.data.LifeTime
+            );
+
+            body.linearVelocity = direction * ctx.data.Speed;
+            if (ctx.animator != null) ctx.animator.SetTrigger("Attack");
         }
     }
 }
