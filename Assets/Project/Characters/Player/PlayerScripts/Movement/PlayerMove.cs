@@ -15,31 +15,31 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         [SerializeField] private float runStepRate = 0.3f;
         [SerializeField] private AudioClip walkStep;
         [SerializeField] private AudioClip runStep;
-
-        private float stepTimer;
+        [SerializeField, Range(0f, 0.5f)] private float volume;
 
         private PlayerSoundController playerSoundController;
-
-        private float currentSpeed;
+        private PlayerDodge playerDodge;
         private Rigidbody2D rb;
-        private Animator anim;
-
+        private Animator animator;
+        private SpriteRenderer spriteRenderer;
         private Vector2 moveInput;
         private Vector2 lastMove;
+        private Vector2 knockbackVelocity;
+        private float currentSpeed;
+        private float stepTimer;
+        private float knockbackTimer;
+        private bool isMoving = true;
 
-        PlayerDodge playerDodge;
-        private bool isMoving;
-        
-        [SerializeField][Range(0,0.5f)] private float volume;
+        public Vector2 MoveInput => moveInput;
+        public bool IsBeingKnockedBack => knockbackTimer > 0f;
 
         private void Awake()
         {
             playerSoundController = GetComponent<PlayerSoundController>();
-            rb = GetComponent<Rigidbody2D>();
-            anim = GetComponent<Animator>();
             playerDodge = GetComponent<PlayerDodge>();
-
-            isMoving = true;
+            rb = GetComponent<Rigidbody2D>();
+            animator = GetComponent<Animator>();
+            spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
         private void Update()
@@ -50,83 +50,100 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             HandleSpeed();
             UpdateAnimations();
             HandleFlip();
-            HandleFootsteps(); 
+            HandleFootsteps();
         }
 
         private void FixedUpdate()
         {
-            if (playerDodge.IsDashing) return;
+            if (rb == null) return;
+            if (playerDodge != null && playerDodge.IsDashing) return;
+
+            if (knockbackTimer > 0f)
+            {
+                knockbackTimer = Mathf.Max(0f, knockbackTimer - Time.fixedDeltaTime);
+                rb.linearVelocity = knockbackVelocity;
+                knockbackVelocity = Vector2.MoveTowards(knockbackVelocity, Vector2.zero,
+                    deceleration * Time.fixedDeltaTime);
+                return;
+            }
 
             rb.linearVelocity = moveInput * speed;
+        }
+
+        public void ApplyKnockback(Vector2 velocity, float duration)
+        {
+            if (playerDodge != null && playerDodge.IsInvulnerable) return;
+
+            knockbackVelocity = velocity;
+            knockbackTimer = Mathf.Max(0.05f, duration);
+            if (rb != null) rb.linearVelocity = knockbackVelocity;
         }
 
         private void InputMovement()
         {
             float moveX = Input.GetAxisRaw("Horizontal");
             float moveY = Input.GetAxisRaw("Vertical");
-
             moveInput = new Vector2(moveX, moveY).normalized;
 
-            if (moveInput != Vector2.zero)
-            {
-                lastMove = moveInput;
-            }
+            if (moveInput != Vector2.zero) lastMove = moveInput;
         }
 
         private void HandleSpeed()
         {
-            if (moveInput != Vector2.zero)
-            {
-                currentSpeed = Mathf.MoveTowards(currentSpeed, 1f, acceleration * Time.deltaTime);
-            }
-            else
-            {
-                currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime);
-            }
+            float target = moveInput != Vector2.zero ? 1f : 0f;
+            float rate = target > currentSpeed ? acceleration : deceleration;
+            currentSpeed = Mathf.MoveTowards(currentSpeed, target, rate * Time.deltaTime);
         }
-        
+
         private void HandleFootsteps()
         {
-            if (moveInput == Vector2.zero) return;
+            if (moveInput == Vector2.zero || playerSoundController == null) return;
 
             stepTimer -= Time.deltaTime;
+            if (stepTimer > 0f) return;
 
             bool isRunning = currentSpeed > 0.6f;
-
-            float stepRate = isRunning ? runStepRate : walkStepRate;
-
-            if (stepTimer <= 0f)
-            {
-                AudioClip clip = isRunning ? runStep : walkStep;
-
-                playerSoundController.PlayWalk(clip, volume);
-
-                stepTimer = stepRate;
-            }
+            playerSoundController.PlayWalk(isRunning ? runStep : walkStep, volume);
+            stepTimer = Mathf.Max(0.05f, isRunning ? runStepRate : walkStepRate);
         }
 
         private void UpdateAnimations()
         {
-            anim.SetFloat("Horizontal", lastMove.x);
-            anim.SetFloat("Vertical", lastMove.y);
-            anim.SetFloat("Speed", currentSpeed);
+            if (animator == null) return;
+            animator.SetFloat("Horizontal", lastMove.x);
+            animator.SetFloat("Vertical", lastMove.y);
+            animator.SetFloat("Speed", currentSpeed);
         }
 
         private void HandleFlip()
         {
-            SpriteRenderer spritePlayer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer == null) return;
 
-            if (moveInput.x < 0)
+            if (moveInput.x < 0f)
             {
-                spritePlayer.flipX = true;
+                spriteRenderer.flipX = true;
                 lastMove.x = -lastMove.x;
             }
-            else if (moveInput.x > 0)
+            else if (moveInput.x > 0f)
             {
-                spritePlayer.flipX = false;
+                spriteRenderer.flipX = false;
             }
         }
 
-        public Vector2 MoveInput => moveInput;
+        private void OnDisable()
+        {
+            knockbackTimer = 0f;
+            knockbackVelocity = Vector2.zero;
+            if (rb != null) rb.linearVelocity = Vector2.zero;
+        }
+
+        private void OnValidate()
+        {
+            speed = Mathf.Max(0f, speed);
+            acceleration = Mathf.Max(0f, acceleration);
+            deceleration = Mathf.Max(0f, deceleration);
+            walkStepRate = Mathf.Max(0.05f, walkStepRate);
+            runStepRate = Mathf.Max(0.05f, runStepRate);
+        }
     }
 }

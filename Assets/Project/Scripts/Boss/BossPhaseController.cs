@@ -19,6 +19,7 @@ namespace Project.Scripts.Boss
         private void Awake()
         {
             if (bossHealth == null) bossHealth = GetComponent<Health>();
+            if (attackController == null) attackController = GetComponent<EnemyAttackController>();
         }
 
         private void OnEnable()
@@ -45,8 +46,8 @@ namespace Project.Scripts.Boss
             if (CurrentPhase == nextPhase) return;
 
             CurrentPhase = nextPhase;
-            if (attackController != null) attackController.RestartAttacks();
             OnPhaseChanged?.Invoke(CurrentPhase);
+            if (attackController != null) attackController.RestartAttacks();
         }
 
         public void RestartCurrentPhase()

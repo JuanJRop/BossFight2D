@@ -1,6 +1,6 @@
 # BossFight2D
 
-BossFight2D is a top-down Unity boss-rush prototype for keyboard and mouse. The first vertical slice focuses on one insect/robot boss, a fixed automatic rifle, readable attack patterns, and a two-phase encounter.
+BossFight2D is a top-down Unity boss-rush prototype for keyboard and mouse. The first vertical slice focuses on one mechanical mole boss, a fixed automatic rifle, readable attack patterns, and a two-phase encounter.
 
 ## Encounter design
 
@@ -10,12 +10,15 @@ BossFight2D is a top-down Unity boss-rush prototype for keyboard and mouse. The 
 - The player keeps the checkpoint's ammunition, stamina, and power, but always restarts with at least 50% health.
 - The target fight duration is 5-8 minutes.
 
-Planned boss patterns:
+Implemented mole-boss patterns:
 
-1. A projectile corridor with a readable safe path.
-2. A charged dash with a visible trajectory.
-3. A hidden state followed by telegraphed falling rocks.
-4. A basic chase-and-shoot attack between special patterns.
+1. An aimed fan that teaches projectile reading.
+2. Radial rings and a rotating spiral bullet hell.
+3. A projectile corridor with a readable moving safe path.
+4. Telegraph circles followed by falling rocks and impact shards.
+5. A charged dash with a visible trajectory, contact damage, and knockback.
+
+The AI uses a readable state cycle: burrow, emerge, telegraph, attack, and recover. Phase 1 introduces attacks one by one. At 40% health, phase 2 begins with a transition shockwave, shorter recovery windows, denser patterns, and more frequent burrowing.
 
 ## Runtime structure
 
@@ -33,4 +36,4 @@ The three planned playable characters are cosmetic only and use the same gamepla
 - Render pipeline: URP 2D
 - Main scenes: `Menu` and `BossFight`
 
-Open the project in the matching Unity editor version. After compilation, wire `BossPhaseController`, `PhaseCheckpoint`, and `CharacterSkinSelector` in the relevant prefabs or scene objects before testing the new flow.
+Open the project in the matching Unity editor version. `BossPhaseController` and the mole-boss AI are wired into the enemy prefab. `PhaseCheckpoint` and `CharacterSkinSelector` still need to be connected in the relevant scene objects before testing those flows.

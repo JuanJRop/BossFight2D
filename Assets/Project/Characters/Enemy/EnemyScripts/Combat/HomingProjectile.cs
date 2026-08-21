@@ -12,7 +12,10 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
 
             if (ctx.data.bulletPrefab == null) return;
 
-            Vector2 direction = (ctx.player.position - ctx.firePoint.position).normalized;
+            Rigidbody2D playerBody = ctx.player.GetComponent<Rigidbody2D>();
+            if (playerBody == null) playerBody = ctx.player.GetComponentInChildren<Rigidbody2D>();
+            Vector2 targetPosition = playerBody != null ? playerBody.position : (Vector2)ctx.player.position;
+            Vector2 direction = (targetPosition - (Vector2)ctx.firePoint.position).normalized;
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 
             GameObject bullet = ctx.pool.GetObject(

@@ -93,7 +93,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
             if (owner != BulletOwner.Enemy || !other.CompareTag("Player")) return;
 
-            PlayerDodge dodge = other.GetComponent<PlayerDodge>();
+            PlayerDodge dodge = other.GetComponentInParent<PlayerDodge>();
             if (dodge != null && dodge.IsInvulnerable) return;
 
             ApplyDamage(other);
@@ -101,7 +101,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void ApplyDamage(Collider2D other)
         {
-            Health health = other.GetComponent<Health>();
+            Health health = other.GetComponentInParent<Health>();
             if (health != null)
             {
                 health.TakeDamage(damage);
