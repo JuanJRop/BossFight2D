@@ -4,8 +4,8 @@ using Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss;
 using Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks;
 using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Enemy.EnemyScripts.Movement;
+using Project.Characters.Player.PlayerScripts.Core;
 using Project.Scripts.Boss;
-using Project.Scripts.Controller;
 using UnityEngine;
 
 namespace Project.Characters.Enemy.EnemyScripts.Combat
