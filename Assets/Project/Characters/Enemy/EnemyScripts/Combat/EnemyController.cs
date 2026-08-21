@@ -142,7 +142,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             registry = new MoleBossAttackRegistry(new IMoleBossAttack[]
             {
                 new AimedFanAttack(), radial, new SpiralAttack(), new CorridorAttack(),
-                new RockRainAttack(), new ChargeDashAttack()
+                new CrossfireAttack(), new RockRainAttack(), new ChargeDashAttack()
             });
             phaseTransition = new MoleBossPhaseTransition(radial);
         }

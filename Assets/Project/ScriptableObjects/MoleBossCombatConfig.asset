@@ -19,40 +19,46 @@ MonoBehaviour:
   rockVisualPrefab: {fileID: 100000, guid: 44bba67163af44a79a33ca56cfcb7401, type: 3}
   rockImpactPrefab: {fileID: 6626158853465845310, guid: 3b6d5328c827ed54ab051a86bfcfa74b, type: 3}
   dashChargeFxPrefab: {fileID: 100000, guid: 557a74f3f3f745078630b65591bb7eb1, type: 3}
-  phaseOneMinDelay: 0.8
-  phaseOneMaxDelay: 1.5
-  phaseTwoMinDelay: 0.58
-  phaseTwoMaxDelay: 1.08
+  phaseOneMinDelay: 0.65
+  phaseOneMaxDelay: 1.2
+  phaseTwoMinDelay: 0.42
+  phaseTwoMaxDelay: 0.82
   phaseOneBurrowChance: 0.45
   phaseTwoBurrowChance: 0.7
   burrowHideTime: 0.55
-  phaseOneRecovery: 0.55
-  phaseTwoRecovery: 0.35
+  phaseOneRecovery: 0.45
+  phaseTwoRecovery: 0.25
   phaseTransitionTime: 1.25
-  phaseOneFanVolleys: 3
-  phaseTwoFanVolleys: 5
-  phaseOneFanProjectiles: 3
-  phaseTwoFanProjectiles: 5
+  phaseOneFanVolleys: 4
+  phaseTwoFanVolleys: 6
+  phaseOneFanProjectiles: 5
+  phaseTwoFanProjectiles: 7
   phaseOneFanSpread: 16
   phaseTwoFanSpread: 13
-  phaseOneRadialRings: 2
-  phaseTwoRadialRings: 3
-  phaseOneRadialCount: 14
-  phaseTwoRadialCount: 20
-  phaseOneSpiralSteps: 24
-  phaseTwoSpiralSteps: 34
-  phaseOneSpiralArms: 3
-  phaseTwoSpiralArms: 4
+  phaseOneRadialRings: 3
+  phaseTwoRadialRings: 4
+  phaseOneRadialCount: 18
+  phaseTwoRadialCount: 26
+  phaseOneSpiralSteps: 30
+  phaseTwoSpiralSteps: 46
+  phaseOneSpiralArms: 4
+  phaseTwoSpiralArms: 5
   phaseOneCorridorWidth: 2.8
   phaseTwoCorridorWidth: 2.3
-  phaseOneCorridorWaves: 7
-  phaseTwoCorridorWaves: 10
-  phaseOneCorridorSpacing: 0.86
-  phaseTwoCorridorSpacing: 0.72
-  phaseOneRockCount: 4
-  phaseTwoRockCount: 7
-  rockWarningTime: 1.15
-  rockRadius: 1.15
+  phaseOneCorridorWaves: 10
+  phaseTwoCorridorWaves: 15
+  phaseOneCorridorSpacing: 0.72
+  phaseTwoCorridorSpacing: 0.58
+  phaseOneCrossfireGap: 2.8
+  phaseTwoCrossfireGap: 2.25
+  phaseOneCrossfireWaves: 8
+  phaseTwoCrossfireWaves: 13
+  phaseOneCrossfireSpacing: 0.78
+  phaseTwoCrossfireSpacing: 0.62
+  phaseOneRockCount: 10
+  phaseTwoRockCount: 18
+  rockWarningTime: 1
+  rockRadius: 1.35
   rockDamage: 18
   dashChargeTime: 0.85
   dashSpeed: 15

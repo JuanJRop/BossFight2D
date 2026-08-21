@@ -12,7 +12,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
         {
             int spawned = 0;
             int total = context.Config.RockCount(phase);
-            int rocksPerWave = phase == 2 ? 3 : 2;
+            int rocksPerWave = phase == 2 ? 6 : 4;
             while (spawned < total)
             {
                 int waveCount = Mathf.Min(rocksPerWave, total - spawned);
@@ -47,13 +47,13 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
         {
             List<RockMarker> markers = new(count);
             context.GetArenaBounds(out Vector2 minimum, out Vector2 maximum);
+            float radius = context.Config.RockRadius;
             for (int i = 0; i < count; i++)
             {
-                Vector2 target = context.Player.Position;
-                if (i > 0) target += Random.insideUnitCircle * (phase == 2 ? 2.4f : 1.8f);
-                target.x = Mathf.Clamp(target.x, minimum.x + context.Config.RockRadius, maximum.x - context.Config.RockRadius);
-                target.y = Mathf.Clamp(target.y, minimum.y + context.Config.RockRadius, maximum.y - context.Config.RockRadius);
-                GameObject warning = context.Telegraphs.CreateCircle("Rock impact warning", target, context.Config.RockRadius,
+                Vector2 target = i == 0
+                    ? ClampToArena(context.Player.Position, minimum, maximum, radius)
+                    : FindArenaTarget(markers, minimum, maximum, radius);
+                GameObject warning = context.Telegraphs.CreateCircle("Rock impact warning", target, radius,
                     new Color(1f, 0.72f, 0.05f, 0.95f));
                 GameObject rock = context.Telegraphs.CreatePrefab("Falling pixel rock",
                     context.Config.RockVisualPrefab, target + Vector2.up * 6f);
@@ -62,7 +62,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                     rock = context.Telegraphs.CreateSprite("Falling rock", target + Vector2.up * 6f,
                         context.Projectiles.ProjectileSprite, new Color(0.42f, 0.34f, 0.28f, 1f), 30);
                 }
-                rock.transform.localScale = Vector3.one * 0.25f;
+                rock.transform.localScale = Vector3.one * 0.55f;
                 markers.Add(new RockMarker(target, warning, rock));
             }
             return markers;
@@ -76,7 +76,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 if (marker.Rock != null)
                 {
                     marker.Rock.transform.position = Vector3.Lerp(marker.Target + Vector2.up * 6f, marker.Target, eased);
-                    marker.Rock.transform.localScale = Vector3.one * Mathf.Lerp(0.25f, 1.45f, eased);
+                    marker.Rock.transform.localScale = Vector3.one * Mathf.Lerp(0.55f, 2.05f, eased);
                 }
                 if (marker.Warning == null) continue;
                 LineRenderer line = marker.Warning.GetComponent<LineRenderer>();
@@ -95,12 +95,40 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             if (Vector2.Distance(context.Player.Position, target) <= context.Config.RockRadius)
                 context.Player.TryDamage(context.Config.RockDamage);
 
-            int shards = phase == 2 ? 10 : 6;
+            int shards = phase == 2 ? 14 : 8;
             for (int i = 0; i < shards; i++)
             {
                 Vector2 direction = MoleBossCombatContext.DirectionFromAngle(i * 360f / shards);
                 context.Projectiles.Spawn(target + direction * context.Config.RockRadius, direction, 0.72f, 0.65f);
             }
+        }
+
+        private static Vector2 FindArenaTarget(IReadOnlyList<RockMarker> markers, Vector2 minimum,
+            Vector2 maximum, float radius)
+        {
+            Vector2 candidate = Vector2.zero;
+            float minimumSpacing = radius * 1.7f;
+            for (int attempt = 0; attempt < 18; attempt++)
+            {
+                candidate = new Vector2(Random.Range(minimum.x + radius, maximum.x - radius),
+                    Random.Range(minimum.y + radius, maximum.y - radius));
+                bool separated = true;
+                for (int i = 0; i < markers.Count; i++)
+                {
+                    if (Vector2.Distance(candidate, markers[i].Target) >= minimumSpacing) continue;
+                    separated = false;
+                    break;
+                }
+                if (separated) break;
+            }
+            return candidate;
+        }
+
+        private static Vector2 ClampToArena(Vector2 target, Vector2 minimum, Vector2 maximum, float radius)
+        {
+            target.x = Mathf.Clamp(target.x, minimum.x + radius, maximum.x - radius);
+            target.y = Mathf.Clamp(target.y, minimum.y + radius, maximum.y - radius);
+            return target;
         }
 
         private readonly struct RockMarker

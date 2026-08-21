@@ -18,6 +18,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         RadialBurst,
         Spiral,
         Corridor,
+        Crossfire,
         RockRain,
         ChargeDash
     }

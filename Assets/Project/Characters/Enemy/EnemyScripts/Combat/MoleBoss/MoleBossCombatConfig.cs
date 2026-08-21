@@ -17,48 +17,56 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField] private GameObject dashChargeFxPrefab;
 
         [Header("AI Rhythm")]
-        [SerializeField, Min(0f)] private float phaseOneMinDelay = 0.8f;
-        [SerializeField, Min(0f)] private float phaseOneMaxDelay = 1.5f;
-        [SerializeField, Min(0f)] private float phaseTwoMinDelay = 0.58f;
-        [SerializeField, Min(0f)] private float phaseTwoMaxDelay = 1.08f;
+        [SerializeField, Min(0f)] private float phaseOneMinDelay = 0.65f;
+        [SerializeField, Min(0f)] private float phaseOneMaxDelay = 1.2f;
+        [SerializeField, Min(0f)] private float phaseTwoMinDelay = 0.42f;
+        [SerializeField, Min(0f)] private float phaseTwoMaxDelay = 0.82f;
         [SerializeField, Range(0f, 1f)] private float phaseOneBurrowChance = 0.45f;
         [SerializeField, Range(0f, 1f)] private float phaseTwoBurrowChance = 0.7f;
         [SerializeField, Min(0.1f)] private float burrowHideTime = 0.55f;
-        [SerializeField, Min(0f)] private float phaseOneRecovery = 0.55f;
-        [SerializeField, Min(0f)] private float phaseTwoRecovery = 0.35f;
+        [SerializeField, Min(0f)] private float phaseOneRecovery = 0.45f;
+        [SerializeField, Min(0f)] private float phaseTwoRecovery = 0.25f;
         [SerializeField, Min(0.1f)] private float phaseTransitionTime = 1.25f;
 
         [Header("Aimed Fan")]
-        [SerializeField, Min(1)] private int phaseOneFanVolleys = 3;
-        [SerializeField, Min(1)] private int phaseTwoFanVolleys = 5;
-        [SerializeField, Min(1)] private int phaseOneFanProjectiles = 3;
-        [SerializeField, Min(1)] private int phaseTwoFanProjectiles = 5;
+        [SerializeField, Min(1)] private int phaseOneFanVolleys = 4;
+        [SerializeField, Min(1)] private int phaseTwoFanVolleys = 6;
+        [SerializeField, Min(1)] private int phaseOneFanProjectiles = 5;
+        [SerializeField, Min(1)] private int phaseTwoFanProjectiles = 7;
         [SerializeField, Min(0f)] private float phaseOneFanSpread = 16f;
         [SerializeField, Min(0f)] private float phaseTwoFanSpread = 13f;
 
         [Header("Radial and Spiral")]
-        [SerializeField, Min(1)] private int phaseOneRadialRings = 2;
-        [SerializeField, Min(1)] private int phaseTwoRadialRings = 3;
-        [SerializeField, Min(1)] private int phaseOneRadialCount = 14;
-        [SerializeField, Min(1)] private int phaseTwoRadialCount = 20;
-        [SerializeField, Min(1)] private int phaseOneSpiralSteps = 24;
-        [SerializeField, Min(1)] private int phaseTwoSpiralSteps = 34;
-        [SerializeField, Min(1)] private int phaseOneSpiralArms = 3;
-        [SerializeField, Min(1)] private int phaseTwoSpiralArms = 4;
+        [SerializeField, Min(1)] private int phaseOneRadialRings = 3;
+        [SerializeField, Min(1)] private int phaseTwoRadialRings = 4;
+        [SerializeField, Min(1)] private int phaseOneRadialCount = 18;
+        [SerializeField, Min(1)] private int phaseTwoRadialCount = 26;
+        [SerializeField, Min(1)] private int phaseOneSpiralSteps = 30;
+        [SerializeField, Min(1)] private int phaseTwoSpiralSteps = 46;
+        [SerializeField, Min(1)] private int phaseOneSpiralArms = 4;
+        [SerializeField, Min(1)] private int phaseTwoSpiralArms = 5;
 
         [Header("Corridor")]
         [SerializeField, Min(0.1f)] private float phaseOneCorridorWidth = 2.8f;
         [SerializeField, Min(0.1f)] private float phaseTwoCorridorWidth = 2.3f;
-        [SerializeField, Min(1)] private int phaseOneCorridorWaves = 7;
-        [SerializeField, Min(1)] private int phaseTwoCorridorWaves = 10;
-        [SerializeField, Min(0.1f)] private float phaseOneCorridorSpacing = 0.86f;
-        [SerializeField, Min(0.1f)] private float phaseTwoCorridorSpacing = 0.72f;
+        [SerializeField, Min(1)] private int phaseOneCorridorWaves = 10;
+        [SerializeField, Min(1)] private int phaseTwoCorridorWaves = 15;
+        [SerializeField, Min(0.1f)] private float phaseOneCorridorSpacing = 0.72f;
+        [SerializeField, Min(0.1f)] private float phaseTwoCorridorSpacing = 0.58f;
+
+        [Header("Crossfire")]
+        [SerializeField, Min(0.1f)] private float phaseOneCrossfireGap = 2.8f;
+        [SerializeField, Min(0.1f)] private float phaseTwoCrossfireGap = 2.25f;
+        [SerializeField, Min(1)] private int phaseOneCrossfireWaves = 8;
+        [SerializeField, Min(1)] private int phaseTwoCrossfireWaves = 13;
+        [SerializeField, Min(0.1f)] private float phaseOneCrossfireSpacing = 0.78f;
+        [SerializeField, Min(0.1f)] private float phaseTwoCrossfireSpacing = 0.62f;
 
         [Header("Rock Rain")]
-        [SerializeField, Min(1)] private int phaseOneRockCount = 4;
-        [SerializeField, Min(1)] private int phaseTwoRockCount = 7;
-        [SerializeField, Min(0.1f)] private float rockWarningTime = 1.15f;
-        [SerializeField, Min(0.1f)] private float rockRadius = 1.15f;
+        [SerializeField, Min(1)] private int phaseOneRockCount = 10;
+        [SerializeField, Min(1)] private int phaseTwoRockCount = 18;
+        [SerializeField, Min(0.1f)] private float rockWarningTime = 1f;
+        [SerializeField, Min(0.1f)] private float rockRadius = 1.35f;
         [SerializeField, Min(0f)] private float rockDamage = 18f;
 
         [Header("Charge Dash")]
@@ -102,6 +110,9 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public float CorridorWidth(int phase) => phase == 2 ? phaseTwoCorridorWidth : phaseOneCorridorWidth;
         public int CorridorWaves(int phase) => phase == 2 ? phaseTwoCorridorWaves : phaseOneCorridorWaves;
         public float CorridorSpacing(int phase) => phase == 2 ? phaseTwoCorridorSpacing : phaseOneCorridorSpacing;
+        public float CrossfireGap(int phase) => phase == 2 ? phaseTwoCrossfireGap : phaseOneCrossfireGap;
+        public int CrossfireWaves(int phase) => phase == 2 ? phaseTwoCrossfireWaves : phaseOneCrossfireWaves;
+        public float CrossfireSpacing(int phase) => phase == 2 ? phaseTwoCrossfireSpacing : phaseOneCrossfireSpacing;
         public int RockCount(int phase) => phase == 2 ? phaseTwoRockCount : phaseOneRockCount;
 
         private void OnValidate()
