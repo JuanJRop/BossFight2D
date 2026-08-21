@@ -62,7 +62,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                     rock = context.Telegraphs.CreateSprite("Falling rock", target + Vector2.up * 6f,
                         context.Projectiles.ProjectileSprite, new Color(0.42f, 0.34f, 0.28f, 1f), 30);
                 }
-                rock.transform.localScale = Vector3.one * 0.55f;
+                rock.transform.localScale = Vector3.one * 0.65f;
                 markers.Add(new RockMarker(target, warning, rock));
             }
             return markers;
@@ -76,7 +76,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 if (marker.Rock != null)
                 {
                     marker.Rock.transform.position = Vector3.Lerp(marker.Target + Vector2.up * 6f, marker.Target, eased);
-                    marker.Rock.transform.localScale = Vector3.one * Mathf.Lerp(0.55f, 2.05f, eased);
+                    marker.Rock.transform.localScale = Vector3.one * Mathf.Lerp(0.65f, 2.3f, eased);
                 }
                 if (marker.Warning == null) continue;
                 LineRenderer line = marker.Warning.GetComponent<LineRenderer>();
@@ -99,7 +99,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             for (int i = 0; i < shards; i++)
             {
                 Vector2 direction = MoleBossCombatContext.DirectionFromAngle(i * 360f / shards);
-                context.Projectiles.Spawn(target + direction * context.Config.RockRadius, direction, 0.72f, 0.65f);
+                context.Projectiles.Spawn(target + direction * context.Config.RockRadius, direction, 0.72f, 0.65f,
+                    MoleProjectilePalette.Acid);
             }
         }
 

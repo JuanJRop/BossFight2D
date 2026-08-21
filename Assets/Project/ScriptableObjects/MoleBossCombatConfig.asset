@@ -43,22 +43,22 @@ MonoBehaviour:
   phaseTwoSpiralSteps: 46
   phaseOneSpiralArms: 4
   phaseTwoSpiralArms: 5
-  phaseOneCorridorWidth: 2.8
-  phaseTwoCorridorWidth: 2.3
-  phaseOneCorridorWaves: 10
-  phaseTwoCorridorWaves: 15
-  phaseOneCorridorSpacing: 0.72
-  phaseTwoCorridorSpacing: 0.58
-  phaseOneCrossfireGap: 2.8
-  phaseTwoCrossfireGap: 2.25
-  phaseOneCrossfireWaves: 8
-  phaseTwoCrossfireWaves: 13
-  phaseOneCrossfireSpacing: 0.78
-  phaseTwoCrossfireSpacing: 0.62
+  phaseOneLaserWaves: 5
+  phaseTwoLaserWaves: 7
+  phaseOneLasersPerWave: 1
+  phaseTwoLasersPerWave: 2
+  phaseOneLaserWarning: 0.85
+  phaseTwoLaserWarning: 0.62
+  phaseOneLaserActiveTime: 0.52
+  phaseTwoLaserActiveTime: 0.46
+  phaseOneLaserWidth: 0.82
+  phaseTwoLaserWidth: 0.95
+  phaseOneLaserDamage: 24
+  phaseTwoLaserDamage: 30
   phaseOneRockCount: 10
   phaseTwoRockCount: 18
   rockWarningTime: 1
-  rockRadius: 1.35
+  rockRadius: 1.45
   rockDamage: 18
   dashChargeTime: 0.85
   dashSpeed: 15

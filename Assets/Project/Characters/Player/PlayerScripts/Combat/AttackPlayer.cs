@@ -80,6 +80,9 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
             if (fireTimer > 0f) fireTimer -= Time.deltaTime;
 
+            if (Input.GetKeyDown(KeyCode.R) && !isReloading && counterShoots > 0)
+                StartCoroutine(Reload());
+
             if (powerUpHoming != null && powerUpHoming.IsActive)
             {
                 AutoShoot();

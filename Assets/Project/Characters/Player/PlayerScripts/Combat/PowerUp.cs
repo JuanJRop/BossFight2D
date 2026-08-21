@@ -100,6 +100,15 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             NotifyManaChanged();
         }
 
+        public bool TryAddMana(float amount)
+        {
+            if (amount <= 0f || currentMana >= maxMana) return false;
+            currentMana = Mathf.Min(maxMana, currentMana + amount);
+            regenTimer = 0f;
+            NotifyManaChanged();
+            return true;
+        }
+
         public float GetManaNormalized()
         {
             return maxMana > 0f ? currentMana / maxMana : 0f;

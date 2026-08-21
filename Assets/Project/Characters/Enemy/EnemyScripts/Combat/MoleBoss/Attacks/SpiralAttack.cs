@@ -24,7 +24,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 float angle = step * (phase == 2 ? 15f : 18f);
                 for (int arm = 0; arm < arms; arm++)
                     context.Projectiles.Spawn(context.FirePosition,
-                        MoleBossCombatContext.DirectionFromAngle(angle + arm * 360f / arms), 0.92f);
+                        MoleBossCombatContext.DirectionFromAngle(angle + arm * 360f / arms), 0.92f, 1f,
+                        MoleProjectilePalette.Rose);
                 yield return context.Wait(phase == 2 ? 0.105f : 0.14f);
             }
         }

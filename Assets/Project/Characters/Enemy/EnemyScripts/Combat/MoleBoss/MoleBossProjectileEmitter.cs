@@ -27,7 +27,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             }
         }
 
-        public bool Spawn(Vector2 position, Vector2 direction, float speedMultiplier = 1f, float damageMultiplier = 1f)
+        public bool Spawn(Vector2 position, Vector2 direction, float speedMultiplier = 1f, float damageMultiplier = 1f,
+            MoleProjectilePalette palette = MoleProjectilePalette.Ember)
         {
             if (!IsValid || direction.sqrMagnitude < 0.001f) return false;
 
@@ -47,6 +48,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
 
             entity.SetPool(pool, prefab, projectile, BulletOwner.Enemy,
                 config.BulletDamage * Mathf.Max(0f, damageMultiplier), config.BulletLifeTime);
+            MoleProjectileVisual visual = projectile.GetComponentInChildren<MoleProjectileVisual>(true);
+            if (visual != null) visual.Apply(palette);
             body.linearVelocity = direction * config.BulletSpeed * Mathf.Max(0.1f, speedMultiplier);
             return true;
         }
