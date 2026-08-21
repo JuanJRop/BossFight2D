@@ -32,6 +32,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 }
 
                 context.SetState(MoleBossState.Attacking);
+                context.TriggerAttackAnimation();
                 foreach (RockMarker marker in markers)
                 {
                     ResolveImpact(context, marker.Target, phase);
@@ -54,8 +55,13 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 target.y = Mathf.Clamp(target.y, minimum.y + context.Config.RockRadius, maximum.y - context.Config.RockRadius);
                 GameObject warning = context.Telegraphs.CreateCircle("Rock impact warning", target, context.Config.RockRadius,
                     new Color(1f, 0.72f, 0.05f, 0.95f));
-                GameObject rock = context.Telegraphs.CreateSprite("Falling rock", target + Vector2.up * 6f,
-                    context.Projectiles.ProjectileSprite, new Color(0.42f, 0.34f, 0.28f, 1f), 30);
+                GameObject rock = context.Telegraphs.CreatePrefab("Falling pixel rock",
+                    context.Config.RockVisualPrefab, target + Vector2.up * 6f);
+                if (rock == null)
+                {
+                    rock = context.Telegraphs.CreateSprite("Falling rock", target + Vector2.up * 6f,
+                        context.Projectiles.ProjectileSprite, new Color(0.42f, 0.34f, 0.28f, 1f), 30);
+                }
                 rock.transform.localScale = Vector3.one * 0.25f;
                 markers.Add(new RockMarker(target, warning, rock));
             }
@@ -85,6 +91,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
 
         private static void ResolveImpact(MoleBossCombatContext context, Vector2 target, int phase)
         {
+            context.Telegraphs.CreatePrefab("Rock impact FX", context.Config.RockImpactPrefab, target, 1.6f);
             if (Vector2.Distance(context.Player.Position, target) <= context.Config.RockRadius)
                 context.Player.TryDamage(context.Config.RockDamage);
 

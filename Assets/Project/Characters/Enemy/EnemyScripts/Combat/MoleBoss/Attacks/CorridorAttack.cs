@@ -21,6 +21,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             context.Telegraphs.Release(right);
 
             context.SetState(MoleBossState.Attacking);
+            context.TriggerAttackAnimation();
             for (int wave = 0; wave < context.Config.CorridorWaves(phase); wave++)
             {
                 float offset = Mathf.Sin(wave * 0.72f) * (phase == 2 ? 1.3f : 0.75f);

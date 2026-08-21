@@ -18,6 +18,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             if (context.Movement != null && context.Movement.HasValidSpots)
                 yield return context.Movement.BurrowToRandomSpot(Mathf.Max(0.2f, context.Config.PhaseTransitionTime * 0.45f));
 
+            GameObject energy = context.Telegraphs.CreatePrefab("Phase transition energy",
+                context.Config.DashChargeFxPrefab, context.BossPosition, 1.8f);
             GameObject ring = context.Telegraphs.CreateCircle("Phase two shockwave", context.BossPosition, 0.5f,
                 new Color(1f, 0.15f, 0.05f, 1f));
             LineRenderer line = ring != null ? ring.GetComponent<LineRenderer>() : null;
@@ -40,6 +42,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
                 yield return null;
             }
             context.Telegraphs.Release(ring);
+            context.Telegraphs.Release(energy);
             yield return radialBurst.Execute(context, 2);
         }
     }

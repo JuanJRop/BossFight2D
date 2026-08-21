@@ -39,6 +39,8 @@ The mole combat follows a composition-based architecture:
 
 Adding a pattern now means implementing `IMoleBossAttack` and registering it, without modifying the execution flow or the existing attacks.
 
+Combat presentation is prefab-driven while attack decisions remain in code. The shared enemy projectile uses an animated ember/fireball from the installed pixel-art pack, rock rain instantiates a rotating mine-rock prefab plus an animated impact, and the charge dash uses a looping red energy effect. These references live in `MoleBossCombatConfig`, so presentation can be replaced without editing attack logic.
+
 The three planned playable characters are cosmetic only and use the same gameplay prefab and statistics. `CharacterSkinData` stores visual differences without duplicating combat code.
 
 ## Project

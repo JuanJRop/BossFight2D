@@ -11,6 +11,11 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField, Min(0.1f)] private float bulletSpeed = 7f;
         [SerializeField, Min(0.1f)] private float bulletLifeTime = 8f;
 
+        [Header("Presentation Prefabs")]
+        [SerializeField] private GameObject rockVisualPrefab;
+        [SerializeField] private GameObject rockImpactPrefab;
+        [SerializeField] private GameObject dashChargeFxPrefab;
+
         [Header("AI Rhythm")]
         [SerializeField, Min(0f)] private float phaseOneMinDelay = 0.8f;
         [SerializeField, Min(0f)] private float phaseOneMaxDelay = 1.5f;
@@ -68,6 +73,9 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public float BulletDamage => bulletDamage;
         public float BulletSpeed => bulletSpeed;
         public float BulletLifeTime => bulletLifeTime;
+        public GameObject RockVisualPrefab => rockVisualPrefab;
+        public GameObject RockImpactPrefab => rockImpactPrefab;
+        public GameObject DashChargeFxPrefab => dashChargeFxPrefab;
         public float BurrowHideTime => burrowHideTime;
         public float PhaseTransitionTime => phaseTransitionTime;
         public float RockWarningTime => rockWarningTime;

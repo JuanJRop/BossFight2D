@@ -44,6 +44,16 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             return visual;
         }
 
+        public GameObject CreatePrefab(string name, GameObject prefab, Vector2 position, float scale = 1f)
+        {
+            if (prefab == null) return null;
+            GameObject visual = Object.Instantiate(prefab, position, Quaternion.identity);
+            visual.name = name;
+            visual.transform.localScale *= Mathf.Max(0.01f, scale);
+            visuals.Add(visual);
+            return visual;
+        }
+
         public void Release(GameObject visual)
         {
             if (visual == null) return;

@@ -21,6 +21,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             destination.y = Mathf.Clamp(destination.y, minimum.y + 0.6f, maximum.y - 0.6f);
 
             context.SetState(MoleBossState.Telegraphing);
+            GameObject chargeFx = context.Telegraphs.CreatePrefab("Dash charge FX",
+                context.Config.DashChargeFxPrefab, start, 1.35f);
             GameObject guide = context.Telegraphs.CreateLine("Dash trajectory", new Color(1f, 0.08f, 0.08f, 0.95f),
                 0.12f, start, destination);
             LineRenderer line = guide != null ? guide.GetComponent<LineRenderer>() : null;
@@ -41,6 +43,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             }
 
             context.SetState(MoleBossState.Attacking);
+            context.Telegraphs.Release(chargeFx);
             context.TriggerAttackAnimation();
             bool hitPlayer = false;
             float speed = context.Config.DashSpeed * (phase == 2 ? 1.18f : 1f);

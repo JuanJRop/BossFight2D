@@ -16,6 +16,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             context.Telegraphs.Release(warning);
 
             context.SetState(MoleBossState.Attacking);
+            context.TriggerAttackAnimation();
             int steps = context.Config.SpiralSteps(phase);
             int arms = context.Config.SpiralArms(phase);
             for (int step = 0; step < steps; step++)
