@@ -491,7 +491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92e0f987bc2d37a43ba9177caef88e6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.EnemyAttackController
-  attackConfig: {fileID: 11400000, guid: 1c82e94be64e9ac4a8b55120bc314f1f, type: 2}
+  config: {fileID: 11400000, guid: f3b56959f7174f2a99ade13bd72c0b9c, type: 2}
   firePoint: {fileID: 1963928891665542140}
   player: {fileID: 0}
   pool: {fileID: 0}
@@ -500,26 +500,6 @@ MonoBehaviour:
   phaseController: {fileID: 6832211149300012345}
   movement: {fileID: 4826814334081951953}
   bossBody: {fileID: 3701382818455734294}
-  minDelay: 0.8
-  maxDelay: 1.5
-  phaseOneBurrowChance: 0.45
-  phaseTwoBurrowChance: 0.7
-  burrowHideTime: 0.55
-  phaseTransitionTime: 1.25
-  bulletDamage: 8
-  bulletSpeed: 7
-  bulletLifeTime: 8
-  phaseOneRockCount: 4
-  phaseTwoRockCount: 7
-  rockWarningTime: 1.15
-  rockRadius: 1.15
-  rockDamage: 18
-  dashChargeTime: 0.85
-  dashSpeed: 15
-  dashMaxDistance: 10
-  dashHitRadius: 1.2
-  dashDamage: 22
-  dashPushForce: 13
 --- !u!114 &6832211149300012345
 MonoBehaviour:
   m_ObjectHideFlags: 0

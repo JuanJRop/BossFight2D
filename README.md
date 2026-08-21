@@ -23,10 +23,21 @@ The AI uses a readable state cycle: burrow, emerge, telegraph, attack, and recov
 ## Runtime structure
 
 - `Characters/Player`: movement, dodge, shooting, sound, and cosmetic presentation.
-- `Characters/Enemy`: boss movement and attack executors.
+- `Characters/Enemy`: boss movement and an encapsulated combat domain.
 - `Scripts/Boss`: phase orchestration and phase checkpoints.
 - `Scripts/Controller`: game flow and UI coordination.
 - `ObjectPool`: shared lifetime management for projectiles and encounter hazards.
+
+The mole combat follows a composition-based architecture:
+
+- `EnemyAttackController` only owns the AI loop and state transitions.
+- `IMoleBossAttack` isolates every pattern in its own class under `MoleBoss/Attacks`.
+- `MoleBossAttackSelector` owns introductions, weighting, distance bias, and repetition rules.
+- `MoleBossCombatContext` exposes only the operations attacks are allowed to use.
+- player targeting, projectile pooling, and temporary telegraphs are separate services.
+- `MoleBossCombatConfig` is the single ScriptableObject for encounter tuning; attacks contain no mutable balance data.
+
+Adding a pattern now means implementing `IMoleBossAttack` and registering it, without modifying the execution flow or the existing attacks.
 
 The three planned playable characters are cosmetic only and use the same gameplay prefab and statistics. `CharacterSkinData` stores visual differences without duplicating combat code.
 

@@ -149,7 +149,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void Shoot()
         {
-            if (currentAttack == null || currentAttack.bulletPrefab == null || objectPool == null || firePoint == null)
+            if (currentAttack == null || currentAttack.BulletPrefab == null || objectPool == null || firePoint == null)
             {
                 Debug.LogError("AttackPlayer is missing AttackData, bullet prefab, pool, or fire point.", this);
                 return;
@@ -158,7 +158,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             if (enemyTarget == null) ResolveEnemy();
 
             GameObject bulletObject = objectPool.GetObject(
-                currentAttack.bulletPrefab,
+                currentAttack.BulletPrefab,
                 firePoint.position,
                 firePoint.rotation
             );
@@ -169,7 +169,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             Bullet bullet = bulletObject.GetComponentInChildren<Bullet>(true);
             if (body == null || bullet == null)
             {
-                objectPool.ReturnObject(bulletObject, currentAttack.bulletPrefab);
+                objectPool.ReturnObject(bulletObject, currentAttack.BulletPrefab);
                 Debug.LogError("Player projectile requires Bullet and Rigidbody2D.", bulletObject);
                 return;
             }
@@ -177,14 +177,14 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             counterShoots++;
             if (playerSoundController != null) playerSoundController.PlayFire(volumeShoot);
 
-            body.linearVelocity = firePoint.right * currentAttack.speed;
+            body.linearVelocity = firePoint.right * currentAttack.Speed;
             bullet.SetPool(
                 objectPool,
-                currentAttack.bulletPrefab,
+                currentAttack.BulletPrefab,
                 bulletObject,
-                currentAttack.lifeTime,
+                currentAttack.LifeTime,
                 BulletOwner.Player,
-                currentAttack.damage
+                currentAttack.Damage
             );
 
             bool homing = powerUpHoming != null && powerUpHoming.IsActive;

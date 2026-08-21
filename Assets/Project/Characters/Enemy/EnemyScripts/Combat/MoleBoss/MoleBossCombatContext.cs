@@ -1,0 +1,88 @@
+using System;
+using System.Collections;
+using Project.Characters.Enemy.EnemyScripts.Movement;
+using Project.Scripts.Controller;
+using UnityEngine;
+
+namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
+{
+    public sealed class MoleBossCombatContext
+    {
+        private readonly Transform boss;
+        private readonly Transform firePoint;
+        private readonly Animator animator;
+        private readonly Action<MoleBossState> changeState;
+
+        public MoleBossCombatContext(Transform boss, Transform firePoint, Animator animator, Rigidbody2D body,
+            EnemyMove movement, MoleBossPlayerTarget player, MoleBossProjectileEmitter projectiles,
+            MoleBossTelegraphService telegraphs, MoleBossCombatConfig config, Action<MoleBossState> changeState)
+        {
+            this.boss = boss;
+            this.firePoint = firePoint;
+            this.animator = animator;
+            this.changeState = changeState;
+            Body = body;
+            Movement = movement;
+            Player = player;
+            Projectiles = projectiles;
+            Telegraphs = telegraphs;
+            Config = config;
+        }
+
+        public Rigidbody2D Body { get; }
+        public EnemyMove Movement { get; }
+        public MoleBossPlayerTarget Player { get; }
+        public MoleBossProjectileEmitter Projectiles { get; }
+        public MoleBossTelegraphService Telegraphs { get; }
+        public MoleBossCombatConfig Config { get; }
+        public Vector2 BossPosition => boss != null ? boss.position : Vector2.zero;
+        public Vector2 FirePosition => firePoint != null ? firePoint.position : BossPosition;
+
+        public void SetState(MoleBossState state) => changeState?.Invoke(state);
+        public void TriggerAttackAnimation()
+        {
+            if (animator != null) animator.SetTrigger("Attack");
+        }
+
+        public IEnumerator Wait(float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < Mathf.Max(0f, duration))
+            {
+                if (!IsPaused) elapsed += Time.deltaTime;
+                yield return null;
+            }
+        }
+
+        public bool IsPaused => UIManager.instance != null && UIManager.instance.IsPaused;
+
+        public void GetArenaBounds(out Vector2 minimum, out Vector2 maximum)
+        {
+            Camera camera = Camera.main;
+            if (camera != null && camera.orthographic)
+            {
+                float distance = Mathf.Abs(camera.transform.position.z);
+                minimum = camera.ViewportToWorldPoint(new Vector3(0.04f, 0.06f, distance));
+                maximum = camera.ViewportToWorldPoint(new Vector3(0.96f, 0.94f, distance));
+                return;
+            }
+
+            minimum = new Vector2(-9f, -5f);
+            maximum = new Vector2(9f, 5f);
+        }
+
+        public static Vector2 DirectionFromAngle(float degrees)
+        {
+            float radians = degrees * Mathf.Deg2Rad;
+            return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
+        }
+
+        public static Vector2 Rotate(Vector2 direction, float degrees)
+        {
+            float radians = degrees * Mathf.Deg2Rad;
+            float cosine = Mathf.Cos(radians);
+            float sine = Mathf.Sin(radians);
+            return new Vector2(direction.x * cosine - direction.y * sine, direction.x * sine + direction.y * cosine);
+        }
+    }
+}

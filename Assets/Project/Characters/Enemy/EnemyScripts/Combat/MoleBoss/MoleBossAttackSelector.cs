@@ -1,0 +1,65 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
+{
+    public sealed class MoleBossAttackSelector
+    {
+        private readonly Queue<MoleBossAttack> phaseOneIntroduction = new();
+        private readonly Queue<MoleBossAttack> phaseTwoIntroduction = new();
+        private MoleBossAttack? previous;
+
+        public MoleBossAttackSelector()
+        {
+            Enqueue(phaseOneIntroduction, MoleBossAttack.AimedFan, MoleBossAttack.RadialBurst,
+                MoleBossAttack.RockRain, MoleBossAttack.ChargeDash, MoleBossAttack.Corridor);
+            Enqueue(phaseTwoIntroduction, MoleBossAttack.Spiral, MoleBossAttack.RockRain,
+                MoleBossAttack.ChargeDash, MoleBossAttack.Corridor);
+        }
+
+        public MoleBossAttack Select(int phase, float playerDistance)
+        {
+            Queue<MoleBossAttack> introduction = phase == 2 ? phaseTwoIntroduction : phaseOneIntroduction;
+            MoleBossAttack selected;
+            if (introduction.Count > 0)
+            {
+                selected = introduction.Dequeue();
+            }
+            else
+            {
+                MoleBossAttack[] choices = phase == 2 ? PhaseTwoChoices : PhaseOneChoices;
+                selected = choices[Random.Range(0, choices.Length)];
+                for (int attempt = 0; attempt < 6 && previous.HasValue && selected == previous.Value; attempt++)
+                    selected = choices[Random.Range(0, choices.Length)];
+
+                if (phase == 2 && playerDistance > 7f && Random.value < 0.35f)
+                    selected = MoleBossAttack.ChargeDash;
+            }
+
+            previous = selected;
+            return selected;
+        }
+
+        private static readonly MoleBossAttack[] PhaseOneChoices =
+        {
+            MoleBossAttack.AimedFan, MoleBossAttack.AimedFan,
+            MoleBossAttack.RadialBurst, MoleBossAttack.RadialBurst,
+            MoleBossAttack.RockRain, MoleBossAttack.RockRain,
+            MoleBossAttack.Corridor, MoleBossAttack.ChargeDash
+        };
+
+        private static readonly MoleBossAttack[] PhaseTwoChoices =
+        {
+            MoleBossAttack.Spiral, MoleBossAttack.Spiral,
+            MoleBossAttack.Corridor, MoleBossAttack.Corridor,
+            MoleBossAttack.RockRain, MoleBossAttack.RockRain, MoleBossAttack.RockRain,
+            MoleBossAttack.ChargeDash, MoleBossAttack.ChargeDash,
+            MoleBossAttack.RadialBurst, MoleBossAttack.AimedFan
+        };
+
+        private static void Enqueue(Queue<MoleBossAttack> queue, params MoleBossAttack[] attacks)
+        {
+            foreach (MoleBossAttack attack in attacks) queue.Enqueue(attack);
+        }
+    }
+}

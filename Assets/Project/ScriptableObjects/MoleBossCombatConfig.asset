@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79ee004f76d44505a09097aa90838bd8, type: 3}
+  m_Name: MoleBossCombatConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.MoleBossCombatConfig
+  projectileData: {fileID: 11400000, guid: 4fd8611d1cf81b241aab73468f211c00, type: 2}
+  bulletDamage: 8
+  bulletSpeed: 7
+  bulletLifeTime: 8
+  phaseOneMinDelay: 0.8
+  phaseOneMaxDelay: 1.5
+  phaseTwoMinDelay: 0.58
+  phaseTwoMaxDelay: 1.08
+  phaseOneBurrowChance: 0.45
+  phaseTwoBurrowChance: 0.7
+  burrowHideTime: 0.55
+  phaseOneRecovery: 0.55
+  phaseTwoRecovery: 0.35
+  phaseTransitionTime: 1.25
+  phaseOneFanVolleys: 3
+  phaseTwoFanVolleys: 5
+  phaseOneFanProjectiles: 3
+  phaseTwoFanProjectiles: 5
+  phaseOneFanSpread: 16
+  phaseTwoFanSpread: 13
+  phaseOneRadialRings: 2
+  phaseTwoRadialRings: 3
+  phaseOneRadialCount: 14
+  phaseTwoRadialCount: 20
+  phaseOneSpiralSteps: 24
+  phaseTwoSpiralSteps: 34
+  phaseOneSpiralArms: 3
+  phaseTwoSpiralArms: 4
+  phaseOneCorridorWidth: 2.8
+  phaseTwoCorridorWidth: 2.3
+  phaseOneCorridorWaves: 7
+  phaseTwoCorridorWaves: 10
+  phaseOneCorridorSpacing: 0.86
+  phaseTwoCorridorSpacing: 0.72
+  phaseOneRockCount: 4
+  phaseTwoRockCount: 7
+  rockWarningTime: 1.15
+  rockRadius: 1.15
+  rockDamage: 18
+  dashChargeTime: 0.85
+  dashSpeed: 15
+  dashMaxDistance: 10
+  dashHitRadius: 1.2
+  dashDamage: 22
+  dashPushForce: 13

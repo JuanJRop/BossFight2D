@@ -5,11 +5,17 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
     [CreateAssetMenu(fileName = "AttackData", menuName = "BossFight2D/Combat/Attack Data")]
     public class AttackData : ScriptableObject
     {
-        [Min(0f)] public float damage = 1f;
-        [Min(0f)] public float cooldown = 1f;
-        [Min(0f)] public float speed = 5f;
-        [Min(0.1f)] public float lifeTime = 5f;
-        public GameObject bulletPrefab;
+        [SerializeField, Min(0f)] private float damage = 1f;
+        [SerializeField, Min(0f)] private float cooldown = 1f;
+        [SerializeField, Min(0f)] private float speed = 5f;
+        [SerializeField, Min(0.1f)] private float lifeTime = 5f;
+        [SerializeField] private GameObject bulletPrefab;
+
+        public float Damage => damage;
+        public float Cooldown => cooldown;
+        public float Speed => speed;
+        public float LifeTime => lifeTime;
+        public GameObject BulletPrefab => bulletPrefab;
 
         private void OnValidate()
         {
