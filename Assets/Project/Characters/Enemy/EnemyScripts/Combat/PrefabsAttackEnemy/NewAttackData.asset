@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bc8ea3fed115c74e8dc8cb8fd76b44f, type: 3}
   m_Name: NewAttackData
   m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.AttackData
-  bulletPrefab: {fileID: 4183468588018596378, guid: ac06b04afc9e5f948b2af129a4cab5e2, type: 3}
   damage: 2
   cooldown: 2
   speed: 2
-  owner: 1
+  lifeTime: 5
+  bulletPrefab: {fileID: 4183468588018596378, guid: ac06b04afc9e5f948b2af129a4cab5e2, type: 3}

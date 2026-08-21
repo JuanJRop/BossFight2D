@@ -7,7 +7,6 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
     public class EnemyAttackController : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private AttackFactory factory;
         [SerializeField] private AttackConfiguration attackConfig;
 
         [Header("Context")]
@@ -20,37 +19,60 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         [SerializeField] private float minDelay = 1f;
         [SerializeField] private float maxDelay = 3f;
 
-        private void Start()
+        private Coroutine attackRoutine;
+
+        private void OnEnable()
         {
-            StartCoroutine(AttackLoop());
+            RestartAttacks();
         }
-        
-        private IEnumerator AttackLoop()
+
+        private void OnDisable()
         {
-            while (true)
+            if (attackRoutine != null)
             {
-                yield return new WaitForSeconds(Random.Range(minDelay, maxDelay));
-                ExecuteRandomAttack();
+                StopCoroutine(attackRoutine);
+                attackRoutine = null;
             }
         }
 
-        private void ExecuteRandomAttack()
+        public void RestartAttacks()
         {
-            // Obtener un executor aleatorio directamente del config
-            AttackExecutorBase executor = attackConfig.GetRandomExecutor();
-            if (executor == null) return;
+            if (!isActiveAndEnabled) return;
 
-            AttackContext ctx = new SimpleAttackContext()
+            if (attackRoutine != null) StopCoroutine(attackRoutine);
+            attackRoutine = StartCoroutine(AttackLoop());
+        }
+
+        private IEnumerator AttackLoop()
+        {
+            while (enabled)
+            {
+                float delay = Random.Range(Mathf.Max(0f, minDelay), Mathf.Max(minDelay, maxDelay));
+                yield return new WaitForSeconds(delay);
+
+                AttackExecutorBase executor = attackConfig != null ? attackConfig.GetRandomExecutor() : null;
+                if (executor == null) continue;
+
+                ExecuteAttack(executor);
+                if (executor.Data != null && executor.Data.cooldown > 0f)
+                {
+                    yield return new WaitForSeconds(executor.Data.cooldown);
+                }
+            }
+        }
+
+        private void ExecuteAttack(AttackExecutorBase executor)
+        {
+            AttackContext context = new SimpleAttackContext
             {
                 firePoint = firePoint,
                 player = player,
                 pool = pool,
-                data = executor.Data, // Tomar el Data del executor
+                data = executor.Data,
                 animator = animator
             };
 
-            AttackExecutorBase instance = factory.Create(executor);
-            instance.Execute(ctx);
+            executor.Execute(context);
         }
     }
 }
