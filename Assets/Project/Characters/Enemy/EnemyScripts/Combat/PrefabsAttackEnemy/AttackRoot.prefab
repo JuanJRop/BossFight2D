@@ -48,6 +48,7 @@ GameObject:
   - component: {fileID: 7978507632148179893}
   - component: {fileID: 4274018648620258067}
   - component: {fileID: 740400001}
+  - component: {fileID: 740500001}
   m_Layer: 0
   m_Name: Container
   m_TagString: Untagged
@@ -355,6 +356,18 @@ TrailRenderer:
   m_Autodestruct: 0
   m_Emitting: 1
   m_ApplyActiveColorSpace: 1
+--- !u!114 &740500001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8385044605934569375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1c74f82b93a46bd99a1219d54c8ec72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.MoleProjectileVisual
 --- !u!1 &740000001
 GameObject:
   m_ObjectHideFlags: 0

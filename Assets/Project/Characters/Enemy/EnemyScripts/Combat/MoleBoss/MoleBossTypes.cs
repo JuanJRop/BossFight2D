@@ -17,9 +17,17 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         AimedFan,
         RadialBurst,
         Spiral,
-        Corridor,
-        Crossfire,
+        LaserZones,
         RockRain,
         ChargeDash
+    }
+
+    public enum MoleProjectilePalette
+    {
+        Ember,
+        Cyan,
+        Violet,
+        Acid,
+        Rose
     }
 }

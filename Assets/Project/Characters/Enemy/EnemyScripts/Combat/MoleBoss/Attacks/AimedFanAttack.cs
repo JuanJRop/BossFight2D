@@ -25,7 +25,9 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 Vector2 direction = (context.Player.Position - context.FirePosition).normalized;
                 float middle = (count - 1) * 0.5f;
                 for (int i = 0; i < count; i++)
-                    context.Projectiles.Spawn(context.FirePosition, MoleBossCombatContext.Rotate(direction, (i - middle) * spread));
+                    context.Projectiles.Spawn(context.FirePosition,
+                        MoleBossCombatContext.Rotate(direction, (i - middle) * spread), 1f, 1f,
+                        MoleProjectilePalette.Cyan);
 
                 context.TriggerAttackAnimation();
                 yield return context.Wait(phase == 2 ? 0.32f : 0.48f);
