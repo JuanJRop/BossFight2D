@@ -18,7 +18,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             {
                 List<Beam> beams = CreateBeams(context, phase, beamsPerWave, minimum, maximum);
                 context.SetState(MoleBossState.Telegraphing);
-                yield return context.Wait(context.Config.LaserWarning(phase));
+                yield return RunWarning(context, beams, phase);
 
                 context.SetState(MoleBossState.Attacking);
                 context.TriggerAttackAnimation();
@@ -43,6 +43,27 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 beams.Add(new Beam(start, end, warning));
             }
             return beams;
+        }
+
+        private static IEnumerator RunWarning(MoleBossCombatContext context, IEnumerable<Beam> beams, int phase)
+        {
+            float duration = context.Config.LaserWarning(phase);
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                if (!context.IsPaused)
+                {
+                    elapsed += Time.deltaTime;
+                    float progress = Mathf.Clamp01(elapsed / duration);
+                    float pulse = 0.1f + Mathf.PingPong(elapsed * 0.45f, 0.16f);
+                    foreach (Beam beam in beams)
+                    {
+                        SetWidth(beam.Warning, pulse);
+                        SetAlpha(beam.Warning, Mathf.Lerp(0.55f, 1f, progress));
+                    }
+                }
+                yield return null;
+            }
         }
 
         private static void Activate(IEnumerable<Beam> beams, MoleBossCombatContext context, int phase)
@@ -133,6 +154,19 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             if (line == null) return;
             line.startWidth = width;
             line.endWidth = width;
+        }
+
+        private static void SetAlpha(GameObject visual, float alpha)
+        {
+            if (visual == null) return;
+            LineRenderer line = visual.GetComponent<LineRenderer>();
+            if (line == null) return;
+            Color start = line.startColor;
+            Color end = line.endColor;
+            start.a = alpha;
+            end.a = alpha;
+            line.startColor = start;
+            line.endColor = end;
         }
 
         private sealed class Beam
