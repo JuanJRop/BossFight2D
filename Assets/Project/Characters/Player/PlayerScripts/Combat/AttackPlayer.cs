@@ -262,7 +262,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 currentAttack.LifeTime,
                 BulletOwner.Player,
                 currentAttack.Damage);
-            bullet.SetTarget(enemyTarget, homing);
+            bullet.SetTarget(enemyTarget, homing, currentAttack.Speed);
             return true;
         }
 
