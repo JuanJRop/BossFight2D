@@ -14,6 +14,7 @@ namespace Project.Scripts.Pickups
         [SerializeField, Min(1)] private int maximumActivePickups = 5;
         [SerializeField, Min(1f)] private float respawnInterval = 20f;
         [SerializeField, Min(0f)] private float bossClearRadius = 2.8f;
+        [SerializeField, Min(0f)] private float minimumPickupSpacing = 3.2f;
 
         private readonly List<GameObject> activePickups = new();
         private Health bossHealth;
@@ -65,13 +66,32 @@ namespace Project.Scripts.Pickups
                 maximum = camera.ViewportToWorldPoint(new Vector3(0.9f, 0.88f, distance));
             }
 
-            Vector2 position = Vector2.zero;
-            for (int attempt = 0; attempt < 16; attempt++)
+            Vector2 bestPosition = Vector2.zero;
+            float bestClearance = float.MinValue;
+            for (int attempt = 0; attempt < 32; attempt++)
             {
-                position = new Vector2(Random.Range(minimum.x, maximum.x), Random.Range(minimum.y, maximum.y));
-                if (Vector2.Distance(position, transform.position) >= bossClearRadius) break;
+                Vector2 candidate = new(Random.Range(minimum.x, maximum.x), Random.Range(minimum.y, maximum.y));
+                float bossDistance = Vector2.Distance(candidate, transform.position);
+                float pickupDistance = DistanceToClosestPickup(candidate);
+                float clearance = Mathf.Min(bossDistance - bossClearRadius, pickupDistance - minimumPickupSpacing);
+
+                if (clearance >= 0f) return candidate;
+                if (clearance <= bestClearance) continue;
+                bestClearance = clearance;
+                bestPosition = candidate;
             }
-            return position;
+            return bestPosition;
+        }
+
+        private float DistanceToClosestPickup(Vector2 position)
+        {
+            float closest = float.PositiveInfinity;
+            foreach (GameObject pickup in activePickups)
+            {
+                if (pickup == null) continue;
+                closest = Mathf.Min(closest, Vector2.Distance(position, pickup.transform.position));
+            }
+            return closest;
         }
 
         private void StopSpawning()
