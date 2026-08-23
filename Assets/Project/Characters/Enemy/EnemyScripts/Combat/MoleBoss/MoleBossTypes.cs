@@ -17,7 +17,6 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         AimedFan,
         RadialBurst,
         Spiral,
-        LaserZones,
         RockRain,
         ChargeDash
     }
