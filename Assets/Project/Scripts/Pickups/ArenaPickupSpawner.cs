@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Project.Characters.Enemy.EnemyScripts.Core;
+using Project.Scripts.Arena;
 using UnityEngine;
 
 namespace Project.Scripts.Pickups
@@ -56,14 +57,21 @@ namespace Project.Scripts.Pickups
 
         private Vector2 FindSpawnPosition()
         {
-            Camera camera = Camera.main;
             Vector2 minimum = new(-8f, -4.5f);
             Vector2 maximum = new(8f, 4.5f);
-            if (camera != null && camera.orthographic)
+            if (ArenaBounds.TryGet(out ArenaBounds bounds))
             {
-                float distance = Mathf.Abs(camera.transform.position.z);
-                minimum = camera.ViewportToWorldPoint(new Vector3(0.1f, 0.12f, distance));
-                maximum = camera.ViewportToWorldPoint(new Vector3(0.9f, 0.88f, distance));
+                bounds.GetInnerBounds(out minimum, out maximum, 0.8f);
+            }
+            else
+            {
+                Camera camera = Camera.main;
+                if (camera != null && camera.orthographic)
+                {
+                    float distance = Mathf.Abs(camera.transform.position.z);
+                    minimum = camera.ViewportToWorldPoint(new Vector3(0.1f, 0.12f, distance));
+                    maximum = camera.ViewportToWorldPoint(new Vector3(0.9f, 0.88f, distance));
+                }
             }
 
             Vector2 bestPosition = Vector2.zero;
