@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
@@ -22,10 +23,15 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             for (int step = 0; step < steps; step++)
             {
                 float angle = step * (phase == 2 ? 15f : 18f);
+                List<MoleProjectileShot> shots = new(arms);
                 for (int arm = 0; arm < arms; arm++)
-                    context.Projectiles.Spawn(context.FirePosition,
-                        MoleBossCombatContext.DirectionFromAngle(angle + arm * 360f / arms), 0.92f, 1f,
-                        MoleProjectilePalette.Rose);
+                {
+                    shots.Add(new MoleProjectileShot(
+                        MoleBossCombatContext.DirectionFromAngle(angle + arm * 360f / arms),
+                        0.92f, 1f, MoleProjectilePalette.Rose));
+                }
+
+                context.Projectiles.SpawnVolley(context.FirePosition, shots);
                 yield return context.Wait(phase == 2 ? 0.105f : 0.14f);
             }
         }
