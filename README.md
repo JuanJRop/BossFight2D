@@ -42,7 +42,7 @@ The mole combat follows a composition-based architecture:
 
 Adding a boss pattern now means implementing `IMoleBossAttack` and registering it, without modifying the execution flow or the existing attacks. Arena hazards are registered separately and never enter the boss attack selector.
 
-The `BossFight` scene owns an independent `Arena Systems` object. It creates four physical walls from the visible camera rectangle, clamps the player and boss inside, provides bounds to rocks, dashes and pickups, and runs parallel full-map laser cycles. Warning lines and active beams terminate exactly at the arena boundary.
+The `BossFight` scene owns an independent `Arena Systems` object. It reads the exact 37 x 27 cell bounds of the `BackGround` Tilemap, fits both Unity and Cinemachine cameras around that area, creates four physical walls on its edges, and keeps the complete player and boss colliders inside. Rocks, dashes, pickups and independent full-map lasers all use the same Tilemap-derived limits.
 
 Combat presentation is prefab-driven while attack decisions remain in code. The shared enemy projectile uses an animated ember/fireball from the installed pixel-art pack, rock rain instantiates a rotating mine-rock prefab plus an animated impact, and the charge dash uses a looping red energy effect. These references live in `MoleBossCombatConfig`, so presentation can be replaced without editing attack logic.
 
