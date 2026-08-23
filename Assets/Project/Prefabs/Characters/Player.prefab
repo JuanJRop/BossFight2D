@@ -508,7 +508,11 @@ MonoBehaviour:
   chargerCapacity: 22
   chargerTime: 1.42
   fireRate: 0.2
-  autoShootRate: 0.11
+  autoShootRate: 0.18
+  overdriveProjectileCount: 5
+  overdriveSpread: 34
+  shockwaveDuration: 0.2
+  shockwaveRadius: 1.55
   volumeShoot: 0.305
   volumeReload: 0.188
 --- !u!114 &3476364176363382055
@@ -545,9 +549,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerUp
   maxMana: 10
-  drainSpeed: 6.74
-  regenValue: 0.5
-  regenTime: 1.5
+  drainSpeed: 3.2
+  regenValue: 0.75
+  regenTime: 0.75
+  activationKey: 113
+  outerAuraColor: {r: 0.08, g: 0.95, b: 1, a: 0.9}
+  innerAuraColor: {r: 1, g: 0.12, b: 0.52, a: 0.9}
+  auraRadius: 0.95
+  auraPulse: 0.2
 --- !u!114 &2492194972572678298
 MonoBehaviour:
   m_ObjectHideFlags: 0
