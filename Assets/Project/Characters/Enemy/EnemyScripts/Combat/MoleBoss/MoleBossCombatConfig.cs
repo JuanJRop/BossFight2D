@@ -10,6 +10,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField, Min(0f)] private float bulletDamage = 8f;
         [SerializeField, Min(0.1f)] private float bulletSpeed = 7f;
         [SerializeField, Min(0.1f)] private float bulletLifeTime = 8f;
+        [SerializeField, Min(1)] private int projectilePoolPrewarm = 512;
 
         [Header("Presentation Prefabs")]
         [SerializeField] private GameObject rockVisualPrefab;
@@ -46,20 +47,6 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField, Min(1)] private int phaseOneSpiralArms = 4;
         [SerializeField, Min(1)] private int phaseTwoSpiralArms = 5;
 
-        [Header("Laser Zones")]
-        [SerializeField, Min(1)] private int phaseOneLaserWaves = 6;
-        [SerializeField, Min(1)] private int phaseTwoLaserWaves = 8;
-        [SerializeField, Min(1)] private int phaseOneLasersPerWave = 3;
-        [SerializeField, Min(1)] private int phaseTwoLasersPerWave = 4;
-        [SerializeField, Min(0.1f)] private float phaseOneLaserWarning = 0.82f;
-        [SerializeField, Min(0.1f)] private float phaseTwoLaserWarning = 0.58f;
-        [SerializeField, Min(0.1f)] private float phaseOneLaserActiveTime = 0.62f;
-        [SerializeField, Min(0.1f)] private float phaseTwoLaserActiveTime = 0.55f;
-        [SerializeField, Min(0.1f)] private float phaseOneLaserWidth = 0.9f;
-        [SerializeField, Min(0.1f)] private float phaseTwoLaserWidth = 1.05f;
-        [SerializeField, Min(0f)] private float phaseOneLaserDamage = 24f;
-        [SerializeField, Min(0f)] private float phaseTwoLaserDamage = 30f;
-
         [Header("Rock Rain")]
         [SerializeField, Min(1)] private int phaseOneRockCount = 10;
         [SerializeField, Min(1)] private int phaseTwoRockCount = 18;
@@ -79,6 +66,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public float BulletDamage => bulletDamage;
         public float BulletSpeed => bulletSpeed;
         public float BulletLifeTime => bulletLifeTime;
+        public int ProjectilePoolPrewarm => projectilePoolPrewarm;
         public GameObject RockVisualPrefab => rockVisualPrefab;
         public GameObject RockImpactPrefab => rockImpactPrefab;
         public GameObject DashChargeFxPrefab => dashChargeFxPrefab;
@@ -105,18 +93,13 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public int RadialCount(int phase) => phase == 2 ? phaseTwoRadialCount : phaseOneRadialCount;
         public int SpiralSteps(int phase) => phase == 2 ? phaseTwoSpiralSteps : phaseOneSpiralSteps;
         public int SpiralArms(int phase) => phase == 2 ? phaseTwoSpiralArms : phaseOneSpiralArms;
-        public int LaserWaves(int phase) => phase == 2 ? phaseTwoLaserWaves : phaseOneLaserWaves;
-        public int LasersPerWave(int phase) => phase == 2 ? phaseTwoLasersPerWave : phaseOneLasersPerWave;
-        public float LaserWarning(int phase) => phase == 2 ? phaseTwoLaserWarning : phaseOneLaserWarning;
-        public float LaserActiveTime(int phase) => phase == 2 ? phaseTwoLaserActiveTime : phaseOneLaserActiveTime;
-        public float LaserWidth(int phase) => phase == 2 ? phaseTwoLaserWidth : phaseOneLaserWidth;
-        public float LaserDamage(int phase) => phase == 2 ? phaseTwoLaserDamage : phaseOneLaserDamage;
         public int RockCount(int phase) => phase == 2 ? phaseTwoRockCount : phaseOneRockCount;
 
         private void OnValidate()
         {
             phaseOneMaxDelay = Mathf.Max(phaseOneMinDelay, phaseOneMaxDelay);
             phaseTwoMaxDelay = Mathf.Max(phaseTwoMinDelay, phaseTwoMaxDelay);
+            projectilePoolPrewarm = Mathf.Max(1, projectilePoolPrewarm);
         }
     }
 }
