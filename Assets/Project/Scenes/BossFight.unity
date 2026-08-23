@@ -9183,6 +9183,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f639a39f43faf0c49b68e26804ad05ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ObjectPool
+  maxInstancesPerPrefab: 768
 --- !u!1 &721378801
 GameObject:
   m_ObjectHideFlags: 0
@@ -35748,6 +35749,85 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+--- !u!1 &880000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 880000002}
+  - component: {fileID: 880000003}
+  - component: {fileID: 880000004}
+  m_Layer: 0
+  m_Name: Arena Systems
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &880000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 880000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &880000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 880000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e5f7a8b9c04123a4b5c6d7e8f90123, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Arena.ArenaBounds
+  arenaCamera: {fileID: 0}
+  viewportPadding: {x: 0.04, y: 0.06}
+  wallThickness: 0.5
+  actorPadding: 0.35
+  boundaryColor: {r: 1, g: 0.28, b: 0.04, a: 0.95}
+  boundaryWidth: 0.12
+--- !u!114 &880000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 880000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7f6a5b4c3d2411098a7b6c5d4e3f201, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Arena.ArenaHazardDirector
+  arenaBounds: {fileID: 880000003}
+  player: {fileID: 0}
+  initialDelay: 2.5
+  cycleDelay: 3.2
+  baseLaserCount: 3
+  hardLaserCount: 4
+  hardModeAfterCycles: 4
+  warningTime: 0.82
+  hardWarningTime: 0.58
+  activeTime: 0.62
+  hardActiveTime: 0.55
+  laserWidth: 0.9
+  hardLaserWidth: 1.05
+  laserDamage: 24
+  hardLaserDamage: 30
+  positionJitter: 0.055
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -35759,3 +35839,4 @@ SceneRoots:
   - {fileID: 19447141}
   - {fileID: 487858100}
   - {fileID: 66997916}
+  - {fileID: 880000002}

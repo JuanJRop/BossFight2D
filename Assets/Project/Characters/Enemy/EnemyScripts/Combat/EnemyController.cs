@@ -141,7 +141,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             IMoleBossAttack radial = new RadialBurstAttack();
             registry = new MoleBossAttackRegistry(new IMoleBossAttack[]
             {
-                new AimedFanAttack(), radial, new SpiralAttack(), new LaserZonesAttack(),
+                new AimedFanAttack(), radial, new SpiralAttack(),
                 new RockRainAttack(), new ChargeDashAttack()
             });
             phaseTransition = new MoleBossPhaseTransition(radial);

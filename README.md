@@ -13,10 +13,11 @@ BossFight2D is a top-down Unity boss-rush prototype for keyboard and mouse. The 
 Implemented mole-boss patterns:
 
 1. An aimed fan that teaches projectile reading.
-2. Radial rings and a rotating spiral bullet hell.
-3. A projectile corridor with a readable moving safe path.
-4. Telegraph circles followed by falling rocks and impact shards.
-5. A charged dash with a visible trajectory, contact damage, and knockback.
+2. Complete radial rings and a rotating spiral bullet hell.
+3. Telegraph circles followed by large falling rocks.
+4. A charged dash with a visible trajectory, contact damage, and knockback.
+
+Every boss projectile originates at the boss fire point. Volleys reserve their complete projectile batch before firing, so a pattern is either emitted in full or cancelled with a diagnostic instead of degrading into partial counts.
 
 The AI uses a readable state cycle: burrow, emerge, telegraph, attack, and recover. Phase 1 introduces attacks one by one. At 40% health, phase 2 begins with a transition shockwave, shorter recovery windows, denser patterns, and more frequent burrowing.
 
@@ -25,8 +26,10 @@ The AI uses a readable state cycle: burrow, emerge, telegraph, attack, and recov
 - `Characters/Player`: movement, dodge, shooting, sound, and cosmetic presentation.
 - `Characters/Enemy`: boss movement and an encapsulated combat domain.
 - `Scripts/Boss`: phase orchestration and phase checkpoints.
+- `Scripts/ArenaBounds`: rectangular physical walls, visible boundary, and shared logical limits.
+- `Scripts/ArenaHazardDirector`: environmental lasers independent from the enemy AI.
 - `Scripts/Controller`: game flow and UI coordination.
-- `ObjectPool`: shared lifetime management for projectiles and encounter hazards.
+- `ObjectPool`: prewarmed projectile storage with atomic batch reservations.
 
 The mole combat follows a composition-based architecture:
 
@@ -37,7 +40,9 @@ The mole combat follows a composition-based architecture:
 - player targeting, projectile pooling, and temporary telegraphs are separate services.
 - `MoleBossCombatConfig` is the single ScriptableObject for encounter tuning; attacks contain no mutable balance data.
 
-Adding a pattern now means implementing `IMoleBossAttack` and registering it, without modifying the execution flow or the existing attacks.
+Adding a boss pattern now means implementing `IMoleBossAttack` and registering it, without modifying the execution flow or the existing attacks. Arena hazards are registered separately and never enter the boss attack selector.
+
+The `BossFight` scene owns an independent `Arena Systems` object. It creates four physical walls from the visible camera rectangle, clamps the player and boss inside, provides bounds to rocks, dashes and pickups, and runs parallel full-map laser cycles. Warning lines and active beams terminate exactly at the arena boundary.
 
 Combat presentation is prefab-driven while attack decisions remain in code. The shared enemy projectile uses an animated ember/fireball from the installed pixel-art pack, rock rain instantiates a rotating mine-rock prefab plus an animated impact, and the charge dash uses a looping red energy effect. These references live in `MoleBossCombatConfig`, so presentation can be replaced without editing attack logic.
 

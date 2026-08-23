@@ -35,7 +35,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 context.TriggerAttackAnimation();
                 foreach (RockMarker marker in markers)
                 {
-                    ResolveImpact(context, marker.Target, phase);
+                    ResolveImpact(context, marker.Target);
                     context.Telegraphs.Release(marker.Warning);
                     context.Telegraphs.Release(marker.Rock);
                 }
@@ -89,19 +89,11 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             }
         }
 
-        private static void ResolveImpact(MoleBossCombatContext context, Vector2 target, int phase)
+        private static void ResolveImpact(MoleBossCombatContext context, Vector2 target)
         {
             context.Telegraphs.CreatePrefab("Rock impact FX", context.Config.RockImpactPrefab, target, 1.9f);
             if (Vector2.Distance(context.Player.Position, target) <= context.Config.RockRadius)
                 context.Player.TryDamage(context.Config.RockDamage);
-
-            int shards = phase == 2 ? 14 : 8;
-            for (int i = 0; i < shards; i++)
-            {
-                Vector2 direction = MoleBossCombatContext.DirectionFromAngle(i * 360f / shards);
-                context.Projectiles.Spawn(target + direction * context.Config.RockRadius, direction, 0.72f, 0.65f,
-                    MoleProjectilePalette.Acid);
-            }
         }
 
         private static Vector2 FindArenaTarget(IReadOnlyList<RockMarker> markers, Vector2 minimum,

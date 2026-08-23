@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Project.Characters.Enemy.EnemyScripts.Movement;
+using Project.Scripts.Arena;
 using Project.Scripts.Controller;
 using UnityEngine;
 
@@ -58,6 +59,12 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
 
         public void GetArenaBounds(out Vector2 minimum, out Vector2 maximum)
         {
+            if (ArenaBounds.TryGet(out ArenaBounds bounds))
+            {
+                bounds.GetInnerBounds(out minimum, out maximum, 0.05f);
+                return;
+            }
+
             Camera camera = Camera.main;
             if (camera != null && camera.orthographic)
             {
