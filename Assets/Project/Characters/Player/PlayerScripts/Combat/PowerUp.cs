@@ -159,8 +159,8 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             float outerRadius = auraRadius + pulse * auraPulse;
             float innerRadius = auraRadius * 0.63f + (1f - pulse) * auraPulse * 0.6f;
 
-            SetRingRadius(outerAura, outerRadius);
-            SetRingRadius(innerAura, innerRadius);
+            SetRingRadius(outerAura, outerRadius, 0.025f);
+            SetRingRadius(innerAura, innerRadius, 0.12f);
             auraRoot.localRotation = Quaternion.Euler(0f, 0f, Time.time * 95f);
             innerAura.transform.localRotation = Quaternion.Euler(0f, 0f, -Time.time * 210f);
 
@@ -175,13 +175,14 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             innerAura.endColor = inner;
         }
 
-        private static void SetRingRadius(LineRenderer ring, float radius)
+        private static void SetRingRadius(LineRenderer ring, float radius, float distortion = 0f)
         {
             if (ring == null) return;
             for (int index = 0; index < AuraSegments; index++)
             {
                 float angle = index / (float)AuraSegments * Mathf.PI * 2f;
-                ring.SetPosition(index, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
+                float shapedRadius = radius * (1f + Mathf.Sin(angle * 8f) * distortion);
+                ring.SetPosition(index, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * shapedRadius);
             }
         }
 
