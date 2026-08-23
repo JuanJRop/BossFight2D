@@ -10,13 +10,20 @@ namespace Project.Scripts.Arena
 
         [Header("Bounds")]
         [SerializeField] private Camera arenaCamera;
-        [SerializeField] private Vector2 viewportPadding = new(0.04f, 0.06f);
+        [SerializeField] private Vector2 viewportPadding = new(0.025f, 0.04f);
         [SerializeField, Min(0.1f)] private float wallThickness = 0.5f;
         [SerializeField, Min(0f)] private float actorPadding = 0.35f;
 
+        [Header("Map Presentation")]
+        [SerializeField] private Color gridColor = new(0.08f, 0.72f, 0.84f, 0.16f);
+        [SerializeField, Range(2, 16)] private int gridColumns = 8;
+        [SerializeField, Range(2, 12)] private int gridRows = 5;
+        [SerializeField, Min(0.005f)] private float gridWidth = 0.025f;
+        [SerializeField, Min(0f)] private float innerFrameInset = 0.35f;
+
         [Header("Boundary Presentation")]
         [SerializeField] private Color boundaryColor = new(1f, 0.28f, 0.04f, 0.95f);
-        [SerializeField, Min(0.01f)] private float boundaryWidth = 0.12f;
+        [SerializeField, Min(0.01f)] private float boundaryWidth = 0.16f;
 
         private readonly List<GameObject> runtimeObjects = new();
         private Transform player;
@@ -36,6 +43,8 @@ namespace Project.Scripts.Arena
 
             Instance = this;
             ResolveBounds();
+            DisableLegacyWallColliders();
+            BuildMapDecoration();
             BuildPhysicalWalls();
             BuildBoundaryVisual();
         }
@@ -117,8 +126,64 @@ namespace Project.Scripts.Arena
                 return;
             }
 
-            Minimum = new Vector2(-9f, -5f);
-            Maximum = new Vector2(9f, 5f);
+            Minimum = new Vector2(-10.5f, -6f);
+            Maximum = new Vector2(10.5f, 6f);
+        }
+
+        private void DisableLegacyWallColliders()
+        {
+            GameObject[] legacyWalls = GameObject.FindGameObjectsWithTag("Wall");
+            foreach (GameObject legacyWall in legacyWalls)
+            {
+                if (legacyWall == null || legacyWall.transform.IsChildOf(transform)) continue;
+                foreach (Collider2D collider in legacyWall.GetComponentsInChildren<Collider2D>(true))
+                {
+                    collider.enabled = false;
+                }
+
+                foreach (Renderer renderer in legacyWall.GetComponentsInChildren<Renderer>(true))
+                {
+                    renderer.enabled = false;
+                }
+            }
+        }
+
+        private void BuildMapDecoration()
+        {
+            Vector2 size = Maximum - Minimum;
+            for (int column = 1; column < gridColumns; column++)
+            {
+                float x = Mathf.Lerp(Minimum.x, Maximum.x, column / (float)gridColumns);
+                CreateDecorativeLine(
+                    "Arena Grid Vertical",
+                    new Vector2(x, Minimum.y),
+                    new Vector2(x, Maximum.y),
+                    gridColor,
+                    gridWidth,
+                    4);
+            }
+
+            for (int row = 1; row < gridRows; row++)
+            {
+                float y = Mathf.Lerp(Minimum.y, Maximum.y, row / (float)gridRows);
+                CreateDecorativeLine(
+                    "Arena Grid Horizontal",
+                    new Vector2(Minimum.x, y),
+                    new Vector2(Maximum.x, y),
+                    gridColor,
+                    gridWidth,
+                    4);
+            }
+
+            float safeInset = Mathf.Min(innerFrameInset, Mathf.Min(size.x, size.y) * 0.2f);
+            Color frameColor = new(boundaryColor.r, boundaryColor.g, boundaryColor.b, 0.28f);
+            CreateFrame(
+                "Arena Inner Frame",
+                Minimum + Vector2.one * safeInset,
+                Maximum - Vector2.one * safeInset,
+                frameColor,
+                Mathf.Max(0.01f, boundaryWidth * 0.35f),
+                5);
         }
 
         private void BuildPhysicalWalls()
@@ -153,25 +218,66 @@ namespace Project.Scripts.Arena
 
         private void BuildBoundaryVisual()
         {
-            GameObject visual = new("Arena Boundary Visual");
+            CreateFrame(
+                "Arena Boundary Visual",
+                Minimum,
+                Maximum,
+                boundaryColor,
+                boundaryWidth,
+                20);
+        }
+
+        private void CreateFrame(
+            string objectName,
+            Vector2 minimum,
+            Vector2 maximum,
+            Color color,
+            float width,
+            int sortingOrder)
+        {
+            GameObject visual = new(objectName);
             visual.transform.SetParent(transform);
             runtimeObjects.Add(visual);
 
-            LineRenderer line = visual.AddComponent<LineRenderer>();
-            line.useWorldSpace = true;
+            LineRenderer line = ConfigureLine(visual, color, width, sortingOrder);
             line.loop = true;
             line.positionCount = 4;
-            line.startWidth = boundaryWidth;
-            line.endWidth = boundaryWidth;
-            line.startColor = boundaryColor;
-            line.endColor = boundaryColor;
             line.numCornerVertices = 3;
-            line.sortingOrder = 20;
+            line.SetPosition(0, new Vector3(minimum.x, minimum.y));
+            line.SetPosition(1, new Vector3(minimum.x, maximum.y));
+            line.SetPosition(2, new Vector3(maximum.x, maximum.y));
+            line.SetPosition(3, new Vector3(maximum.x, minimum.y));
+        }
+
+        private void CreateDecorativeLine(
+            string objectName,
+            Vector2 start,
+            Vector2 end,
+            Color color,
+            float width,
+            int sortingOrder)
+        {
+            GameObject visual = new(objectName);
+            visual.transform.SetParent(transform);
+            runtimeObjects.Add(visual);
+
+            LineRenderer line = ConfigureLine(visual, color, width, sortingOrder);
+            line.positionCount = 2;
+            line.SetPosition(0, start);
+            line.SetPosition(1, end);
+        }
+
+        private LineRenderer ConfigureLine(GameObject visual, Color color, float width, int sortingOrder)
+        {
+            LineRenderer line = visual.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.startWidth = width;
+            line.endWidth = width;
+            line.startColor = color;
+            line.endColor = color;
+            line.sortingOrder = sortingOrder;
             line.material = GetBoundaryMaterial();
-            line.SetPosition(0, new Vector3(Minimum.x, Minimum.y));
-            line.SetPosition(1, new Vector3(Minimum.x, Maximum.y));
-            line.SetPosition(2, new Vector3(Maximum.x, Maximum.y));
-            line.SetPosition(3, new Vector3(Maximum.x, Minimum.y));
+            return line;
         }
 
         private Material GetBoundaryMaterial()
@@ -227,6 +333,10 @@ namespace Project.Scripts.Arena
             viewportPadding.y = Mathf.Clamp(viewportPadding.y, 0f, 0.45f);
             wallThickness = Mathf.Max(0.1f, wallThickness);
             actorPadding = Mathf.Max(0f, actorPadding);
+            gridColumns = Mathf.Clamp(gridColumns, 2, 16);
+            gridRows = Mathf.Clamp(gridRows, 2, 12);
+            gridWidth = Mathf.Max(0.005f, gridWidth);
+            innerFrameInset = Mathf.Max(0f, innerFrameInset);
             boundaryWidth = Mathf.Max(0.01f, boundaryWidth);
         }
     }

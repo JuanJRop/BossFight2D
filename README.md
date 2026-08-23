@@ -48,6 +48,13 @@ Combat presentation is prefab-driven while attack decisions remain in code. The 
 
 The three planned playable characters are cosmetic only and use the same gameplay prefab and statistics. `CharacterSkinData` stores visual differences without duplicating combat code.
 
+## Controls
+
+- Move with WASD and aim/fire with the mouse.
+- Press R to reload.
+- Stand near a health or mana pickup and press E to collect it.
+- With a full mana bar, press Q to activate Overdrive.
+
 ## Project
 
 - Unity: `6000.3.9f1`

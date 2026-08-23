@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bc8ea3fed115c74e8dc8cb8fd76b44f, type: 3}
   m_Name: AttackPowerUp
   m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Enemy.EnemyScripts.Combat.AttackData
-  damage: 5
-  cooldown: 5
-  speed: 5
-  lifeTime: 10
+  damage: 14
+  cooldown: 0
+  speed: 17
+  lifeTime: 5
   bulletPrefab: {fileID: 6656986582738183785, guid: 03a90ac87415456428e40070800ee27c, type: 3}

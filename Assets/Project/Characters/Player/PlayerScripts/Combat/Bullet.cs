@@ -59,6 +59,12 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             isHoming = homing;
         }
 
+        public void SetTarget(Transform newTarget, bool homing, float speed)
+        {
+            SetTarget(newTarget, homing);
+            if (homing) homingSpeed = Mathf.Max(0.1f, speed);
+        }
+
         private IEnumerator LifeRoutine()
         {
             yield return new WaitForSeconds(lifeTime);

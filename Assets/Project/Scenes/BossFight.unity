@@ -35795,11 +35795,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Arena.ArenaBounds
   arenaCamera: {fileID: 0}
-  viewportPadding: {x: 0.04, y: 0.06}
+  viewportPadding: {x: 0.025, y: 0.04}
   wallThickness: 0.5
   actorPadding: 0.35
+  gridColor: {r: 0.08, g: 0.72, b: 0.84, a: 0.16}
+  gridColumns: 8
+  gridRows: 5
+  gridWidth: 0.025
+  innerFrameInset: 0.35
   boundaryColor: {r: 1, g: 0.28, b: 0.04, a: 0.95}
-  boundaryWidth: 0.12
+  boundaryWidth: 0.16
 --- !u!114 &880000004
 MonoBehaviour:
   m_ObjectHideFlags: 0
