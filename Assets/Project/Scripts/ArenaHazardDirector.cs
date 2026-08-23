@@ -110,10 +110,11 @@ namespace Project.Scripts.Arena
 
                 Vector2 start;
                 Vector2 end;
+                float edgeMargin = Mathf.Max(laserWidth, hardLaserWidth) * 0.9f;
                 if (horizontal)
-                    arenaBounds.GetHorizontalPath(normalized, out start, out end);
+                    arenaBounds.GetHorizontalPath(normalized, out start, out end, edgeMargin);
                 else
-                    arenaBounds.GetVerticalPath(normalized, out start, out end);
+                    arenaBounds.GetVerticalPath(normalized, out start, out end, edgeMargin);
 
                 GameObject warning = CreateLine("Arena laser warning",
                     new Color(0.05f, 0.9f, 1f, 0.72f), 0.1f, start, end);
