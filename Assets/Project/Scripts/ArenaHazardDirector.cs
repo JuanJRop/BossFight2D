@@ -34,6 +34,7 @@ namespace Project.Scripts.Arena
 
         private readonly List<GameObject> runtimeVisuals = new();
         private Coroutine hazardRoutine;
+        private Transform playerCombatTransform;
         private Health playerHealth;
         private PlayerDodge playerDodge;
         private Material laserMaterial;
@@ -170,7 +171,7 @@ namespace Project.Scripts.Arena
                     foreach (Beam beam in beams)
                     {
                         SetWidth(beam.Glow, width * 1.75f * pulse);
-                        if (playerHit || DistanceToSegment(player.position, beam.Start, beam.End) > width * 0.5f)
+                        if (playerHit || DistanceToSegment(playerCombatTransform.position, beam.Start, beam.End) > width * 0.5f)
                             continue;
 
                         if (playerDodge == null || !playerDodge.IsInvulnerable)
@@ -196,6 +197,10 @@ namespace Project.Scripts.Arena
             }
 
             if (player == null) return;
+            Rigidbody2D playerBody = player.GetComponent<Rigidbody2D>();
+            if (playerBody == null) playerBody = player.GetComponentInChildren<Rigidbody2D>();
+            playerCombatTransform = playerBody != null ? playerBody.transform : player;
+
             playerHealth = player.GetComponent<Health>();
             if (playerHealth == null) playerHealth = player.GetComponentInChildren<Health>();
             playerDodge = player.GetComponent<PlayerDodge>();
