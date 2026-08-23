@@ -47,16 +47,16 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField, Min(1)] private int phaseTwoSpiralArms = 5;
 
         [Header("Laser Zones")]
-        [SerializeField, Min(1)] private int phaseOneLaserWaves = 5;
-        [SerializeField, Min(1)] private int phaseTwoLaserWaves = 7;
-        [SerializeField, Min(1)] private int phaseOneLasersPerWave = 1;
-        [SerializeField, Min(1)] private int phaseTwoLasersPerWave = 2;
-        [SerializeField, Min(0.1f)] private float phaseOneLaserWarning = 0.85f;
-        [SerializeField, Min(0.1f)] private float phaseTwoLaserWarning = 0.62f;
-        [SerializeField, Min(0.1f)] private float phaseOneLaserActiveTime = 0.52f;
-        [SerializeField, Min(0.1f)] private float phaseTwoLaserActiveTime = 0.46f;
-        [SerializeField, Min(0.1f)] private float phaseOneLaserWidth = 0.82f;
-        [SerializeField, Min(0.1f)] private float phaseTwoLaserWidth = 0.95f;
+        [SerializeField, Min(1)] private int phaseOneLaserWaves = 6;
+        [SerializeField, Min(1)] private int phaseTwoLaserWaves = 8;
+        [SerializeField, Min(1)] private int phaseOneLasersPerWave = 3;
+        [SerializeField, Min(1)] private int phaseTwoLasersPerWave = 4;
+        [SerializeField, Min(0.1f)] private float phaseOneLaserWarning = 0.82f;
+        [SerializeField, Min(0.1f)] private float phaseTwoLaserWarning = 0.58f;
+        [SerializeField, Min(0.1f)] private float phaseOneLaserActiveTime = 0.62f;
+        [SerializeField, Min(0.1f)] private float phaseTwoLaserActiveTime = 0.55f;
+        [SerializeField, Min(0.1f)] private float phaseOneLaserWidth = 0.9f;
+        [SerializeField, Min(0.1f)] private float phaseTwoLaserWidth = 1.05f;
         [SerializeField, Min(0f)] private float phaseOneLaserDamage = 24f;
         [SerializeField, Min(0f)] private float phaseTwoLaserDamage = 30f;
 
@@ -64,7 +64,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField, Min(1)] private int phaseOneRockCount = 10;
         [SerializeField, Min(1)] private int phaseTwoRockCount = 18;
         [SerializeField, Min(0.1f)] private float rockWarningTime = 1f;
-        [SerializeField, Min(0.1f)] private float rockRadius = 1.45f;
+        [SerializeField, Min(0.1f)] private float rockRadius = 1.7f;
         [SerializeField, Min(0f)] private float rockDamage = 18f;
 
         [Header("Charge Dash")]

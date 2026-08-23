@@ -535,6 +535,7 @@ MonoBehaviour:
   maximumActivePickups: 5
   respawnInterval: 20
   bossClearRadius: 2.8
+  minimumPickupSpacing: 3.2
 --- !u!1001 &4823027560398680669
 PrefabInstance:
   m_ObjectHideFlags: 0

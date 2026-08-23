@@ -62,7 +62,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                     rock = context.Telegraphs.CreateSprite("Falling rock", target + Vector2.up * 6f,
                         context.Projectiles.ProjectileSprite, new Color(0.42f, 0.34f, 0.28f, 1f), 30);
                 }
-                rock.transform.localScale = Vector3.one * 0.65f;
+                rock.transform.localScale = Vector3.one * 0.85f;
                 markers.Add(new RockMarker(target, warning, rock));
             }
             return markers;
@@ -76,7 +76,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 if (marker.Rock != null)
                 {
                     marker.Rock.transform.position = Vector3.Lerp(marker.Target + Vector2.up * 6f, marker.Target, eased);
-                    marker.Rock.transform.localScale = Vector3.one * Mathf.Lerp(0.65f, 2.3f, eased);
+                    marker.Rock.transform.localScale = Vector3.one * Mathf.Lerp(0.85f, 2.8f, eased);
                 }
                 if (marker.Warning == null) continue;
                 LineRenderer line = marker.Warning.GetComponent<LineRenderer>();
@@ -91,7 +91,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
 
         private static void ResolveImpact(MoleBossCombatContext context, Vector2 target, int phase)
         {
-            context.Telegraphs.CreatePrefab("Rock impact FX", context.Config.RockImpactPrefab, target, 1.6f);
+            context.Telegraphs.CreatePrefab("Rock impact FX", context.Config.RockImpactPrefab, target, 1.9f);
             if (Vector2.Distance(context.Player.Position, target) <= context.Config.RockRadius)
                 context.Player.TryDamage(context.Config.RockDamage);
 

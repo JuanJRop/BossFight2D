@@ -547,7 +547,7 @@ MonoBehaviour:
   maxMana: 10
   drainSpeed: 6.74
   regenValue: 0.5
-  regenTime: 2.04
+  regenTime: 1.5
 --- !u!114 &2492194972572678298
 MonoBehaviour:
   m_ObjectHideFlags: 0
