@@ -35541,7 +35541,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6979993510808487095, guid: 6cf86bb3890bc064ab4e0540fe93570a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.61
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 6979993510808487095, guid: 6cf86bb3890bc064ab4e0540fe93570a, type: 3}
       propertyPath: m_LocalPosition.z
@@ -35626,7 +35626,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5869572548873491418, guid: b6d11e7718ee7134ca50907660946a85, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.401
+      value: -7
       objectReference: {fileID: 0}
     - target: {fileID: 5869572548873491418, guid: b6d11e7718ee7134ca50907660946a85, type: 3}
       propertyPath: m_LocalPosition.z
@@ -35794,13 +35794,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6e5f7a8b9c04123a4b5c6d7e8f90123, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Arena.ArenaBounds
+  arenaTilemap: {fileID: 807139926}
   arenaCamera: {fileID: 0}
+  fitCameraToTilemap: 1
+  cameraMargin: 0.55
   viewportPadding: {x: 0.025, y: 0.04}
   wallThickness: 0.5
-  actorPadding: 0.35
+  actorPadding: 0.2
   gridColor: {r: 0.08, g: 0.72, b: 0.84, a: 0.16}
-  gridColumns: 8
-  gridRows: 5
+  gridColumns: 12
+  gridRows: 8
   gridWidth: 0.025
   innerFrameInset: 0.35
   boundaryColor: {r: 1, g: 0.28, b: 0.04, a: 0.95}

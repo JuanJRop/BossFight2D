@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace Project.Scripts.Arena
 {
@@ -9,10 +11,13 @@ namespace Project.Scripts.Arena
         public static ArenaBounds Instance { get; private set; }
 
         [Header("Bounds")]
+        [SerializeField] private Tilemap arenaTilemap;
         [SerializeField] private Camera arenaCamera;
+        [SerializeField] private bool fitCameraToTilemap = true;
+        [SerializeField, Min(0f)] private float cameraMargin = 0.55f;
         [SerializeField] private Vector2 viewportPadding = new(0.025f, 0.04f);
         [SerializeField, Min(0.1f)] private float wallThickness = 0.5f;
-        [SerializeField, Min(0f)] private float actorPadding = 0.35f;
+        [SerializeField, Min(0f)] private float actorPadding = 0.2f;
 
         [Header("Map Presentation")]
         [SerializeField] private Color gridColor = new(0.08f, 0.72f, 0.84f, 0.16f);
@@ -43,6 +48,7 @@ namespace Project.Scripts.Arena
 
             Instance = this;
             ResolveBounds();
+            FitCameraToArena();
             DisableLegacyWallColliders();
             BuildMapDecoration();
             BuildPhysicalWalls();
@@ -51,6 +57,7 @@ namespace Project.Scripts.Arena
 
         private void Start()
         {
+            FitCameraToArena();
             ResolveActors();
         }
 
@@ -113,6 +120,17 @@ namespace Project.Scripts.Arena
 
         private void ResolveBounds()
         {
+            ResolveTilemap();
+            if (arenaTilemap != null && arenaTilemap.cellBounds.size.x > 0 && arenaTilemap.cellBounds.size.y > 0)
+            {
+                Bounds localBounds = arenaTilemap.localBounds;
+                Vector3 worldMinimum = arenaTilemap.transform.TransformPoint(localBounds.min);
+                Vector3 worldMaximum = arenaTilemap.transform.TransformPoint(localBounds.max);
+                Minimum = Vector2.Min(worldMinimum, worldMaximum);
+                Maximum = Vector2.Max(worldMinimum, worldMaximum);
+                return;
+            }
+
             if (arenaCamera == null) arenaCamera = Camera.main;
             if (arenaCamera != null && arenaCamera.orthographic)
             {
@@ -126,8 +144,43 @@ namespace Project.Scripts.Arena
                 return;
             }
 
-            Minimum = new Vector2(-10.5f, -6f);
-            Maximum = new Vector2(10.5f, 6f);
+            Minimum = new Vector2(-18f, -13f);
+            Maximum = new Vector2(19f, 14f);
+        }
+
+        private void ResolveTilemap()
+        {
+            if (arenaTilemap != null) return;
+            GameObject background = GameObject.Find("BackGround");
+            if (background != null) arenaTilemap = background.GetComponent<Tilemap>();
+        }
+
+        private void FitCameraToArena()
+        {
+            if (!fitCameraToTilemap) return;
+            if (arenaCamera == null) arenaCamera = Camera.main;
+            if (arenaCamera == null || !arenaCamera.orthographic) return;
+
+            Vector2 size = Maximum - Minimum;
+            Vector2 center = (Minimum + Maximum) * 0.5f;
+            float aspect = Mathf.Max(0.1f, arenaCamera.aspect);
+            float verticalSize = size.y * 0.5f;
+            float horizontalSize = size.x / (2f * aspect);
+            float orthographicSize = Mathf.Max(verticalSize, horizontalSize) + cameraMargin;
+
+            arenaCamera.orthographicSize = orthographicSize;
+            Vector3 cameraPosition = arenaCamera.transform.position;
+            arenaCamera.transform.position = new Vector3(center.x, center.y, cameraPosition.z);
+
+            CinemachineCamera virtualCamera = FindFirstObjectByType<CinemachineCamera>();
+            if (virtualCamera == null) return;
+
+            LensSettings lens = virtualCamera.Lens;
+            lens.OrthographicSize = orthographicSize;
+            virtualCamera.Lens = lens;
+
+            Vector3 virtualPosition = virtualCamera.transform.position;
+            virtualCamera.transform.position = new Vector3(center.x, center.y, virtualPosition.z);
         }
 
         private void DisableLegacyWallColliders()
@@ -141,10 +194,6 @@ namespace Project.Scripts.Arena
                     collider.enabled = false;
                 }
 
-                foreach (Renderer renderer in legacyWall.GetComponentsInChildren<Renderer>(true))
-                {
-                    renderer.enabled = false;
-                }
             }
         }
 
@@ -307,8 +356,21 @@ namespace Project.Scripts.Arena
         private void ConfineActor(Transform actor)
         {
             if (actor == null) return;
+
+            Collider2D actorCollider = actor.GetComponent<Collider2D>();
+            if (actorCollider == null) actorCollider = actor.GetComponentInChildren<Collider2D>();
+
             Vector2 current = actor.position;
-            Vector2 confined = Clamp(current, actorPadding);
+            Vector2 extents = actorCollider != null ? actorCollider.bounds.extents : Vector2.zero;
+            Vector2 colliderOffset = actorCollider != null
+                ? (Vector2)actorCollider.bounds.center - current
+                : Vector2.zero;
+
+            Vector2 minimum = Minimum + extents + Vector2.one * actorPadding - colliderOffset;
+            Vector2 maximum = Maximum - extents - Vector2.one * actorPadding - colliderOffset;
+            Vector2 confined = new(
+                Mathf.Clamp(current.x, minimum.x, maximum.x),
+                Mathf.Clamp(current.y, minimum.y, maximum.y));
             if ((confined - current).sqrMagnitude < 0.0001f) return;
 
             Rigidbody2D body = actor.GetComponent<Rigidbody2D>();
@@ -317,8 +379,8 @@ namespace Project.Scripts.Arena
             {
                 body.position = confined;
                 Vector2 velocity = body.linearVelocity;
-                if (confined.x != current.x) velocity.x = 0f;
-                if (confined.y != current.y) velocity.y = 0f;
+                if (!Mathf.Approximately(confined.x, current.x)) velocity.x = 0f;
+                if (!Mathf.Approximately(confined.y, current.y)) velocity.y = 0f;
                 body.linearVelocity = velocity;
             }
             else
@@ -329,6 +391,7 @@ namespace Project.Scripts.Arena
 
         private void OnValidate()
         {
+            cameraMargin = Mathf.Max(0f, cameraMargin);
             viewportPadding.x = Mathf.Clamp(viewportPadding.x, 0f, 0.45f);
             viewportPadding.y = Mathf.Clamp(viewportPadding.y, 0f, 0.45f);
             wallThickness = Mathf.Max(0.1f, wallThickness);
