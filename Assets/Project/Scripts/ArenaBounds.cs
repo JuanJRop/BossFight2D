@@ -363,11 +363,15 @@ namespace Project.Scripts.Arena
 
             Collider2D actorCollider = actor.GetComponent<Collider2D>();
             if (actorCollider == null) actorCollider = actor.GetComponentInChildren<Collider2D>();
-            Vector2 extents = actorCollider != null ? actorCollider.bounds.extents : Vector2.zero;
 
-            Vector2 minimum = Minimum + extents + Vector2.one * actorPadding;
-            Vector2 maximum = Maximum - extents - Vector2.one * actorPadding;
             Vector2 current = actor.position;
+            Vector2 extents = actorCollider != null ? actorCollider.bounds.extents : Vector2.zero;
+            Vector2 colliderOffset = actorCollider != null
+                ? (Vector2)actorCollider.bounds.center - current
+                : Vector2.zero;
+
+            Vector2 minimum = Minimum + extents + Vector2.one * actorPadding - colliderOffset;
+            Vector2 maximum = Maximum - extents - Vector2.one * actorPadding - colliderOffset;
             Vector2 confined = new(
                 Mathf.Clamp(current.x, minimum.x, maximum.x),
                 Mathf.Clamp(current.y, minimum.y, maximum.y));
