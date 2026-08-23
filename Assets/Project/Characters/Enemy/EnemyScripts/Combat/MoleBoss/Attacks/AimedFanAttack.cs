@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
@@ -24,11 +25,15 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 context.SetState(MoleBossState.Attacking);
                 Vector2 direction = (context.Player.Position - context.FirePosition).normalized;
                 float middle = (count - 1) * 0.5f;
+                List<MoleProjectileShot> shots = new(count);
                 for (int i = 0; i < count; i++)
-                    context.Projectiles.Spawn(context.FirePosition,
-                        MoleBossCombatContext.Rotate(direction, (i - middle) * spread), 1f, 1f,
-                        MoleProjectilePalette.Cyan);
+                {
+                    shots.Add(new MoleProjectileShot(
+                        MoleBossCombatContext.Rotate(direction, (i - middle) * spread),
+                        1f, 1f, MoleProjectilePalette.Cyan));
+                }
 
+                context.Projectiles.SpawnVolley(context.FirePosition, shots);
                 context.TriggerAttackAnimation();
                 yield return context.Wait(phase == 2 ? 0.32f : 0.48f);
             }
