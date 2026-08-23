@@ -140,6 +140,11 @@ namespace Project.Scripts.Arena
                 {
                     collider.enabled = false;
                 }
+
+                foreach (Renderer renderer in legacyWall.GetComponentsInChildren<Renderer>(true))
+                {
+                    renderer.enabled = false;
+                }
             }
         }
 
