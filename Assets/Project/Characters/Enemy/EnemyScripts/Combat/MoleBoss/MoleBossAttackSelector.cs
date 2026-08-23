@@ -14,7 +14,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             Enqueue(phaseOneIntroduction, MoleBossAttack.AimedFan, MoleBossAttack.RadialBurst,
                 MoleBossAttack.RockRain, MoleBossAttack.ChargeDash);
             Enqueue(phaseTwoIntroduction, MoleBossAttack.Spiral, MoleBossAttack.RockRain,
-                MoleBossAttack.ChargeDash, MoleBossAttack.LaserZones);
+                MoleBossAttack.ChargeDash);
         }
 
         public MoleBossAttack Select(int phase, float playerDistance)
