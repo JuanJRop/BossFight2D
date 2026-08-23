@@ -140,7 +140,8 @@ MonoBehaviour:
   amount: 4
   bobHeight: 0.18
   bobSpeed: 2.9
-  rotationSpeed: -12
+  shadowOffset: 0.24
+  promptHeight: 0.82
 --- !u!114 &11400001
 MonoBehaviour:
   m_ObjectHideFlags: 0
