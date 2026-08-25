@@ -54,6 +54,23 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField, Min(0.1f)] private float rockRadius = 1.7f;
         [SerializeField, Min(0f)] private float rockDamage = 18f;
 
+        [Header("Twin Mole Laser")]
+        [SerializeField, Min(0.1f)] private float twinLaserWarningTime = 1.25f;
+        [SerializeField, Min(0.1f)] private float phaseOneTwinLaserDuration = 4.8f;
+        [SerializeField, Min(0.1f)] private float phaseTwoTwinLaserDuration = 6.2f;
+        [SerializeField, Min(0.1f)] private float twinLaserMoveSpeed = 4.4f;
+        [SerializeField, Min(0.05f)] private float twinLaserRadius = 0.42f;
+        [SerializeField, Min(0f)] private float twinLaserDamage = 16f;
+        [SerializeField, Min(0.1f)] private float twinLaserDamageCooldown = 0.7f;
+        [SerializeField, Range(0.2f, 0.9f)] private float miniMoleScale = 0.5f;
+        [SerializeField, Min(0f)] private float twinLaserTilt = 1.35f;
+
+        [Header("Combat Audio")]
+        [SerializeField] private AudioClip minionSpawnSfx;
+        [SerializeField] private AudioClip laserChargeSfx;
+        [SerializeField] private AudioClip laserFireSfx;
+        [SerializeField] private AudioClip rockImpactSfx;
+
         [Header("Charge Dash")]
         [SerializeField, Min(0.1f)] private float dashChargeTime = 0.85f;
         [SerializeField, Min(0.1f)] private float dashSpeed = 15f;
@@ -75,6 +92,17 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public float RockWarningTime => rockWarningTime;
         public float RockRadius => rockRadius;
         public float RockDamage => rockDamage;
+        public float TwinLaserWarningTime => twinLaserWarningTime;
+        public float TwinLaserMoveSpeed => twinLaserMoveSpeed;
+        public float TwinLaserRadius => twinLaserRadius;
+        public float TwinLaserDamage => twinLaserDamage;
+        public float TwinLaserDamageCooldown => twinLaserDamageCooldown;
+        public float MiniMoleScale => miniMoleScale;
+        public float TwinLaserTilt => twinLaserTilt;
+        public AudioClip MinionSpawnSfx => minionSpawnSfx;
+        public AudioClip LaserChargeSfx => laserChargeSfx;
+        public AudioClip LaserFireSfx => laserFireSfx;
+        public AudioClip RockImpactSfx => rockImpactSfx;
         public float DashChargeTime => dashChargeTime;
         public float DashSpeed => dashSpeed;
         public float DashMaxDistance => dashMaxDistance;
@@ -94,6 +122,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public int SpiralSteps(int phase) => phase == 2 ? phaseTwoSpiralSteps : phaseOneSpiralSteps;
         public int SpiralArms(int phase) => phase == 2 ? phaseTwoSpiralArms : phaseOneSpiralArms;
         public int RockCount(int phase) => phase == 2 ? phaseTwoRockCount : phaseOneRockCount;
+        public float TwinLaserDuration(int phase) => phase == 2 ? phaseTwoTwinLaserDuration : phaseOneTwinLaserDuration;
 
         private void OnValidate()
         {
