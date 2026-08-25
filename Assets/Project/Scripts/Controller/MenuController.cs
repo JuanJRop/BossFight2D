@@ -480,7 +480,7 @@ namespace Project.Scripts.Controller
             text.color = color;
             text.alignment = alignment;
             text.fontStyle = style;
-            text.enableWordWrapping = true;
+            text.textWrappingMode = TextWrappingModes.Normal;
             return text;
         }
 
