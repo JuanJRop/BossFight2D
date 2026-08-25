@@ -94,16 +94,15 @@ namespace Project.Scripts.Controller
             if (menuBuilt) return;
             menuBuilt = true;
 
-            GameObject canvasObject = new("Redesigned Main Menu");
-            menuCanvas = canvasObject.AddComponent<Canvas>();
+            GameObject canvasObject = new("Redesigned Main Menu", typeof(RectTransform), typeof(Canvas),
+                typeof(CanvasScaler), typeof(GraphicRaycaster));
+            menuCanvas = canvasObject.GetComponent<Canvas>();
             menuCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             menuCanvas.sortingOrder = 200;
-            CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
+            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
-            canvasObject.AddComponent<GraphicRaycaster>();
-
             RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
             CreateImage("Dark Background", canvasRect, Vector2.zero, Vector2.one, Background);
 
@@ -408,11 +407,11 @@ namespace Project.Scripts.Controller
                 return;
             }
 
-            GameObject canvasObject = new("Global Brightness Overlay");
-            Canvas canvas = canvasObject.AddComponent<Canvas>();
+            GameObject canvasObject = new("Global Brightness Overlay", typeof(RectTransform), typeof(Canvas),
+                typeof(CanvasScaler));
+            Canvas canvas = canvasObject.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 32000;
-            canvasObject.AddComponent<CanvasScaler>();
             GameObject imageObject = new("Brightness Filter", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             RectTransform rect = imageObject.GetComponent<RectTransform>();
             rect.SetParent(canvasObject.transform, false);
