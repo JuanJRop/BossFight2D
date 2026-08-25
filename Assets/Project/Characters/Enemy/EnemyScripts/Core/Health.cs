@@ -38,13 +38,18 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
 
         private void Awake()
         {
+            if (CompareTag("Player")) maxHealth *= GameLoadout.HealthMultiplier;
             maxHealth = Mathf.Max(1f, maxHealth);
             currentHealth = maxHealth;
             isAlive = true;
 
             soundController = GetComponent<PlayerSoundController>();
             spriteRenderer = GetComponent<SpriteRenderer>();
-            if (spriteRenderer != null) originalColor = spriteRenderer.color;
+            if (spriteRenderer != null)
+            {
+                if (CompareTag("Player")) spriteRenderer.color = GameLoadout.CharacterColor;
+                originalColor = spriteRenderer.color;
+            }
 
             noise = virtualCamera != null
                 ? virtualCamera.GetComponent<CinemachineBasicMultiChannelPerlin>()
