@@ -533,7 +533,7 @@ MonoBehaviour:
   amplitude: 3
   frequency: 2
   deathEvent: {fileID: 2492194972572678298}
-  damageSound: {fileID: 8300000, guid: 5c5e1774e10df354e8b5823a18cd21c1, type: 3}
+  damageSound: {fileID: 8300000, guid: 184119ac7c78f2c478ea47225fd07d3f, type: 3}
   volume: 0.198
   enemyMove: {fileID: 0}
 --- !u!114 &1467763588695067316
