@@ -49,6 +49,19 @@ MonoBehaviour:
   rockWarningTime: 1
   rockRadius: 1.7
   rockDamage: 18
+  twinLaserWarningTime: 1.25
+  phaseOneTwinLaserDuration: 4.8
+  phaseTwoTwinLaserDuration: 6.2
+  twinLaserMoveSpeed: 4.4
+  twinLaserRadius: 0.42
+  twinLaserDamage: 16
+  twinLaserDamageCooldown: 0.7
+  miniMoleScale: 0.5
+  twinLaserTilt: 1.35
+  minionSpawnSfx: {fileID: 8300000, guid: 1313e94d429dd8642bbfd6e5f96bad91, type: 3}
+  laserChargeSfx: {fileID: 8300000, guid: 6899df3382dfff549963fe7a4c6f15a9, type: 3}
+  laserFireSfx: {fileID: 8300000, guid: 6899df3382dfff549963fe7a4c6f15a9, type: 3}
+  rockImpactSfx: {fileID: 8300000, guid: c6bce1c8cd6bcfa439461914d3fda4ab, type: 3}
   dashChargeTime: 0.85
   dashSpeed: 15
   dashMaxDistance: 10
