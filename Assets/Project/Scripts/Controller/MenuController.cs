@@ -36,7 +36,7 @@ namespace Project.Scripts.Controller
         private Slider brightnessSlider;
         private bool menuBuilt;
 
-        private static readonly Color Background = new(0.012f, 0.018f, 0.042f, 1f);
+        private static readonly Color Background = new(0.012f, 0.018f, 0.042f, 0.96f);
         private static readonly Color Panel = new(0.035f, 0.055f, 0.105f, 0.96f);
         private static readonly Color Cyan = new(0.08f, 0.92f, 1f, 1f);
         private static readonly Color Magenta = new(1f, 0.12f, 0.58f, 1f);
@@ -385,6 +385,11 @@ namespace Project.Scripts.Controller
 
         private void DisableUnstableMenuAnimations()
         {
+            foreach (Button legacyButton in FindObjectsByType<Button>(FindObjectsSortMode.None))
+            {
+                if (legacyButton != null) legacyButton.gameObject.SetActive(false);
+            }
+
             foreach (MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
             {
                 if (behaviour == null) continue;
