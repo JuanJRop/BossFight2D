@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Project.Characters.Enemy.EnemyScripts.Core;
+using Project.Characters.Player.PlayerScripts.Core;
 using Project.Characters.Player.PlayerScripts.Movement;
 using UnityEngine;
 
