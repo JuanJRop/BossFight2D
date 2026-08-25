@@ -16,9 +16,18 @@ namespace Project.Scripts.Menu
         [Header("Menu State")]
         [SerializeField] private bool isMenu = true;
 
-        private void Start()
+        private Coroutine movementRoutine;
+
+        private void OnEnable()
         {
-            if (isMenu) StartCoroutine(MovementBullets());
+            if (isMenu) movementRoutine = StartCoroutine(MovementBullets());
+        }
+
+        private void OnDisable()
+        {
+            if (movementRoutine != null) StopCoroutine(movementRoutine);
+            movementRoutine = null;
+            transform.DOKill();
         }
 
         private IEnumerator MovementBullets()
@@ -27,15 +36,21 @@ namespace Project.Scripts.Menu
             {
                 foreach (GameObject bullet in spawner)
                 {
+                    if (!isActiveAndEnabled) yield break;
                     if (bullet == null || spawnPoint == null || endPoint == null) continue;
 
                     GameObject instance = Instantiate(bullet, spawnPoint.position, spawnPoint.rotation);
                     instance.transform
                         .DOMove(endPoint.position, Mathf.Max(0.01f, travelTime))
                         .SetEase(Ease.Linear)
-                        .OnComplete(() => Destroy(instance));
+                        .SetUpdate(true)
+                        .SetLink(instance, LinkBehaviour.KillOnDestroy)
+                        .OnComplete(() =>
+                        {
+                            if (instance != null) Destroy(instance);
+                        });
 
-                    yield return new WaitForSeconds(Mathf.Max(0.01f, timeBullets));
+                    yield return new WaitForSecondsRealtime(Mathf.Max(0.01f, timeBullets));
                 }
             }
         }
