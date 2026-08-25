@@ -22,6 +22,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         [SerializeField] private BossPhaseController phaseController;
         [SerializeField] private EnemyMove movement;
         [SerializeField] private Rigidbody2D bossBody;
+        [SerializeField] private AudioSource audioSource;
 
         private Coroutine attackRoutine;
         private MoleBossCombatContext context;
@@ -136,13 +137,13 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             MoleBossPlayerTarget target = new(player);
             MoleBossProjectileEmitter projectiles = new(pool, config);
             context = new MoleBossCombatContext(transform, firePoint, animator, bossBody, movement, target,
-                projectiles, telegraphs, config, SetState);
+                projectiles, telegraphs, config, audioSource, SetState);
 
             IMoleBossAttack radial = new RadialBurstAttack();
             registry = new MoleBossAttackRegistry(new IMoleBossAttack[]
             {
                 new AimedFanAttack(), radial, new SpiralAttack(),
-                new RockRainAttack(), new ChargeDashAttack()
+                new RockRainAttack(), new ChargeDashAttack(), new TwinMoleLaserAttack()
             });
             phaseTransition = new MoleBossPhaseTransition(radial);
         }
@@ -161,6 +162,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             if (movement == null) movement = GetComponent<EnemyMove>();
             if (bossBody == null) bossBody = GetComponent<Rigidbody2D>();
             if (animator == null) animator = GetComponent<Animator>();
+            if (audioSource == null) audioSource = GetComponent<AudioSource>();
         }
 
         private bool HasRequiredReferences()
