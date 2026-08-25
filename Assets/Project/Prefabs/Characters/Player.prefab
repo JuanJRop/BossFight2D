@@ -591,11 +591,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Player.PlayerScripts.Controller.PlayerSoundController
   audioSource: {fileID: 1723123650684553243}
-  fire: {fileID: 8300000, guid: abb6311979875414aa2f8a33df1d80ce, type: 3}
+  fire: {fileID: 8300000, guid: d8d606dd0257b2c47933e6a0ca2c67a0, type: 3}
   dodge: {fileID: 8300000, guid: 6899df3382dfff549963fe7a4c6f15a9, type: 3}
   walk: {fileID: 8300000, guid: f26cf9ded47cf0140957490a16f85acc, type: 3}
   reload: {fileID: 8300000, guid: 3ae623a7534fe0c47b661d5c387314b3, type: 3}
-  damage: {fileID: 8300000, guid: 5c5e1774e10df354e8b5823a18cd21c1, type: 3}
+  damage: {fileID: 8300000, guid: 184119ac7c78f2c478ea47225fd07d3f, type: 3}
   win: {fileID: 0}
   lose: {fileID: 8300000, guid: 777de66687472754fa32ad11765435c6, type: 3}
 --- !u!82 &1723123650684553243
