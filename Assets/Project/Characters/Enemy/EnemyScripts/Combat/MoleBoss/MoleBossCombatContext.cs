@@ -12,16 +12,21 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         private readonly Transform boss;
         private readonly Transform firePoint;
         private readonly Animator animator;
+        private readonly AudioSource audioSource;
+        private readonly SpriteRenderer bossRenderer;
         private readonly Action<MoleBossState> changeState;
 
         public MoleBossCombatContext(Transform boss, Transform firePoint, Animator animator, Rigidbody2D body,
             EnemyMove movement, MoleBossPlayerTarget player, MoleBossProjectileEmitter projectiles,
-            MoleBossTelegraphService telegraphs, MoleBossCombatConfig config, Action<MoleBossState> changeState)
+            MoleBossTelegraphService telegraphs, MoleBossCombatConfig config, AudioSource audioSource,
+            Action<MoleBossState> changeState)
         {
             this.boss = boss;
             this.firePoint = firePoint;
             this.animator = animator;
             this.changeState = changeState;
+            this.audioSource = audioSource;
+            bossRenderer = boss != null ? boss.GetComponentInChildren<SpriteRenderer>() : null;
             Body = body;
             Movement = movement;
             Player = player;
@@ -38,8 +43,17 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public MoleBossCombatConfig Config { get; }
         public Vector2 BossPosition => boss != null ? boss.position : Vector2.zero;
         public Vector2 FirePosition => firePoint != null ? firePoint.position : BossPosition;
+        public Sprite BossSprite => bossRenderer != null ? bossRenderer.sprite : null;
+        public Color BossColor => bossRenderer != null ? bossRenderer.color : Color.white;
 
         public void SetState(MoleBossState state) => changeState?.Invoke(state);
+
+        public void PlaySound(AudioClip clip, float volume = 1f, float pitch = 1f)
+        {
+            if (audioSource == null || clip == null) return;
+            audioSource.pitch = Mathf.Clamp(pitch, 0.5f, 1.8f);
+            audioSource.PlayOneShot(clip, Mathf.Clamp01(volume));
+        }
         public void TriggerAttackAnimation()
         {
             if (animator != null) animator.SetTrigger("Attack");
