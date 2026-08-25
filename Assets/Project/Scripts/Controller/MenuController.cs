@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -10,59 +9,73 @@ namespace Project.Scripts.Controller
 {
     public class MenuController : MonoBehaviour
     {
-        private enum MenuPage
-        {
-            Home,
-            Loadout,
-            Settings
-        }
-
         [SerializeField] private GameObject settings;
 
-        private readonly Dictionary<string, TMP_Text> localizedLabels = new();
-        private Canvas menuCanvas;
-        private RectTransform pageHost;
-        private GameObject homePage;
-        private GameObject loadoutPage;
-        private GameObject settingsPage;
+        private static readonly Color CavePanel = new(0.105f, 0.045f, 0.035f, 0.97f);
+        private static readonly Color CaveBorder = new(0.43f, 0.16f, 0.11f, 1f);
+        private static readonly Color CaveButton = new(0.48f, 0.17f, 0.12f, 1f);
+        private static readonly Color CaveButtonHover = new(0.64f, 0.25f, 0.17f, 1f);
+        private static readonly Color Cream = new(0.98f, 0.91f, 0.8f, 1f);
+        private static readonly Color MutedCream = new(0.74f, 0.59f, 0.49f, 1f);
+
+        private RectTransform menuRoot;
+        private GameObject optionsPanel;
+        private Image playerPreview;
+        private Vector3 playerPreviewBaseScale;
+        private Sprite buttonSprite;
+        private TMP_FontAsset menuFont;
+        private TMP_Text startLabel;
+        private TMP_Text optionsLabel;
+        private TMP_Text characterTitle;
         private TMP_Text characterValue;
+        private TMP_Text characterDescription;
+        private TMP_Text optionsTitle;
+        private TMP_Text weaponTitle;
         private TMP_Text weaponValue;
+        private TMP_Text abilityTitle;
         private TMP_Text abilityValue;
+        private TMP_Text volumeTitle;
         private TMP_Text volumeValue;
+        private TMP_Text brightnessTitle;
         private TMP_Text brightnessValue;
+        private TMP_Text languageTitle;
         private TMP_Text languageValue;
-        private Image brightnessOverlay;
         private Slider volumeSlider;
         private Slider brightnessSlider;
+        private Image brightnessOverlay;
         private bool menuBuilt;
-
-        private static readonly Color Background = new(0.012f, 0.018f, 0.042f, 0.96f);
-        private static readonly Color Panel = new(0.035f, 0.055f, 0.105f, 0.96f);
-        private static readonly Color Cyan = new(0.08f, 0.92f, 1f, 1f);
-        private static readonly Color Magenta = new(1f, 0.12f, 0.58f, 1f);
-        private static readonly Color Muted = new(0.55f, 0.67f, 0.78f, 1f);
 
         private void Awake()
         {
             AudioListener.volume = GameLoadout.Volume;
-            EnsureBrightnessOverlay();
 
-            if (SceneManager.GetActiveScene().buildIndex != 0) return;
-            DisableUnstableMenuAnimations();
-            BuildMenu();
+            if (SceneManager.GetActiveScene().buildIndex == 0)
+            {
+                BuildCaveMenu();
+                EnsureBrightnessOverlay();
+            }
+            else
+            {
+                EnsureBrightnessOverlay();
+            }
         }
 
         private void OnDestroy()
         {
-            if (menuCanvas != null) menuCanvas.transform.DOKill();
+            if (menuRoot != null) menuRoot.DOKill();
         }
 
         public void SettingsMenu()
         {
+            if (SceneManager.GetActiveScene().buildIndex == 0 && optionsPanel != null)
+            {
+                ToggleOptions();
+                return;
+            }
+
             if (settings == null) return;
             bool isActive = settings.activeSelf;
             settings.SetActive(!isActive);
-
             if (UIManager.instance != null) UIManager.instance.IsPaused = !isActive;
             Time.timeScale = isActive ? 1f : 0f;
         }
@@ -89,360 +102,251 @@ namespace Project.Scripts.Controller
             Time.timeScale = 1f;
         }
 
-        private void BuildMenu()
+        private void BuildCaveMenu()
         {
             if (menuBuilt) return;
             menuBuilt = true;
 
-            GameObject canvasObject = new("Redesigned Main Menu", typeof(RectTransform), typeof(Canvas),
-                typeof(CanvasScaler), typeof(GraphicRaycaster));
-            menuCanvas = canvasObject.GetComponent<Canvas>();
-            menuCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            menuCanvas.sortingOrder = 200;
-            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-            RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
-            CreateImage("Dark Background", canvasRect, Vector2.zero, Vector2.one, Background);
+            GameObject background = GameObject.Find("BG");
+            GameObject canvasObject = GameObject.Find("Canvas");
+            menuRoot = background != null
+                ? background.GetComponent<RectTransform>()
+                : canvasObject != null ? canvasObject.GetComponent<RectTransform>() : null;
+            if (menuRoot == null)
+            {
+                Debug.LogError("The cave menu requires its existing Canvas or BG RectTransform.", this);
+                return;
+            }
 
-            RectTransform accentTop = CreateImage("Top Neon Line", canvasRect,
-                new Vector2(0f, 0.975f), new Vector2(1f, 0.982f), Cyan);
-            AddGlow(accentTop, new Color(Cyan.r, Cyan.g, Cyan.b, 0.24f), 14f);
+            Button startButton = FindButton("StartButton");
+            Button optionsButton = FindButton("OptionsButton");
+            CaptureMenuStyle(startButton);
 
-            TMP_Text title = CreateText("Title", canvasRect, new Vector2(0.045f, 0.84f),
-                new Vector2(0.95f, 0.96f), "BOSSFIGHT // NEON PROTOCOL", 52, Cyan,
-                TextAlignmentOptions.Left, FontStyles.Bold);
-            title.characterSpacing = 4f;
+            startLabel = ConfigureExistingButton(startButton, StartGame);
+            optionsLabel = ConfigureExistingButton(optionsButton, ToggleOptions);
 
-            TMP_Text subtitle = CreateText("Subtitle", canvasRect, new Vector2(0.05f, 0.79f),
-                new Vector2(0.92f, 0.85f), string.Empty, 19, Muted, TextAlignmentOptions.Left);
-            localizedLabels["subtitle"] = subtitle;
+            GameObject previewObject = GameObject.Find("Player");
+            if (previewObject != null)
+            {
+                playerPreview = previewObject.GetComponent<Image>();
+                playerPreviewBaseScale = previewObject.transform.localScale;
+            }
 
-            RectTransform navigation = CreatePanel("Navigation", canvasRect,
-                new Vector2(0.045f, 0.13f), new Vector2(0.29f, 0.76f));
-            VerticalLayoutGroup navLayout = navigation.gameObject.AddComponent<VerticalLayoutGroup>();
-            navLayout.padding = new RectOffset(22, 22, 28, 28);
-            navLayout.spacing = 16f;
-            navLayout.childControlHeight = false;
-            navLayout.childForceExpandHeight = false;
-
-            CreateNavButton(navigation, "play", StartGame, Cyan);
-            CreateNavButton(navigation, "loadout", () => ShowPage(MenuPage.Loadout), Magenta);
-            CreateNavButton(navigation, "settings", () => ShowPage(MenuPage.Settings), Cyan);
-            CreateNavButton(navigation, "exit", QuitGame, new Color(1f, 0.4f, 0.25f, 1f));
-
-            pageHost = CreatePanel("Content", canvasRect,
-                new Vector2(0.32f, 0.13f), new Vector2(0.955f, 0.76f));
-            homePage = BuildHomePage(pageHost);
-            loadoutPage = BuildLoadoutPage(pageHost);
-            settingsPage = BuildSettingsPage(pageHost);
-
-            TMP_Text footer = CreateText("Footer", canvasRect, new Vector2(0.05f, 0.045f),
-                new Vector2(0.95f, 0.1f), string.Empty, 16, Muted, TextAlignmentOptions.Left);
-            localizedLabels["footer"] = footer;
-
+            BuildCharacterSelector();
+            BuildOptionsPanel();
             RefreshLanguage();
             RefreshLoadout();
-            ShowPage(MenuPage.Home, false);
-            EnsureBrightnessOverlay();
+            ApplyCharacterPreview(false);
         }
 
-        private GameObject BuildHomePage(RectTransform host)
+        private void BuildCharacterSelector()
         {
-            RectTransform page = CreatePage("Home Page", host);
-            TMP_Text heading = CreateText("Home Heading", page, new Vector2(0.06f, 0.72f),
-                new Vector2(0.94f, 0.92f), string.Empty, 42, Color.white,
-                TextAlignmentOptions.Left, FontStyles.Bold);
-            localizedLabels["homeHeading"] = heading;
+            RectTransform panel = CreateFramedPanel("Character Selector", menuRoot,
+                new Vector2(0.27f, 0.035f), new Vector2(0.73f, 0.205f));
 
-            TMP_Text description = CreateText("Home Description", page, new Vector2(0.06f, 0.37f),
-                new Vector2(0.8f, 0.72f), string.Empty, 23, Muted, TextAlignmentOptions.TopLeft);
-            localizedLabels["homeDescription"] = description;
+            characterTitle = CreateText("Character Title", panel, new Vector2(0.08f, 0.66f),
+                new Vector2(0.92f, 0.94f), string.Empty, 19f, MutedCream, TextAlignmentOptions.Center);
 
-            CreateStatChip(page, new Vector2(0.06f, 0.15f), "01", "BOSS");
-            CreateStatChip(page, new Vector2(0.32f, 0.15f), "03", "LOADOUT");
-            CreateStatChip(page, new Vector2(0.58f, 0.15f), "100%", "DANGER");
-            return page.gameObject;
+            CreateButton("Previous Character", panel, new Vector2(0.045f, 0.17f),
+                new Vector2(0.2f, 0.62f), "<", () => ChangeCharacter(-1));
+
+            characterValue = CreateText("Character Value", panel, new Vector2(0.21f, 0.29f),
+                new Vector2(0.79f, 0.65f), string.Empty, 25f, Cream,
+                TextAlignmentOptions.Center, FontStyles.Bold);
+
+            CreateButton("Next Character", panel, new Vector2(0.8f, 0.17f),
+                new Vector2(0.955f, 0.62f), ">", () => ChangeCharacter(1));
+
+            characterDescription = CreateText("Character Description", panel, new Vector2(0.2f, 0.02f),
+                new Vector2(0.8f, 0.28f), string.Empty, 14f, MutedCream, TextAlignmentOptions.Center);
         }
 
-        private GameObject BuildLoadoutPage(RectTransform host)
+        private void BuildOptionsPanel()
         {
-            RectTransform page = CreatePage("Loadout Page", host);
-            TMP_Text heading = CreateText("Loadout Heading", page, new Vector2(0.06f, 0.82f),
-                new Vector2(0.94f, 0.95f), string.Empty, 38, Magenta,
+            RectTransform panel = CreateFramedPanel("Cave Options Panel", menuRoot,
+                new Vector2(0.27f, 0.17f), new Vector2(0.73f, 0.88f));
+            optionsPanel = panel.gameObject;
+
+            optionsTitle = CreateText("Options Title", panel, new Vector2(0.08f, 0.88f),
+                new Vector2(0.8f, 0.98f), string.Empty, 28f, Cream,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            localizedLabels["loadoutHeading"] = heading;
 
-            characterValue = CreateSelector(page, 0.62f, "character", () =>
-            {
-                GameLoadout.CycleCharacter(-1);
-                RefreshLoadout();
-            }, () =>
-            {
-                GameLoadout.CycleCharacter(1);
-                RefreshLoadout();
-            });
+            CreateButton("Close Options", panel, new Vector2(0.83f, 0.89f),
+                new Vector2(0.96f, 0.97f), "X", ToggleOptions);
 
-            weaponValue = CreateSelector(page, 0.39f, "weapon", () =>
-            {
-                GameLoadout.CycleWeapon(-1);
-                RefreshLoadout();
-            }, () =>
-            {
-                GameLoadout.CycleWeapon(1);
-                RefreshLoadout();
-            });
+            weaponTitle = CreateText("Weapon Title", panel, new Vector2(0.09f, 0.77f),
+                new Vector2(0.44f, 0.85f), string.Empty, 17f, MutedCream, TextAlignmentOptions.Left);
+            weaponValue = CreateCompactSelector(panel, 0.67f, () => ChangeWeapon(-1), () => ChangeWeapon(1));
 
-            abilityValue = CreateSelector(page, 0.16f, "ability", () =>
-            {
-                GameLoadout.CycleAbility(-1);
-                RefreshLoadout();
-            }, () =>
-            {
-                GameLoadout.CycleAbility(1);
-                RefreshLoadout();
-            });
-            return page.gameObject;
-        }
+            abilityTitle = CreateText("Ability Title", panel, new Vector2(0.09f, 0.56f),
+                new Vector2(0.44f, 0.64f), string.Empty, 17f, MutedCream, TextAlignmentOptions.Left);
+            abilityValue = CreateCompactSelector(panel, 0.46f, () => ChangeAbility(-1), () => ChangeAbility(1));
 
-        private GameObject BuildSettingsPage(RectTransform host)
-        {
-            RectTransform page = CreatePage("Settings Page", host);
-            TMP_Text heading = CreateText("Settings Heading", page, new Vector2(0.06f, 0.82f),
-                new Vector2(0.94f, 0.95f), string.Empty, 38, Cyan,
-                TextAlignmentOptions.Left, FontStyles.Bold);
-            localizedLabels["settingsHeading"] = heading;
-
-            volumeSlider = CreateSettingSlider(page, 0.62f, "volume", GameLoadout.Volume, value =>
+            volumeSlider = CreateSettingSlider(panel, 0.32f, GameLoadout.Volume, value =>
             {
                 GameLoadout.Volume = value;
-                if (volumeValue != null) volumeValue.text = $"{Mathf.RoundToInt(value * 100f)}%";
-            }, out volumeValue);
+                UpdateSettingValues();
+            });
+            volumeTitle = CreateText("Volume Title", panel, new Vector2(0.09f, 0.37f),
+                new Vector2(0.48f, 0.44f), string.Empty, 16f, MutedCream, TextAlignmentOptions.Left);
+            volumeValue = CreateText("Volume Value", panel, new Vector2(0.75f, 0.37f),
+                new Vector2(0.91f, 0.44f), string.Empty, 16f, Cream, TextAlignmentOptions.Right);
 
             float normalizedBrightness = Mathf.InverseLerp(0.35f, 1f, GameLoadout.Brightness);
-            brightnessSlider = CreateSettingSlider(page, 0.38f, "brightness", normalizedBrightness, value =>
+            brightnessSlider = CreateSettingSlider(panel, 0.18f, normalizedBrightness, value =>
             {
                 GameLoadout.Brightness = Mathf.Lerp(0.35f, 1f, value);
                 UpdateBrightnessOverlay();
-                if (brightnessValue != null) brightnessValue.text = $"{Mathf.RoundToInt(value * 100f)}%";
-            }, out brightnessValue);
+                UpdateSettingValues();
+            });
+            brightnessTitle = CreateText("Brightness Title", panel, new Vector2(0.09f, 0.23f),
+                new Vector2(0.48f, 0.3f), string.Empty, 16f, MutedCream, TextAlignmentOptions.Left);
+            brightnessValue = CreateText("Brightness Value", panel, new Vector2(0.75f, 0.23f),
+                new Vector2(0.91f, 0.3f), string.Empty, 16f, Cream, TextAlignmentOptions.Right);
 
-            TMP_Text languageLabel = CreateText("Language Label", page, new Vector2(0.08f, 0.13f),
-                new Vector2(0.4f, 0.26f), string.Empty, 21, Muted, TextAlignmentOptions.Left);
-            localizedLabels["language"] = languageLabel;
-            Button languageButton = CreateButton("Language Button", page, new Vector2(0.48f, 0.12f),
-                new Vector2(0.88f, 0.27f), string.Empty, ToggleLanguage, Magenta);
+            languageTitle = CreateText("Language Title", panel, new Vector2(0.09f, 0.055f),
+                new Vector2(0.38f, 0.13f), string.Empty, 16f, MutedCream, TextAlignmentOptions.Left);
+            Button languageButton = CreateButton("Language Button", panel, new Vector2(0.49f, 0.035f),
+                new Vector2(0.91f, 0.135f), string.Empty, ToggleLanguage);
             languageValue = languageButton.GetComponentInChildren<TMP_Text>();
-            return page.gameObject;
+
+            optionsPanel.SetActive(false);
         }
 
-        private TMP_Text CreateSelector(RectTransform page, float verticalCenter, string localizationKey,
-            Action previous, Action next)
+        private TMP_Text CreateCompactSelector(RectTransform panel, float y, Action previous, Action next)
         {
-            TMP_Text label = CreateText(localizationKey + " Label", page,
-                new Vector2(0.08f, verticalCenter + 0.07f), new Vector2(0.38f, verticalCenter + 0.18f),
-                string.Empty, 19, Muted, TextAlignmentOptions.Left);
-            localizedLabels[localizationKey] = label;
-
-            CreateButton(localizationKey + " Previous", page,
-                new Vector2(0.08f, verticalCenter - 0.08f), new Vector2(0.19f, verticalCenter + 0.06f),
-                "<", previous, Cyan);
-
-            TMP_Text value = CreateText(localizationKey + " Value", page,
-                new Vector2(0.21f, verticalCenter - 0.08f), new Vector2(0.77f, verticalCenter + 0.06f),
-                string.Empty, 24, Color.white, TextAlignmentOptions.Center, FontStyles.Bold);
-            AddOutline(value, new Color(0.08f, 0.8f, 1f, 0.45f));
-
-            CreateButton(localizationKey + " Next", page,
-                new Vector2(0.79f, verticalCenter - 0.08f), new Vector2(0.9f, verticalCenter + 0.06f),
-                ">", next, Magenta);
+            CreateButton("Previous", panel, new Vector2(0.09f, y), new Vector2(0.2f, y + 0.09f), "<", previous);
+            TMP_Text value = CreateText("Selection", panel, new Vector2(0.22f, y),
+                new Vector2(0.78f, y + 0.09f), string.Empty, 19f, Cream,
+                TextAlignmentOptions.Center, FontStyles.Bold);
+            CreateButton("Next", panel, new Vector2(0.8f, y), new Vector2(0.91f, y + 0.09f), ">", next);
             return value;
         }
 
-        private Slider CreateSettingSlider(RectTransform page, float verticalCenter, string localizationKey,
-            float initialValue, Action<float> changed, out TMP_Text valueText)
+        private Slider CreateSettingSlider(RectTransform panel, float y, float initial, Action<float> changed)
         {
-            TMP_Text label = CreateText(localizationKey + " Label", page,
-                new Vector2(0.08f, verticalCenter + 0.08f), new Vector2(0.55f, verticalCenter + 0.18f),
-                string.Empty, 20, Muted, TextAlignmentOptions.Left);
-            localizedLabels[localizationKey] = label;
-
-            valueText = CreateText(localizationKey + " Value", page,
-                new Vector2(0.76f, verticalCenter + 0.08f), new Vector2(0.9f, verticalCenter + 0.18f),
-                $"{Mathf.RoundToInt(initialValue * 100f)}%", 19, Color.white, TextAlignmentOptions.Right);
-
-            GameObject sliderObject = new(localizationKey + " Slider", typeof(RectTransform), typeof(Slider));
+            GameObject sliderObject = new("Cave Slider", typeof(RectTransform), typeof(Slider));
             RectTransform rect = sliderObject.GetComponent<RectTransform>();
-            rect.SetParent(page, false);
-            SetAnchors(rect, new Vector2(0.08f, verticalCenter - 0.04f),
-                new Vector2(0.9f, verticalCenter + 0.05f));
+            rect.SetParent(panel, false);
+            SetAnchors(rect, new Vector2(0.09f, y), new Vector2(0.91f, y + 0.055f));
 
-            RectTransform background = CreateImage("Track", rect, new Vector2(0f, 0.38f),
-                new Vector2(1f, 0.62f), new Color(0.09f, 0.15f, 0.23f, 1f));
-            RectTransform fillArea = CreateRect("Fill Area", rect, new Vector2(0f, 0.2f), new Vector2(1f, 0.8f));
-            RectTransform fill = CreateImage("Fill", fillArea, Vector2.zero, Vector2.one, Cyan);
+            RectTransform track = CreateImage("Track", rect, new Vector2(0f, 0.3f),
+                new Vector2(1f, 0.7f), new Color(0.07f, 0.025f, 0.02f, 1f));
+            RectTransform fillArea = CreateRect("Fill Area", rect, new Vector2(0f, 0.15f), new Vector2(1f, 0.85f));
+            RectTransform fill = CreateImage("Fill", fillArea, Vector2.zero, Vector2.one, CaveBorder);
             RectTransform handleArea = CreateRect("Handle Area", rect, Vector2.zero, Vector2.one);
-            RectTransform handle = CreateImage("Handle", handleArea, new Vector2(0f, 0.14f),
-                new Vector2(0.035f, 0.86f), Magenta);
+            RectTransform handle = CreateImage("Handle", handleArea,
+                new Vector2(0f, 0.02f), new Vector2(0.045f, 0.98f), Cream);
 
             Slider slider = sliderObject.GetComponent<Slider>();
             slider.minValue = 0f;
             slider.maxValue = 1f;
-            slider.value = Mathf.Clamp01(initialValue);
+            slider.value = Mathf.Clamp01(initial);
             slider.fillRect = fill;
             slider.handleRect = handle;
             slider.targetGraphic = handle.GetComponent<Image>();
-            slider.direction = Slider.Direction.LeftToRight;
             slider.onValueChanged.AddListener(value => changed(value));
             return slider;
         }
 
-        private void CreateNavButton(RectTransform parent, string key, Action action, Color accent)
+        private void CaptureMenuStyle(Button template)
         {
-            Button button = CreateButton(key + " Button", parent, Vector2.zero, Vector2.one,
-                string.Empty, action, accent);
-            LayoutElement layout = button.gameObject.AddComponent<LayoutElement>();
-            layout.preferredHeight = 74f;
-            localizedLabels[key] = button.GetComponentInChildren<TMP_Text>();
+            if (template == null) return;
+            Image image = template.GetComponent<Image>();
+            if (image != null) buttonSprite = image.sprite;
+            TMP_Text text = template.GetComponentInChildren<TMP_Text>();
+            if (text != null) menuFont = text.font;
         }
 
-        private void ShowPage(MenuPage page, bool animate = true)
+        private TMP_Text ConfigureExistingButton(Button button, Action action)
         {
-            if (homePage == null) return;
-            homePage.SetActive(page == MenuPage.Home);
-            loadoutPage.SetActive(page == MenuPage.Loadout);
-            settingsPage.SetActive(page == MenuPage.Settings);
-
-            GameObject active = page switch
+            if (button == null) return null;
+            button.gameObject.SetActive(true);
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() =>
             {
-                MenuPage.Loadout => loadoutPage,
-                MenuPage.Settings => settingsPage,
-                _ => homePage
-            };
+                Punch(button.transform);
+                action?.Invoke();
+            });
+            ConfigureButtonColors(button);
 
-            if (!animate || active == null) return;
-            RectTransform rect = active.GetComponent<RectTransform>();
-            CanvasGroup group = active.GetComponent<CanvasGroup>();
-            rect.DOKill();
-            group.DOKill();
-            rect.anchoredPosition = new Vector2(42f, 0f);
-            group.alpha = 0f;
-            DOTween.Sequence()
-                .SetUpdate(true)
-                .Append(rect.DOAnchorPosX(0f, 0.28f).SetEase(Ease.OutCubic))
-                .Join(group.DOFade(1f, 0.22f))
-                .SetLink(active, LinkBehaviour.KillOnDestroy);
-        }
-
-        private void RefreshLoadout()
-        {
-            bool spanish = GameLoadout.IsSpanish;
-            if (characterValue != null) characterValue.text = GameLoadout.CharacterName(spanish);
-            if (weaponValue != null) weaponValue.text = GameLoadout.WeaponName(spanish);
-            if (abilityValue != null) abilityValue.text = GameLoadout.AbilityName(spanish);
-        }
-
-        private void ToggleLanguage()
-        {
-            GameLoadout.IsSpanish = !GameLoadout.IsSpanish;
-            RefreshLanguage();
-            RefreshLoadout();
-        }
-
-        private void RefreshLanguage()
-        {
-            bool es = GameLoadout.IsSpanish;
-            SetLocalized("subtitle", es ? "CONFIGURA TU COMBATIENTE. ENTRA A LA ARENA." :
-                "CONFIGURE YOUR FIGHTER. ENTER THE ARENA.");
-            SetLocalized("play", es ? "INICIAR COMBATE" : "START FIGHT");
-            SetLocalized("loadout", es ? "EQUIPAMIENTO" : "LOADOUT");
-            SetLocalized("settings", es ? "AJUSTES" : "SETTINGS");
-            SetLocalized("exit", es ? "SALIR" : "EXIT");
-            SetLocalized("homeHeading", es ? "EL JEFE YA ESTÁ DESPIERTO" : "THE BOSS IS ALREADY AWAKE");
-            SetLocalized("homeDescription", es
-                ? "Elige tu configuración, carga el núcleo golpeando al enemigo y libera una única bala especial con Q."
-                : "Choose your setup, charge the core by hitting the enemy, then release one special round with Q.");
-            SetLocalized("loadoutHeading", es ? "CONFIGURACIÓN DE COMBATE" : "COMBAT LOADOUT");
-            SetLocalized("settingsHeading", es ? "SISTEMA" : "SYSTEM");
-            SetLocalized("character", es ? "PERSONAJE" : "CHARACTER");
-            SetLocalized("weapon", es ? "ARMA" : "WEAPON");
-            SetLocalized("ability", es ? "HABILIDAD" : "ABILITY");
-            SetLocalized("volume", es ? "VOLUMEN" : "VOLUME");
-            SetLocalized("brightness", es ? "BRILLO" : "BRIGHTNESS");
-            SetLocalized("language", es ? "IDIOMA" : "LANGUAGE");
-            SetLocalized("footer", es
-                ? "WASD MOVER  //  RATÓN DISPARAR  //  R RECARGAR  //  Q PODER"
-                : "WASD MOVE  //  MOUSE FIRE  //  R RELOAD  //  Q POWER");
-            if (languageValue != null) languageValue.text = es ? "ESPAÑOL" : "ENGLISH";
-        }
-
-        private void SetLocalized(string key, string value)
-        {
-            if (localizedLabels.TryGetValue(key, out TMP_Text label) && label != null) label.text = value;
-        }
-
-        private void DisableUnstableMenuAnimations()
-        {
-            foreach (Button legacyButton in FindObjectsByType<Button>(FindObjectsSortMode.None))
+            TMP_Text text = button.GetComponentInChildren<TMP_Text>();
+            if (text != null)
             {
-                if (legacyButton != null) legacyButton.gameObject.SetActive(false);
+                text.color = Color.white;
+                text.outlineColor = Color.black;
+                text.outlineWidth = 0.22f;
+            }
+            return text;
+        }
+
+        private Button CreateButton(string name, RectTransform parent, Vector2 min, Vector2 max,
+            string label, Action action)
+        {
+            RectTransform rect = CreateImage(name, parent, min, max, CaveButton);
+            Image image = rect.GetComponent<Image>();
+            if (buttonSprite != null)
+            {
+                image.sprite = buttonSprite;
+                image.type = Image.Type.Sliced;
             }
 
-            foreach (MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+            Button button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            ConfigureButtonColors(button);
+            button.onClick.AddListener(() =>
             {
-                if (behaviour == null) continue;
-                string typeName = behaviour.GetType().Name;
-                if (typeName == "PlayerJump" || typeName == "MenuAnimation") behaviour.enabled = false;
-            }
+                Punch(button.transform);
+                action?.Invoke();
+            });
+
+            TMP_Text text = CreateText("Label", rect, new Vector2(0.05f, 0.06f),
+                new Vector2(0.95f, 0.94f), label, 18f, Color.white,
+                TextAlignmentOptions.Center, FontStyles.Bold);
+            text.outlineColor = Color.black;
+            text.outlineWidth = 0.2f;
+            text.raycastTarget = false;
+            return button;
         }
 
-        private void EnsureBrightnessOverlay()
+        private static void ConfigureButtonColors(Button button)
         {
-            GameObject existing = GameObject.Find("Global Brightness Overlay");
-            if (existing != null)
-            {
-                brightnessOverlay = existing.GetComponentInChildren<Image>();
-                UpdateBrightnessOverlay();
-                return;
-            }
-
-            GameObject canvasObject = new("Global Brightness Overlay", typeof(RectTransform), typeof(Canvas),
-                typeof(CanvasScaler));
-            Canvas canvas = canvasObject.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 32000;
-            GameObject imageObject = new("Brightness Filter", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform rect = imageObject.GetComponent<RectTransform>();
-            rect.SetParent(canvasObject.transform, false);
-            SetAnchors(rect, Vector2.zero, Vector2.one);
-            brightnessOverlay = imageObject.GetComponent<Image>();
-            brightnessOverlay.color = Color.black;
-            brightnessOverlay.raycastTarget = false;
-            UpdateBrightnessOverlay();
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = CaveButtonHover;
+            colors.pressedColor = new Color(0.32f, 0.09f, 0.065f, 1f);
+            colors.selectedColor = CaveButtonHover;
+            colors.disabledColor = new Color(0.2f, 0.12f, 0.1f, 0.55f);
+            colors.fadeDuration = 0.08f;
+            button.colors = colors;
         }
 
-        private void UpdateBrightnessOverlay()
+        private RectTransform CreateFramedPanel(string name, RectTransform parent, Vector2 min, Vector2 max)
         {
-            if (brightnessOverlay == null) return;
-            float darkness = Mathf.InverseLerp(1f, 0.35f, GameLoadout.Brightness) * 0.68f;
-            brightnessOverlay.color = new Color(0f, 0f, 0f, darkness);
-        }
-
-        private static RectTransform CreatePage(string name, RectTransform parent)
-        {
-            RectTransform page = CreateRect(name, parent, Vector2.zero, Vector2.one);
-            page.gameObject.AddComponent<CanvasGroup>();
-            return page;
-        }
-
-        private static RectTransform CreatePanel(string name, RectTransform parent, Vector2 min, Vector2 max)
-        {
-            RectTransform panel = CreateImage(name, parent, min, max, Panel);
-            Outline outline = panel.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0.08f, 0.75f, 1f, 0.28f);
-            outline.effectDistance = new Vector2(2f, -2f);
+            RectTransform border = CreateImage(name + " Border", parent, min, max, CaveBorder);
+            RectTransform panel = CreateImage(name, border, new Vector2(0.012f, 0.018f),
+                new Vector2(0.988f, 0.982f), CavePanel);
             return panel;
+        }
+
+        private TMP_Text CreateText(string name, RectTransform parent, Vector2 min, Vector2 max,
+            string value, float size, Color color, TextAlignmentOptions alignment,
+            FontStyles style = FontStyles.Normal)
+        {
+            GameObject textObject = new(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            RectTransform rect = textObject.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            SetAnchors(rect, min, max);
+
+            TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
+            if (menuFont != null) text.font = menuFont;
+            text.text = value;
+            text.fontSize = size;
+            text.color = color;
+            text.alignment = alignment;
+            text.fontStyle = style;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            return text;
         }
 
         private static RectTransform CreateImage(string name, RectTransform parent, Vector2 min, Vector2 max,
@@ -466,69 +370,6 @@ namespace Project.Scripts.Controller
             return rect;
         }
 
-        private static TMP_Text CreateText(string name, RectTransform parent, Vector2 min, Vector2 max,
-            string value, float size, Color color, TextAlignmentOptions alignment,
-            FontStyles style = FontStyles.Normal)
-        {
-            GameObject textObject = new(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-            RectTransform rect = textObject.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            SetAnchors(rect, min, max);
-            TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-            text.text = value;
-            text.fontSize = size;
-            text.color = color;
-            text.alignment = alignment;
-            text.fontStyle = style;
-            text.textWrappingMode = TextWrappingModes.Normal;
-            return text;
-        }
-
-        private static Button CreateButton(string name, RectTransform parent, Vector2 min, Vector2 max,
-            string value, Action action, Color accent)
-        {
-            RectTransform rect = CreateImage(name, parent, min, max, new Color(0.055f, 0.09f, 0.15f, 1f));
-            Button button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = rect.GetComponent<Image>();
-            ColorBlock colors = button.colors;
-            colors.normalColor = new Color(0.055f, 0.09f, 0.15f, 1f);
-            colors.highlightedColor = new Color(accent.r * 0.32f, accent.g * 0.32f, accent.b * 0.32f, 1f);
-            colors.pressedColor = new Color(accent.r * 0.5f, accent.g * 0.5f, accent.b * 0.5f, 1f);
-            colors.selectedColor = colors.highlightedColor;
-            button.colors = colors;
-            button.onClick.AddListener(() => action?.Invoke());
-
-            RectTransform line = CreateImage("Accent", rect, new Vector2(0f, 0f), new Vector2(0.018f, 1f), accent);
-            line.GetComponent<Image>().raycastTarget = false;
-            TMP_Text label = CreateText("Label", rect, new Vector2(0.08f, 0.08f), new Vector2(0.94f, 0.92f),
-                value, 21, Color.white, TextAlignmentOptions.Center, FontStyles.Bold);
-            label.raycastTarget = false;
-            return button;
-        }
-
-        private static void CreateStatChip(RectTransform parent, Vector2 anchor, string value, string label)
-        {
-            RectTransform chip = CreateImage("Stat " + label, parent, anchor,
-                anchor + new Vector2(0.2f, 0.13f), new Color(0.03f, 0.1f, 0.15f, 0.95f));
-            CreateText("Value", chip, new Vector2(0.04f, 0.38f), new Vector2(0.96f, 0.92f),
-                value, 25, Cyan, TextAlignmentOptions.Center, FontStyles.Bold);
-            CreateText("Label", chip, new Vector2(0.04f, 0.06f), new Vector2(0.96f, 0.4f),
-                label, 13, Muted, TextAlignmentOptions.Center);
-        }
-
-        private static void AddOutline(TMP_Text text, Color color)
-        {
-            text.outlineColor = color;
-            text.outlineWidth = 0.18f;
-        }
-
-        private static void AddGlow(RectTransform rect, Color color, float distance)
-        {
-            Shadow shadow = rect.gameObject.AddComponent<Shadow>();
-            shadow.effectColor = color;
-            shadow.effectDistance = new Vector2(0f, -distance);
-        }
-
         private static void SetAnchors(RectTransform rect, Vector2 min, Vector2 max)
         {
             rect.anchorMin = min;
@@ -537,13 +378,161 @@ namespace Project.Scripts.Controller
             rect.offsetMax = Vector2.zero;
         }
 
-        private static void QuitGame()
+        private static Button FindButton(string objectName)
         {
-#if UNITY_EDITOR
-            Debug.Log("Quit requested from main menu.");
-#else
-            Application.Quit();
-#endif
+            GameObject found = GameObject.Find(objectName);
+            return found != null ? found.GetComponent<Button>() : null;
+        }
+
+        private void ChangeCharacter(int direction)
+        {
+            GameLoadout.CycleCharacter(direction);
+            RefreshLoadout();
+            ApplyCharacterPreview(true);
+        }
+
+        private void ChangeWeapon(int direction)
+        {
+            GameLoadout.CycleWeapon(direction);
+            RefreshLoadout();
+        }
+
+        private void ChangeAbility(int direction)
+        {
+            GameLoadout.CycleAbility(direction);
+            RefreshLoadout();
+        }
+
+        private void ApplyCharacterPreview(bool animate)
+        {
+            if (playerPreview == null) return;
+            playerPreview.color = GameLoadout.CharacterColor;
+            float size = GameLoadout.Character switch
+            {
+                PlayerCharacter.Striker => 0.94f,
+                PlayerCharacter.Bulwark => 1.08f,
+                _ => 1f
+            };
+            playerPreview.transform.localScale = playerPreviewBaseScale * size;
+            if (!animate) return;
+            playerPreview.transform.DOKill();
+            playerPreview.transform
+                .DOPunchScale(playerPreviewBaseScale * 0.12f, 0.28f, 6, 0.55f)
+                .SetUpdate(true)
+                .SetLink(playerPreview.gameObject, LinkBehaviour.KillOnDestroy);
+        }
+
+        private void ToggleOptions()
+        {
+            if (optionsPanel == null) return;
+            bool show = !optionsPanel.activeSelf;
+            optionsPanel.SetActive(show);
+            if (!show) return;
+
+            RectTransform rect = optionsPanel.GetComponent<RectTransform>();
+            CanvasGroup group = optionsPanel.GetComponent<CanvasGroup>();
+            if (group == null) group = optionsPanel.AddComponent<CanvasGroup>();
+            rect.DOKill();
+            group.DOKill();
+            rect.localScale = Vector3.one * 0.92f;
+            group.alpha = 0f;
+            DOTween.Sequence()
+                .SetUpdate(true)
+                .Append(rect.DOScale(1f, 0.2f).SetEase(Ease.OutBack))
+                .Join(group.DOFade(1f, 0.14f))
+                .SetLink(optionsPanel, LinkBehaviour.KillOnDestroy);
+        }
+
+        private void ToggleLanguage()
+        {
+            GameLoadout.IsSpanish = !GameLoadout.IsSpanish;
+            RefreshLanguage();
+            RefreshLoadout();
+        }
+
+        private void RefreshLanguage()
+        {
+            bool es = GameLoadout.IsSpanish;
+            if (startLabel != null) startLabel.text = es ? "Jugar" : "Start";
+            if (optionsLabel != null) optionsLabel.text = es ? "Opciones" : "Options";
+            if (characterTitle != null) characterTitle.text = es ? "CAMBIAR PERSONAJE" : "CHANGE CHARACTER";
+            if (optionsTitle != null) optionsTitle.text = es ? "OPCIONES" : "OPTIONS";
+            if (weaponTitle != null) weaponTitle.text = es ? "ARMA" : "WEAPON";
+            if (abilityTitle != null) abilityTitle.text = es ? "HABILIDAD" : "ABILITY";
+            if (volumeTitle != null) volumeTitle.text = es ? "VOLUMEN" : "VOLUME";
+            if (brightnessTitle != null) brightnessTitle.text = es ? "BRILLO" : "BRIGHTNESS";
+            if (languageTitle != null) languageTitle.text = es ? "IDIOMA" : "LANGUAGE";
+            if (languageValue != null) languageValue.text = es ? "Español" : "English";
+            UpdateSettingValues();
+        }
+
+        private void RefreshLoadout()
+        {
+            bool es = GameLoadout.IsSpanish;
+            if (characterValue != null) characterValue.text = GameLoadout.CharacterName(es);
+            if (weaponValue != null) weaponValue.text = GameLoadout.WeaponName(es);
+            if (abilityValue != null) abilityValue.text = GameLoadout.AbilityName(es);
+            if (characterDescription != null)
+            {
+                characterDescription.text = GameLoadout.Character switch
+                {
+                    PlayerCharacter.Striker => es ? "Más rápido · Menos vida" : "Faster · Less health",
+                    PlayerCharacter.Bulwark => es ? "Más vida · Menos velocidad" : "More health · Less speed",
+                    _ => es ? "Equilibrado" : "Balanced"
+                };
+            }
+            UpdateSettingValues();
+        }
+
+        private void UpdateSettingValues()
+        {
+            if (volumeValue != null) volumeValue.text = $"{Mathf.RoundToInt(GameLoadout.Volume * 100f)}%";
+            if (brightnessValue != null)
+            {
+                float normalized = Mathf.InverseLerp(0.35f, 1f, GameLoadout.Brightness);
+                brightnessValue.text = $"{Mathf.RoundToInt(normalized * 100f)}%";
+            }
+        }
+
+        private static void Punch(Transform target)
+        {
+            if (target == null) return;
+            target.DOKill();
+            target.DOPunchScale(Vector3.one * 0.08f, 0.16f, 4, 0.6f)
+                .SetUpdate(true)
+                .SetLink(target.gameObject, LinkBehaviour.KillOnDestroy);
+        }
+
+        private void EnsureBrightnessOverlay()
+        {
+            GameObject existing = GameObject.Find("Global Brightness Overlay");
+            if (existing != null)
+            {
+                brightnessOverlay = existing.GetComponentInChildren<Image>();
+                UpdateBrightnessOverlay();
+                return;
+            }
+
+            GameObject canvasObject = new("Global Brightness Overlay", typeof(RectTransform), typeof(Canvas),
+                typeof(CanvasScaler));
+            Canvas canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 32000;
+
+            GameObject imageObject = new("Brightness Filter", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = imageObject.GetComponent<RectTransform>();
+            rect.SetParent(canvasObject.transform, false);
+            SetAnchors(rect, Vector2.zero, Vector2.one);
+            brightnessOverlay = imageObject.GetComponent<Image>();
+            brightnessOverlay.raycastTarget = false;
+            UpdateBrightnessOverlay();
+        }
+
+        private void UpdateBrightnessOverlay()
+        {
+            if (brightnessOverlay == null) return;
+            float darkness = Mathf.InverseLerp(1f, 0.35f, GameLoadout.Brightness) * 0.68f;
+            brightnessOverlay.color = new Color(0f, 0f, 0f, darkness);
         }
     }
 }
