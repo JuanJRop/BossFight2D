@@ -35,6 +35,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
 
         private void Awake()
         {
+            speed *= GameLoadout.MoveSpeedMultiplier;
             playerSoundController = GetComponent<PlayerSoundController>();
             playerDodge = GetComponent<PlayerDodge>();
             rb = GetComponent<Rigidbody2D>();
