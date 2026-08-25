@@ -548,10 +548,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4799fa839e6d944c84957eee1a2f7fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerUp
-  maxMana: 10
-  drainSpeed: 3.2
-  regenValue: 0.75
-  regenTime: 0.75
+  maxMana: 100
+  manaPerEnemyHit: 4
   activationKey: 113
   outerAuraColor: {r: 0.08, g: 0.95, b: 1, a: 0.9}
   innerAuraColor: {r: 1, g: 0.12, b: 0.52, a: 0.9}
