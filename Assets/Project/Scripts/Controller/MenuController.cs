@@ -128,6 +128,9 @@ namespace Project.Scripts.Controller
                 scaler.matchWidthOrHeight = 0.5f;
             }
 
+            Canvas sceneCanvas = canvasObject.GetComponent<Canvas>();
+            if (sceneCanvas != null) sceneCanvas.pixelPerfect = true;
+
             CaptureLegacyStyle();
             HideLegacyMenuObjects();
             LoadSkinCatalog();
@@ -138,6 +141,7 @@ namespace Project.Scripts.Controller
             Canvas menuCanvas = menuRoot.gameObject.AddComponent<Canvas>();
             menuCanvas.overrideSorting = true;
             menuCanvas.sortingOrder = 200;
+            menuCanvas.pixelPerfect = true;
             menuRoot.gameObject.AddComponent<GraphicRaycaster>();
 
             Image dim = CreateImage("Backdrop Dim", menuRoot, Vector2.zero, Vector2.one,
@@ -341,6 +345,10 @@ namespace Project.Scripts.Controller
             skinCatalogInstance.hideFlags = HideFlags.HideInHierarchy;
             skinCatalogInstance.SetActive(false);
             skins = skinCatalogInstance.GetComponentsInChildren<CharacterSkinSet>(true);
+            foreach (CharacterSkinSet skin in skins)
+            {
+                if (skin != null) skin.PrepareForCrispRendering();
+            }
         }
 
         private void ChangeCharacter(int direction)
@@ -375,7 +383,14 @@ namespace Project.Scripts.Controller
             if (characterPreview != null && skins != null && skins.Length > 0)
             {
                 int index = Mathf.Clamp((int)GameLoadout.Character, 0, skins.Length - 1);
-                characterPreview.sprite = skins[index].PreviewSprite;
+                Sprite preview = skins[index].PreviewSprite;
+                if (preview != null && preview.texture != null)
+                {
+                    preview.texture.filterMode = FilterMode.Point;
+                    preview.texture.wrapMode = TextureWrapMode.Clamp;
+                    preview.texture.anisoLevel = 0;
+                }
+                characterPreview.sprite = preview;
                 characterPreview.color = Color.white;
                 if (animateCharacter)
                 {
