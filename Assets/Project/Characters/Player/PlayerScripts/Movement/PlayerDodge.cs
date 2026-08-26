@@ -12,13 +12,10 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         [Header("Dodge Movement")]
         [SerializeField] private float dashForce;
         [SerializeField] private float dashTime;
-        [SerializeField] private float dodgeCost;
 
-        [Header("Stamina")]
-        [SerializeField] private float currentStamina;
-        [SerializeField] private float maxStamina;
-        [SerializeField] private float regenTime;
-        [SerializeField] private float regenValue;
+        [Header("Dash Charges")]
+        [SerializeField, Range(1, 6)] private int maxDashCharges = 3;
+        [SerializeField, Min(0.1f)] private float dashRechargeTime = 2.4f;
 
         [Header("References")]
         [SerializeField] private TrailRenderer trail;
@@ -31,16 +28,23 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private Rigidbody2D rb;
         private CinemachineBasicMultiChannelPerlin noise;
         private PlayerSoundController playerSoundController;
-        private float regenTimer;
+        private float rechargeTimer;
+        private int dashCharges;
         private bool isDashing;
         private bool isInvulnerable;
 
         public event Action<float, float> OnStaminaChanged;
+        public event Action<int, int, float> OnDashChargesChanged;
 
         public bool IsInvulnerable => isInvulnerable;
         public bool IsDashing => isDashing;
-        public float MaxStamina => maxStamina;
-        public float CurrentStamina => currentStamina;
+        public float MaxStamina => maxDashCharges;
+        public float CurrentStamina => dashCharges;
+        public int MaxDashCharges => maxDashCharges;
+        public int DashCharges => dashCharges;
+        public float RechargeProgress => dashCharges >= maxDashCharges
+            ? 1f
+            : Mathf.Clamp01(rechargeTimer / Mathf.Max(0.1f, dashRechargeTime));
 
         private void Start()
         {
@@ -52,7 +56,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
                 : null;
 
             if (trail != null) trail.enabled = false;
-            currentStamina = Mathf.Max(0f, maxStamina);
+            dashCharges = Mathf.Max(1, maxDashCharges);
             NotifyStaminaChanged();
         }
 
@@ -61,16 +65,15 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             if (UIManager.instance != null && UIManager.instance.IsPaused) return;
 
             if (Input.GetKeyDown(KeyCode.Space)) TryDodge();
-            RegenerateStamina();
+            RechargeDash();
         }
 
         private void TryDodge()
         {
-            if (isDashing || playerMove == null || playerMove.MoveInput.sqrMagnitude < 0.01f) return;
-            if (currentStamina < dodgeCost) return;
+            if (isDashing || playerMove == null || playerMove.IsStunned ||
+                playerMove.MoveInput.sqrMagnitude < 0.01f || dashCharges <= 0) return;
 
-            currentStamina = Mathf.Max(0f, currentStamina - dodgeCost);
-            regenTimer = 0f;
+            dashCharges--;
             NotifyStaminaChanged();
             StartCoroutine(Dash(playerMove.MoveInput.normalized));
 
@@ -94,16 +97,24 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             EndDash();
         }
 
-        private void RegenerateStamina()
+        private void RechargeDash()
         {
-            if (isDashing || currentStamina >= maxStamina) return;
+            if (dashCharges >= maxDashCharges)
+            {
+                rechargeTimer = 0f;
+                return;
+            }
 
-            regenTimer += Time.deltaTime;
-            float interval = Mathf.Max(0.01f, regenTime);
-            if (regenTimer < interval) return;
+            rechargeTimer += Time.deltaTime;
+            float interval = Mathf.Max(0.1f, dashRechargeTime);
+            if (rechargeTimer < interval)
+            {
+                NotifyDashChargesChanged();
+                return;
+            }
 
-            regenTimer -= interval;
-            currentStamina = Mathf.Min(maxStamina, currentStamina + Mathf.Max(0f, regenValue));
+            rechargeTimer -= interval;
+            dashCharges = Mathf.Min(maxDashCharges, dashCharges + 1);
             NotifyStaminaChanged();
         }
 
@@ -124,25 +135,28 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         {
             StopAllCoroutines();
             EndDash();
-            currentStamina = Mathf.Clamp(value, 0f, maxStamina);
-            regenTimer = 0f;
+            dashCharges = Mathf.Clamp(Mathf.RoundToInt(value), 0, maxDashCharges);
+            rechargeTimer = 0f;
             NotifyStaminaChanged();
         }
 
         private void NotifyStaminaChanged()
         {
-            OnStaminaChanged?.Invoke(currentStamina, maxStamina);
+            OnStaminaChanged?.Invoke(dashCharges, maxDashCharges);
+            NotifyDashChargesChanged();
+        }
+
+        private void NotifyDashChargesChanged()
+        {
+            OnDashChargesChanged?.Invoke(dashCharges, maxDashCharges, RechargeProgress);
         }
 
         private void OnValidate()
         {
             dashForce = Mathf.Max(0f, dashForce);
             dashTime = Mathf.Max(0.01f, dashTime);
-            maxStamina = Mathf.Max(0.01f, maxStamina);
-            dodgeCost = Mathf.Clamp(dodgeCost, 0f, maxStamina);
-            regenTime = Mathf.Max(0.01f, regenTime);
-            regenValue = Mathf.Max(0f, regenValue);
-            currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
+            maxDashCharges = Mathf.Clamp(maxDashCharges, 1, 6);
+            dashRechargeTime = Mathf.Max(0.1f, dashRechargeTime);
         }
     }
 }

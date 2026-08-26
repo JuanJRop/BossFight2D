@@ -7,11 +7,15 @@ namespace Project.Scripts.Controller
     public sealed class CharacterSkinSet : MonoBehaviour
     {
         [SerializeField] private string displayName;
+        [SerializeField, Min(0.1f)] private float previewScale = 1f;
+        [SerializeField, Min(0.1f)] private float gameplayScale = 1f;
         [SerializeField] private Sprite[] sprites;
 
         private Dictionary<string, Sprite> spriteLookup;
 
         public string DisplayName => displayName;
+        public float PreviewScale => previewScale > 0f ? previewScale : 1f;
+        public float GameplayScale => gameplayScale > 0f ? gameplayScale : 1f;
         public Sprite PreviewSprite
         {
             get

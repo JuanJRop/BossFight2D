@@ -479,12 +479,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Player.Movement.PlayerDodge
   dashForce: 18
   dashTime: 0.3
-  dodgeCost: 33.7
-  currentStamina: 100
-  maxStamina: 100
-  staminaBar: {fileID: 0}
-  regenTime: 3
-  regenValue: 11
+  maxDashCharges: 3
+  dashRechargeTime: 2.4
   trail: {fileID: 2500818933822206269}
   virtualCamera: {fileID: 0}
   volume: 0.165

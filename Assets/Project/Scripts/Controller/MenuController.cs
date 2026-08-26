@@ -384,7 +384,8 @@ namespace Project.Scripts.Controller
             if (characterPreview != null && skins != null && skins.Length > 0)
             {
                 int index = Mathf.Clamp((int)GameLoadout.Character, 0, skins.Length - 1);
-                Sprite preview = skins[index].PreviewSprite;
+                CharacterSkinSet selectedSkin = skins[index];
+                Sprite preview = selectedSkin.PreviewSprite;
                 if (preview != null && preview.texture != null)
                 {
                     preview.texture.filterMode = FilterMode.Point;
@@ -393,10 +394,12 @@ namespace Project.Scripts.Controller
                 }
                 characterPreview.sprite = preview;
                 characterPreview.color = Color.white;
+                Vector3 previewScale = Vector3.one * selectedSkin.PreviewScale;
+                characterPreview.transform.localScale = previewScale;
                 if (animateCharacter)
                 {
                     characterPreview.transform.DOKill();
-                    characterPreview.transform.localScale = Vector3.one;
+                    characterPreview.transform.localScale = previewScale;
                     characterPreview.transform.DOPunchScale(Vector3.one * 0.12f, 0.28f, 6, 0.55f)
                         .SetUpdate(true)
                         .SetLink(characterPreview.gameObject, LinkBehaviour.KillOnDestroy);

@@ -10,6 +10,8 @@ namespace Project.Scripts.Controller
         private SpriteRenderer playerRenderer;
         private GameObject catalogInstance;
         private CharacterSkinSet activeSkin;
+        private Vector3 baseScale;
+        private bool baseScaleCaptured;
 
         public static void Attach(GameObject player, Animator playerAnimator, SpriteRenderer renderer)
         {
@@ -23,6 +25,11 @@ namespace Project.Scripts.Controller
         {
             animator = playerAnimator;
             playerRenderer = renderer;
+            if (!baseScaleCaptured)
+            {
+                baseScale = transform.localScale;
+                baseScaleCaptured = true;
+            }
             LoadSelectedSkin();
         }
 
@@ -57,6 +64,7 @@ namespace Project.Scripts.Controller
             int index = Mathf.Clamp((int)GameLoadout.Character, 0, skins.Length - 1);
             activeSkin = skins[index];
             activeSkin.PrepareForCrispRendering();
+            transform.localScale = baseScale * activeSkin.GameplayScale;
         }
 
         private void OnDestroy()

@@ -55,11 +55,23 @@ MonoBehaviour:
   phaseOneTwinLaserDuration: 4.8
   phaseTwoTwinLaserDuration: 7
   twinLaserMoveSpeed: 4.4
-  twinLaserRadius: 0.42
+  twinLaserRadius: 0.62
   twinLaserDamage: 16
   twinLaserDamageCooldown: 0.7
+  twinLaserStunDuration: 0.24
   miniMoleScale: 0.5
   twinLaserTilt: 1.35
+  phaseOneHordeCount: 6
+  phaseTwoHordeCount: 9
+  phaseOneMinionHealth: 28
+  phaseTwoMinionHealth: 42
+  phaseOneMinionSpeed: 3.4
+  phaseTwoMinionSpeed: 4.5
+  hordeMaxDuration: 14
+  hordeContactDamage: 10
+  hordeContactCooldown: 0.75
+  minionGoldReward: 3
+  minionExperienceReward: 8
   minionSpawnSfx: {fileID: 8300000, guid: 1313e94d429dd8642bbfd6e5f96bad91, type: 3}
   laserChargeSfx: {fileID: 8300000, guid: 6899df3382dfff549963fe7a4c6f15a9, type: 3}
   laserFireSfx: {fileID: 8300000, guid: 6899df3382dfff549963fe7a4c6f15a9, type: 3}

@@ -81,6 +81,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: Alex
+  previewScale: 1
+  gameplayScale: 1
   sprites:
   - {fileID: 4723107735738678597, guid: 6f7afb47a354ceb4b8c489fc8f2db9b5, type: 3}
   - {fileID: -7385789195546760866, guid: 6f7afb47a354ceb4b8c489fc8f2db9b5, type: 3}
@@ -193,6 +195,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: Lyria
+  previewScale: 1
+  gameplayScale: 1
   sprites:
   - {fileID: 4723107735738678597, guid: 91c6cf2c65f80a846bd5992dfd7e102c, type: 3}
   - {fileID: -7385789195546760866, guid: 91c6cf2c65f80a846bd5992dfd7e102c, type: 3}
@@ -305,6 +309,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: Manu
+  previewScale: 1
+  gameplayScale: 1
   sprites:
   - {fileID: 4723107735738678597, guid: 458c0a1e85fdba24aab6b1af5a97646a, type: 3}
   - {fileID: -7385789195546760866, guid: 458c0a1e85fdba24aab6b1af5a97646a, type: 3}
@@ -417,6 +423,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: Tori
+  previewScale: 1
+  gameplayScale: 1
   sprites:
   - {fileID: 4723107735738678597, guid: 048177397a0db9846b9b4edfb9ce2232, type: 3}
   - {fileID: -7385789195546760866, guid: 048177397a0db9846b9b4edfb9ce2232, type: 3}
@@ -529,6 +537,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: George
+  previewScale: 1.65
+  gameplayScale: 1
   sprites:
   - {fileID: 4723107735738678597, guid: cc3d2ffe9dc202e4ca7c75c7e17386e5, type: 3}
   - {fileID: -7385789195546760866, guid: cc3d2ffe9dc202e4ca7c75c7e17386e5, type: 3}

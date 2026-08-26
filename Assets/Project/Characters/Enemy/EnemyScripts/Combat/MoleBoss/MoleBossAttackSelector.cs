@@ -12,9 +12,10 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public MoleBossAttackSelector()
         {
             Enqueue(phaseOneIntroduction, MoleBossAttack.AimedFan, MoleBossAttack.RadialBurst,
-                MoleBossAttack.RockRain, MoleBossAttack.TwinMoleLaser, MoleBossAttack.ChargeDash);
+                MoleBossAttack.RockRain, MoleBossAttack.TwinMoleLaser, MoleBossAttack.MinionHorde,
+                MoleBossAttack.ChargeDash);
             Enqueue(phaseTwoIntroduction, MoleBossAttack.Spiral, MoleBossAttack.RockRain,
-                MoleBossAttack.TwinMoleLaser, MoleBossAttack.ChargeDash);
+                MoleBossAttack.TwinMoleLaser, MoleBossAttack.MinionHorde, MoleBossAttack.ChargeDash);
         }
 
         public MoleBossAttack Select(int phase, float playerDistance)
@@ -45,7 +46,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             MoleBossAttack.AimedFan, MoleBossAttack.AimedFan,
             MoleBossAttack.RadialBurst, MoleBossAttack.RadialBurst,
             MoleBossAttack.RockRain, MoleBossAttack.RockRain,
-            MoleBossAttack.TwinMoleLaser, MoleBossAttack.ChargeDash
+            MoleBossAttack.TwinMoleLaser, MoleBossAttack.MinionHorde, MoleBossAttack.ChargeDash
         };
 
         private static readonly MoleBossAttack[] PhaseTwoChoices =
@@ -53,7 +54,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             MoleBossAttack.Spiral, MoleBossAttack.Spiral,
             MoleBossAttack.RockRain, MoleBossAttack.RockRain, MoleBossAttack.RockRain,
             MoleBossAttack.ChargeDash, MoleBossAttack.ChargeDash,
-            MoleBossAttack.RadialBurst, MoleBossAttack.TwinMoleLaser, MoleBossAttack.AimedFan
+            MoleBossAttack.RadialBurst, MoleBossAttack.TwinMoleLaser, MoleBossAttack.MinionHorde,
+            MoleBossAttack.AimedFan
         };
 
         private static void Enqueue(Queue<MoleBossAttack> queue, params MoleBossAttack[] attacks)

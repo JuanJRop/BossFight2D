@@ -27,6 +27,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         private SpriteRenderer spriteRenderer;
         private Color originalColor;
         private Coroutine feedbackRoutine;
+        private bool externalInvulnerability;
 
         public event Action<float, float> OnHealthChanged;
         public event Action OnDied;
@@ -35,7 +36,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         public float CurrentHealth => currentHealth;
         public float NormalizedHealth => maxHealth > 0f ? currentHealth / maxHealth : 0f;
         public bool IsAlive => isAlive;
-        public bool IsInvulnerable => enemyMove != null && enemyMove.IsUnderGround;
+        public bool IsInvulnerable => externalInvulnerability || (enemyMove != null && enemyMove.IsUnderGround);
 
         private void Awake()
         {
@@ -86,6 +87,22 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         {
             originalColor = color;
             if (feedbackRoutine == null && spriteRenderer != null) spriteRenderer.color = originalColor;
+        }
+
+        public void SetExternalInvulnerable(bool value)
+        {
+            externalInvulnerability = value;
+        }
+
+        public void ConfigureRuntime(float maximumHealth, bool refill = true)
+        {
+            maxHealth = Mathf.Max(1f, maximumHealth);
+            if (refill || currentHealth > maxHealth)
+            {
+                currentHealth = maxHealth;
+                isAlive = true;
+                OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            }
         }
 
         public void Heal(float amount)

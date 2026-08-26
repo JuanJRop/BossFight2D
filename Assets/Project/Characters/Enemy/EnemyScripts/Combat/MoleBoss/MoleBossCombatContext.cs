@@ -16,6 +16,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         private readonly AudioSource audioSource;
         private readonly SpriteRenderer bossRenderer;
         private readonly Health bossHealth;
+        private readonly Collider2D[] bossColliders;
         private readonly Action<MoleBossState> changeState;
         private readonly Vector3 phaseOneScale;
         private readonly Color phaseOneColor;
@@ -32,6 +33,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             this.audioSource = audioSource;
             bossRenderer = boss != null ? boss.GetComponentInChildren<SpriteRenderer>() : null;
             bossHealth = boss != null ? boss.GetComponentInChildren<Health>() : null;
+            bossColliders = boss != null ? boss.GetComponentsInChildren<Collider2D>(true) : Array.Empty<Collider2D>();
             this.phaseOneScale = phaseOneScale;
             this.phaseOneColor = phaseOneColor;
             Body = body;
@@ -54,6 +56,18 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public Color BossColor => bossRenderer != null ? bossRenderer.color : phaseOneColor;
 
         public void SetState(MoleBossState state) => changeState?.Invoke(state);
+
+        public void SetBossHidden(bool hidden)
+        {
+            if (bossRenderer != null) bossRenderer.enabled = !hidden;
+            foreach (Collider2D collider in bossColliders)
+            {
+                if (collider != null) collider.enabled = !hidden;
+            }
+            if (bossHealth != null) bossHealth.SetExternalInvulnerable(hidden);
+            if (hidden && Body != null) Body.linearVelocity = Vector2.zero;
+            if (!hidden && Movement != null && (bossHealth == null || bossHealth.IsAlive)) Movement.ForceEmerge();
+        }
 
         public void ApplyPhasePresentation(int phase, float progress = 1f)
         {

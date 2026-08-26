@@ -59,6 +59,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         {
             StopAttackRoutine();
             telegraphs?.ReleaseAll();
+            context?.SetBossHidden(false);
             if (bossBody != null) bossBody.linearVelocity = Vector2.zero;
             SetState(bossHealth != null && !bossHealth.IsAlive ? MoleBossState.Defeated : MoleBossState.Dormant);
         }
@@ -76,6 +77,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             if (!phaseTransitionPending) context.ApplyPhasePresentation(nextPhase);
             StopAttackRoutine();
             telegraphs.ReleaseAll();
+            context.SetBossHidden(false);
 
             if (movement != null)
             {
@@ -150,7 +152,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             registry = new MoleBossAttackRegistry(new IMoleBossAttack[]
             {
                 new AimedFanAttack(), radial, new SpiralAttack(),
-                new RockRainAttack(), new ChargeDashAttack(), new TwinMoleLaserAttack()
+                new RockRainAttack(), new ChargeDashAttack(), new TwinMoleLaserAttack(),
+                new MinionHordeAttack()
             });
             phaseTransition = new MoleBossPhaseTransition(radial);
         }

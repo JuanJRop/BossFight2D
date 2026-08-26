@@ -63,11 +63,25 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField, Min(0.1f)] private float phaseOneTwinLaserDuration = 4.8f;
         [SerializeField, Min(0.1f)] private float phaseTwoTwinLaserDuration = 7f;
         [SerializeField, Min(0.1f)] private float twinLaserMoveSpeed = 4.4f;
-        [SerializeField, Min(0.05f)] private float twinLaserRadius = 0.42f;
+        [SerializeField, Min(0.05f)] private float twinLaserRadius = 0.62f;
         [SerializeField, Min(0f)] private float twinLaserDamage = 16f;
         [SerializeField, Min(0.1f)] private float twinLaserDamageCooldown = 0.7f;
+        [SerializeField, Min(0.05f)] private float twinLaserStunDuration = 0.24f;
         [SerializeField, Range(0.2f, 0.9f)] private float miniMoleScale = 0.5f;
         [SerializeField, Min(0f)] private float twinLaserTilt = 1.35f;
+
+        [Header("Minion Horde")]
+        [SerializeField, Min(1)] private int phaseOneHordeCount = 6;
+        [SerializeField, Min(1)] private int phaseTwoHordeCount = 9;
+        [SerializeField, Min(1f)] private float phaseOneMinionHealth = 28f;
+        [SerializeField, Min(1f)] private float phaseTwoMinionHealth = 42f;
+        [SerializeField, Min(0.1f)] private float phaseOneMinionSpeed = 3.4f;
+        [SerializeField, Min(0.1f)] private float phaseTwoMinionSpeed = 4.5f;
+        [SerializeField, Min(1f)] private float hordeMaxDuration = 14f;
+        [SerializeField, Min(0f)] private float hordeContactDamage = 10f;
+        [SerializeField, Min(0.1f)] private float hordeContactCooldown = 0.75f;
+        [SerializeField, Min(0)] private int minionGoldReward = 3;
+        [SerializeField, Min(0)] private int minionExperienceReward = 8;
 
         [Header("Combat Audio")]
         [SerializeField] private AudioClip minionSpawnSfx;
@@ -102,8 +116,14 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public float TwinLaserRadius => twinLaserRadius;
         public float TwinLaserDamage => twinLaserDamage;
         public float TwinLaserDamageCooldown => twinLaserDamageCooldown;
+        public float TwinLaserStunDuration => twinLaserStunDuration;
         public float MiniMoleScale => miniMoleScale;
         public float TwinLaserTilt => twinLaserTilt;
+        public float HordeMaxDuration => hordeMaxDuration;
+        public float HordeContactDamage => hordeContactDamage;
+        public float HordeContactCooldown => hordeContactCooldown;
+        public int MinionGoldReward => minionGoldReward;
+        public int MinionExperienceReward => minionExperienceReward;
         public AudioClip MinionSpawnSfx => minionSpawnSfx;
         public AudioClip LaserChargeSfx => laserChargeSfx;
         public AudioClip LaserFireSfx => laserFireSfx;
@@ -129,6 +149,9 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public int RockCount(int phase) => phase == 2 ? phaseTwoRockCount : phaseOneRockCount;
         public float TwinLaserDuration(int phase) => phase == 2 ? phaseTwoTwinLaserDuration : phaseOneTwinLaserDuration;
         public float TwinLaserMoveSpeed(int phase) => twinLaserMoveSpeed * (phase == 2 ? 1.32f : 1f);
+        public int HordeCount(int phase) => phase == 2 ? phaseTwoHordeCount : phaseOneHordeCount;
+        public float MinionHealth(int phase) => phase == 2 ? phaseTwoMinionHealth : phaseOneMinionHealth;
+        public float MinionSpeed(int phase) => phase == 2 ? phaseTwoMinionSpeed : phaseOneMinionSpeed;
 
         private void OnValidate()
         {

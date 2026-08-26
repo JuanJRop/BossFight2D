@@ -130,18 +130,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                         if (context.Player.TryDamage(context.Config.TwinLaserDamage))
                         {
                             damageCooldown = context.Config.TwinLaserDamageCooldown;
-                            Vector2 push;
-                            if (horizontalDistance <= verticalDistance)
-                            {
-                                float centerY = (positions[Left].y + positions[Right].y) * 0.5f;
-                                push = context.Player.Position.y >= centerY ? Vector2.up : Vector2.down;
-                            }
-                            else
-                            {
-                                float centerX = (positions[Bottom].x + positions[Top].x) * 0.5f;
-                                push = context.Player.Position.x >= centerX ? Vector2.right : Vector2.left;
-                            }
-                            context.Player.ApplyKnockback(push * 7.5f, 0.18f);
+                            context.Player.ApplyStun(context.Config.TwinLaserStunDuration);
                         }
                     }
                 }
