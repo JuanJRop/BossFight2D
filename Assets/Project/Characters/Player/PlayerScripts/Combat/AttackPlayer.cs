@@ -58,6 +58,11 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private int MagazineCapacity => Mathf.Max(1, Mathf.RoundToInt(chargerCapacity));
 
+        public void ConfigureRuntimePool(ObjectPool runtimePool)
+        {
+            if (runtimePool != null) objectPool = runtimePool;
+        }
+
         private void Awake()
         {
             playerSoundController = GetComponent<PlayerSoundController>();
