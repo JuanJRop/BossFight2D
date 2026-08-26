@@ -168,6 +168,8 @@ MonoBehaviour:
   pathTile: {fileID: 11400000, guid: 08d765455ae474d4da7c0db1d87fddf2, type: 2}
   alternatePathTile: {fileID: 11400000, guid: 9d81b0ca522a07347980fa2ae87ebdee, type: 2}
   wallTile: {fileID: 11400000, guid: 4efcc5e2e7491294d85fffebfe4c5230, type: 2}
+  startAreaTile: {fileID: 11400000, guid: 56f51645aac648d419795b77e979177c, type: 2}
+  startAreaAccentTile: {fileID: 11400000, guid: 3397b9b93f2d46b46bc9c75bd9a71923, type: 2}
   decorationTiles:
   - {fileID: 11400000, guid: c9153b9b893d292479c2f51136f941cb, type: 2}
   - {fileID: 11400000, guid: c221c89a9f79e8c40ace3d7892495e57, type: 2}
