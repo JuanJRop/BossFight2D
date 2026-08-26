@@ -38,6 +38,9 @@ namespace Project.Scripts.World
         private readonly List<Tile> runtimeTiles = new();
         private readonly List<GameObject> roomObjects = new();
         private readonly HashSet<Vector2Int> visitedRooms = new();
+        private readonly Dictionary<Vector2Int, Image> mapCells = new();
+        private readonly Dictionary<Vector2Int, TextMeshProUGUI> mapCellLabels = new();
+        private readonly List<MapConnection> mapConnections = new();
 
         private Tilemap background;
         private Tilemap floor;
@@ -50,9 +53,11 @@ namespace Project.Scripts.World
         private GameObject tutorialOverlay;
         private GameObject objectiveHud;
         private TextMeshProUGUI roomLabel;
+        private RectTransform mapPanel;
         private float tutorialUnlockTime;
         private bool tutorialOpen;
         private bool transitioning;
+        private bool mapExpanded;
         private Vector2Int currentRoom;
 
         private static readonly Vector2Int StartRoom = Vector2Int.zero;
@@ -76,11 +81,17 @@ namespace Project.Scripts.World
 
         private void Update()
         {
-            if (!tutorialOpen || Time.unscaledTime < tutorialUnlockTime || !Input.anyKeyDown) return;
-            tutorialOpen = false;
-            Time.timeScale = 1f;
-            if (tutorialOverlay != null) tutorialOverlay.SetActive(false);
-            if (objectiveHud != null) objectiveHud.SetActive(true);
+            if (tutorialOpen)
+            {
+                if (Time.unscaledTime < tutorialUnlockTime || !Input.anyKeyDown) return;
+                tutorialOpen = false;
+                Time.timeScale = 1f;
+                if (tutorialOverlay != null) tutorialOverlay.SetActive(false);
+                if (objectiveHud != null) objectiveHud.SetActive(true);
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.M)) ToggleMapSize();
         }
 
         private void OnDestroy()
@@ -502,6 +513,7 @@ namespace Project.Scripts.World
                 Vector2.zero, Vector2.one, string.Empty, 24f,
                 new Color(1f, 0.88f, 0.68f), TextAlignmentOptions.Center);
             objectiveHud.SetActive(false);
+            BuildMap(canvasRect);
 
             tutorialOverlay = CreatePanel("Tutorial Overlay", canvasRect, Vector2.zero, Vector2.one,
                 new Color(0.1f, 0.035f, 0.018f, 0.08f));
@@ -530,6 +542,151 @@ namespace Project.Scripts.World
                 controls, 25f, new Color(0.96f, 0.86f, 0.72f), TextAlignmentOptions.Left);
             CreateText("Tutorial Continue", cardRect, new Vector2(0.08f, 0.07f), new Vector2(0.92f, 0.17f),
                 continueText, 22f, new Color(1f, 0.53f, 0.24f), TextAlignmentOptions.Center);
+        }
+
+        private void BuildMap(RectTransform canvasRect)
+        {
+            GameObject panel = CreatePanel("Exploration Map", canvasRect,
+                new Vector2(0.79f, 0.59f), new Vector2(0.975f, 0.95f),
+                new Color(0.055f, 0.018f, 0.012f, 0.94f));
+            mapPanel = panel.transform as RectTransform;
+
+            CreateText("Map Title", mapPanel, new Vector2(0.08f, 0.87f), new Vector2(0.92f, 0.98f),
+                GameLoadout.IsSpanish ? "MAPA  ·  M" : "MAP  ·  M", 22f,
+                new Color(1f, 0.78f, 0.48f), TextAlignmentOptions.Center);
+
+            for (int y = MinimumRoomY; y <= MaximumRoomY; y++)
+            {
+                for (int x = MinimumRoomX; x <= MaximumRoomX; x++)
+                {
+                    Vector2Int room = new(x, y);
+                    if (x < MaximumRoomX)
+                        CreateMapConnection(room, new Vector2Int(x + 1, y));
+                    if (y < MaximumRoomY)
+                        CreateMapConnection(room, new Vector2Int(x, y + 1));
+                }
+            }
+
+            for (int y = MinimumRoomY; y <= MaximumRoomY; y++)
+            {
+                for (int x = MinimumRoomX; x <= MaximumRoomX; x++)
+                {
+                    CreateMapCell(new Vector2Int(x, y));
+                }
+            }
+        }
+
+        private void CreateMapConnection(Vector2Int first, Vector2Int second)
+        {
+            Vector2 a = GetMapPosition(first);
+            Vector2 b = GetMapPosition(second);
+            GameObject lineObject = new($"Connection {first} - {second}",
+                typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform line = lineObject.GetComponent<RectTransform>();
+            line.SetParent(mapPanel, false);
+
+            if (first.y == second.y)
+            {
+                line.anchorMin = new Vector2(Mathf.Min(a.x, b.x) + 0.055f, a.y - 0.012f);
+                line.anchorMax = new Vector2(Mathf.Max(a.x, b.x) - 0.055f, a.y + 0.012f);
+            }
+            else
+            {
+                line.anchorMin = new Vector2(a.x - 0.012f, Mathf.Min(a.y, b.y) + 0.055f);
+                line.anchorMax = new Vector2(a.x + 0.012f, Mathf.Max(a.y, b.y) - 0.055f);
+            }
+
+            line.offsetMin = Vector2.zero;
+            line.offsetMax = Vector2.zero;
+            Image image = lineObject.GetComponent<Image>();
+            image.color = new Color(0.75f, 0.3f, 0.1f, 0.82f);
+            image.raycastTarget = false;
+            image.gameObject.SetActive(false);
+            mapConnections.Add(new MapConnection(image, first, second));
+        }
+
+        private void CreateMapCell(Vector2Int room)
+        {
+            Vector2 center = GetMapPosition(room);
+            GameObject cellObject = new($"Map Room {room.x},{room.y}",
+                typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform cell = cellObject.GetComponent<RectTransform>();
+            cell.SetParent(mapPanel, false);
+            cell.anchorMin = center - Vector2.one * 0.052f;
+            cell.anchorMax = center + Vector2.one * 0.052f;
+            cell.offsetMin = Vector2.zero;
+            cell.offsetMax = Vector2.zero;
+
+            Image image = cellObject.GetComponent<Image>();
+            image.color = new Color(0.025f, 0.012f, 0.008f, 0.96f);
+            image.raycastTarget = false;
+            mapCells.Add(room, image);
+
+            TextMeshProUGUI label = CreateText("Room State", cell, Vector2.zero, Vector2.one,
+                "?", 20f, new Color(0.38f, 0.28f, 0.22f), TextAlignmentOptions.Center);
+            mapCellLabels.Add(room, label);
+        }
+
+        private void UpdateMap()
+        {
+            foreach (KeyValuePair<Vector2Int, Image> pair in mapCells)
+            {
+                bool visited = visitedRooms.Contains(pair.Key);
+                bool current = pair.Key == currentRoom;
+                Image image = pair.Value;
+                TextMeshProUGUI label = mapCellLabels[pair.Key];
+
+                if (!visited)
+                {
+                    image.color = new Color(0.025f, 0.012f, 0.008f, 0.96f);
+                    label.text = "?";
+                    label.color = new Color(0.38f, 0.28f, 0.22f);
+                    image.rectTransform.localScale = Vector3.one;
+                    continue;
+                }
+
+                int number = (pair.Key.y - MinimumRoomY) * (MaximumRoomX - MinimumRoomX + 1) +
+                             (pair.Key.x - MinimumRoomX) + 1;
+                image.color = current
+                    ? new Color(1f, 0.46f, 0.12f, 1f)
+                    : new Color(0.48f, 0.18f, 0.07f, 1f);
+                label.text = number.ToString("00");
+                label.color = current ? Color.white : new Color(1f, 0.82f, 0.58f);
+                image.rectTransform.localScale = current ? Vector3.one * 1.16f : Vector3.one;
+            }
+
+            foreach (MapConnection connection in mapConnections)
+            {
+                bool unlocked = visitedRooms.Contains(connection.First) &&
+                                visitedRooms.Contains(connection.Second);
+                connection.Image.gameObject.SetActive(unlocked);
+            }
+        }
+
+        private void ToggleMapSize()
+        {
+            if (mapPanel == null) return;
+            mapExpanded = !mapExpanded;
+            if (mapExpanded)
+            {
+                mapPanel.anchorMin = new Vector2(0.31f, 0.14f);
+                mapPanel.anchorMax = new Vector2(0.69f, 0.88f);
+            }
+            else
+            {
+                mapPanel.anchorMin = new Vector2(0.79f, 0.59f);
+                mapPanel.anchorMax = new Vector2(0.975f, 0.95f);
+            }
+            mapPanel.offsetMin = Vector2.zero;
+            mapPanel.offsetMax = Vector2.zero;
+        }
+
+        private static Vector2 GetMapPosition(Vector2Int room)
+        {
+            float normalizedX = Mathf.InverseLerp(MinimumRoomX, MaximumRoomX, room.x);
+            float normalizedY = Mathf.InverseLerp(MinimumRoomY, MaximumRoomY, room.y);
+            return new Vector2(Mathf.Lerp(0.18f, 0.82f, normalizedX),
+                Mathf.Lerp(0.12f, 0.8f, normalizedY));
         }
 
         private void BuildTransitionFade()
@@ -597,6 +754,7 @@ namespace Project.Scripts.World
             roomLabel.text = GameLoadout.IsSpanish
                 ? $"SALA {roomNumber:00}  ·  EXPLORADAS {visitedRooms.Count:00}/12"
                 : $"ROOM {roomNumber:00}  ·  EXPLORED {visitedRooms.Count:00}/12";
+            UpdateMap();
         }
 
         private static GameObject CreatePanel(string objectName, RectTransform parent,
@@ -635,6 +793,20 @@ namespace Project.Scripts.World
             text.textWrappingMode = TextWrappingModes.NoWrap;
             text.raycastTarget = false;
             return text;
+        }
+
+        private readonly struct MapConnection
+        {
+            public MapConnection(Image image, Vector2Int first, Vector2Int second)
+            {
+                Image = image;
+                First = first;
+                Second = second;
+            }
+
+            public Image Image { get; }
+            public Vector2Int First { get; }
+            public Vector2Int Second { get; }
         }
 
         private readonly struct RoomOpenings
