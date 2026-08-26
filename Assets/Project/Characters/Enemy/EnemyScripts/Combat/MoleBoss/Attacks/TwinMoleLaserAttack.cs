@@ -247,7 +247,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             if (visuals == null) return;
             foreach (GameObject visual in visuals)
             {
-                context.Telegraphs.Release(visual);
+                if (visual != null) context.Telegraphs.Release(visual);
             }
         }
 
