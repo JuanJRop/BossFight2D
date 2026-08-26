@@ -6,45 +6,48 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 {
     public class PowerUp : MonoBehaviour
     {
-        [Header("Config")]
-        [SerializeField] private float maxMana = 5f;
-        [SerializeField] private float drainSpeed = 1f;
-        [SerializeField] private float regenValue = 0.5f;
-        [SerializeField] private float regenTime = 0.1f;
+        [Header("Charge")]
+        [SerializeField, Min(1f)] private float maxMana = 100f;
+        [SerializeField, Min(0.1f)] private float manaPerEnemyHit = 4f;
         [SerializeField] private KeyCode activationKey = KeyCode.Q;
 
-        [Header("Overdrive Presentation")]
-        [SerializeField] private Color outerAuraColor = new(0.08f, 0.95f, 1f, 0.9f);
-        [SerializeField] private Color innerAuraColor = new(1f, 0.12f, 0.52f, 0.9f);
-        [SerializeField, Min(0.1f)] private float auraRadius = 0.95f;
-        [SerializeField, Min(0f)] private float auraPulse = 0.18f;
-
-        private const int AuraSegments = 48;
+        [Header("Ready Presentation")]
+        [SerializeField] private Color readyColor = new(0.1f, 0.95f, 1f, 1f);
+        [SerializeField] private Color activeColor = new(1f, 0.18f, 0.55f, 1f);
+        [SerializeField] private Vector2 indicatorOffset = new(0f, 1.25f);
+        [SerializeField, Min(0.1f)] private float indicatorScale = 0.58f;
 
         private float currentMana;
-        private float regenTimer;
         private bool isActive;
-        private Transform auraRoot;
-        private LineRenderer outerAura;
-        private LineRenderer innerAura;
-        private Material auraMaterial;
+        private bool wasFullyCharged;
+        private float readyBurst;
+        private Transform indicatorRoot;
+        private Transform centerShard;
+        private Transform leftShard;
+        private Transform rightShard;
+        private SpriteRenderer centerRenderer;
+        private SpriteRenderer leftRenderer;
+        private SpriteRenderer rightRenderer;
+        private Texture2D shardTexture;
+        private Sprite shardSprite;
 
         public event Action<bool> OnPowerUpStateChanged;
         public event Action<float> OnManaChanged;
 
         public bool IsActive => isActive;
+        public bool IsFullyCharged => currentMana >= maxMana;
         public float CurrentMana => currentMana;
         public float MaxMana => maxMana;
 
         private void Awake()
         {
-            BuildAura();
+            maxMana = Mathf.Max(1f, maxMana);
+            BuildReadyIndicator();
         }
 
         private void Start()
         {
-            maxMana = Mathf.Max(0.01f, maxMana);
-            currentMana = maxMana;
+            currentMana = 0f;
             SetActive(false);
             NotifyManaChanged();
         }
@@ -52,158 +55,43 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         private void Update()
         {
             if (UIManager.instance != null && UIManager.instance.IsPaused) return;
-
-            HandleInput();
-            if (isActive)
-            {
-                ConsumeMana();
-                AnimateAura();
-            }
-            else
-            {
-                RegenerateMana();
-            }
+            if (Input.GetKeyDown(activationKey) && IsFullyCharged && !isActive) SetActive(true);
+            UpdateReadyPresentation();
         }
 
         private void OnDestroy()
         {
-            if (auraMaterial != null) Destroy(auraMaterial);
+            if (shardSprite != null) Destroy(shardSprite);
+            if (shardTexture != null) Destroy(shardTexture);
         }
 
-        private void HandleInput()
+        public void RegisterEnemyHit(float dealtDamage)
         {
-            if (Input.GetKeyDown(activationKey) && currentMana >= maxMana && !isActive)
-            {
-                SetActive(true);
-            }
-        }
-
-        private void ConsumeMana()
-        {
-            currentMana = Mathf.Max(0f, currentMana - Mathf.Max(0f, drainSpeed) * Time.deltaTime);
-            NotifyManaChanged();
-
-            if (currentMana <= 0f)
-            {
-                SetActive(false);
-            }
-        }
-
-        private void RegenerateMana()
-        {
-            if (currentMana >= maxMana) return;
-
-            regenTimer += Time.deltaTime;
-            float interval = Mathf.Max(0.01f, regenTime);
-            if (regenTimer < interval) return;
-
-            regenTimer -= interval;
-            currentMana = Mathf.Min(maxMana, currentMana + Mathf.Max(0f, regenValue));
+            if (dealtDamage <= 0f || isActive || IsFullyCharged) return;
+            currentMana = Mathf.Min(maxMana, currentMana + Mathf.Max(0.1f, manaPerEnemyHit));
             NotifyManaChanged();
         }
 
-        private void SetActive(bool active)
+        public bool ConsumeCharge()
         {
-            if (isActive == active)
-            {
-                if (auraRoot != null) auraRoot.gameObject.SetActive(active);
-                return;
-            }
-
-            isActive = active;
-            regenTimer = 0f;
-            if (auraRoot != null) auraRoot.gameObject.SetActive(isActive);
-            OnPowerUpStateChanged?.Invoke(isActive);
-        }
-
-        private void BuildAura()
-        {
-            GameObject root = new("Overdrive Aura");
-            root.transform.SetParent(transform, false);
-            auraRoot = root.transform;
-
-            Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
-            if (shader == null) shader = Shader.Find("Sprites/Default");
-            auraMaterial = shader != null ? new Material(shader) : null;
-
-            outerAura = CreateAuraRing("Outer Energy Ring", 0.09f, outerAuraColor, 32);
-            innerAura = CreateAuraRing("Inner Energy Ring", 0.055f, innerAuraColor, 33);
-            root.SetActive(false);
-        }
-
-        private LineRenderer CreateAuraRing(string objectName, float width, Color color, int sortingOrder)
-        {
-            GameObject ringObject = new(objectName);
-            ringObject.transform.SetParent(auraRoot, false);
-
-            LineRenderer ring = ringObject.AddComponent<LineRenderer>();
-            ring.useWorldSpace = false;
-            ring.loop = true;
-            ring.positionCount = AuraSegments;
-            ring.startWidth = width;
-            ring.endWidth = width;
-            ring.startColor = color;
-            ring.endColor = color;
-            ring.numCornerVertices = 2;
-            ring.sortingOrder = sortingOrder;
-            ring.material = auraMaterial;
-            SetRingRadius(ring, auraRadius);
-            return ring;
-        }
-
-        private void AnimateAura()
-        {
-            if (auraRoot == null || outerAura == null || innerAura == null) return;
-
-            float pulse = (Mathf.Sin(Time.time * 11f) + 1f) * 0.5f;
-            float outerRadius = auraRadius + pulse * auraPulse;
-            float innerRadius = auraRadius * 0.63f + (1f - pulse) * auraPulse * 0.6f;
-
-            SetRingRadius(outerAura, outerRadius, 0.025f);
-            SetRingRadius(innerAura, innerRadius, 0.12f);
-            auraRoot.localRotation = Quaternion.Euler(0f, 0f, Time.time * 95f);
-            innerAura.transform.localRotation = Quaternion.Euler(0f, 0f, -Time.time * 210f);
-
-            Color outer = outerAuraColor;
-            outer.a *= Mathf.Lerp(0.55f, 1f, pulse);
-            outerAura.startColor = outer;
-            outerAura.endColor = outer;
-
-            Color inner = innerAuraColor;
-            inner.a *= Mathf.Lerp(1f, 0.5f, pulse);
-            innerAura.startColor = inner;
-            innerAura.endColor = inner;
-        }
-
-        private static void SetRingRadius(LineRenderer ring, float radius, float distortion = 0f)
-        {
-            if (ring == null) return;
-            for (int index = 0; index < AuraSegments; index++)
-            {
-                float angle = index / (float)AuraSegments * Mathf.PI * 2f;
-                float shapedRadius = radius * (1f + Mathf.Sin(angle * 8f) * distortion);
-                ring.SetPosition(index, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * shapedRadius);
-            }
-        }
-
-        private void NotifyManaChanged()
-        {
-            OnManaChanged?.Invoke(GetManaNormalized());
+            if (!isActive) return false;
+            currentMana = 0f;
+            SetActive(false);
+            NotifyManaChanged();
+            return true;
         }
 
         public void RestoreMana(float value)
         {
             SetActive(false);
             currentMana = Mathf.Clamp(value, 0f, maxMana);
-            regenTimer = 0f;
             NotifyManaChanged();
         }
 
         public bool TryAddMana(float amount)
         {
-            if (amount <= 0f || currentMana >= maxMana) return false;
+            if (amount <= 0f || isActive || currentMana >= maxMana) return false;
             currentMana = Mathf.Min(maxMana, currentMana + amount);
-            regenTimer = 0f;
             NotifyManaChanged();
             return true;
         }
@@ -213,14 +101,127 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             return maxMana > 0f ? currentMana / maxMana : 0f;
         }
 
+        private void SetActive(bool active)
+        {
+            if (isActive == active)
+            {
+                RefreshIndicatorVisibility();
+                return;
+            }
+
+            isActive = active;
+            if (active) readyBurst = 1f;
+            RefreshIndicatorVisibility();
+            OnPowerUpStateChanged?.Invoke(isActive);
+        }
+
+        private void BuildReadyIndicator()
+        {
+            GameObject root = new("Power Up Ready Shards");
+            root.transform.SetParent(transform, false);
+            root.transform.localPosition = indicatorOffset;
+            indicatorRoot = root.transform;
+
+            shardTexture = BuildShardTexture();
+            shardSprite = Sprite.Create(shardTexture, new Rect(0f, 0f, shardTexture.width, shardTexture.height),
+                new Vector2(0.5f, 0.5f), 12f, 0, SpriteMeshType.FullRect);
+            shardSprite.name = "Power Up Crystal Shard";
+
+            centerShard = CreateShard("Ready core", Vector2.zero, 42, out centerRenderer);
+            leftShard = CreateShard("Left ready shard", new Vector2(-0.48f, -0.08f), 41, out leftRenderer);
+            rightShard = CreateShard("Right ready shard", new Vector2(0.48f, -0.08f), 41, out rightRenderer);
+            leftShard.localRotation = Quaternion.Euler(0f, 0f, 18f);
+            rightShard.localRotation = Quaternion.Euler(0f, 0f, -18f);
+            root.SetActive(false);
+        }
+
+        private Transform CreateShard(string objectName, Vector2 position, int sortingOrder,
+            out SpriteRenderer renderer)
+        {
+            GameObject shard = new(objectName);
+            shard.transform.SetParent(indicatorRoot, false);
+            shard.transform.localPosition = position;
+            renderer = shard.AddComponent<SpriteRenderer>();
+            renderer.sprite = shardSprite;
+            renderer.sortingOrder = sortingOrder;
+            return shard.transform;
+        }
+
+        private static Texture2D BuildShardTexture()
+        {
+            const int width = 9;
+            const int height = 13;
+            Texture2D texture = new(width, height, TextureFormat.RGBA32, false)
+            {
+                name = "Power Up Crystal Texture",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+
+            Color clear = Color.clear;
+            Color edge = new(0.08f, 0.38f, 0.62f, 1f);
+            Color fill = new(0.18f, 0.92f, 1f, 1f);
+            Color shine = Color.white;
+            for (int y = 0; y < height; y++)
+            {
+                int distanceFromTip = Mathf.Min(y, height - 1 - y);
+                int radius = Mathf.Min(3, Mathf.CeilToInt(distanceFromTip * 0.65f));
+                for (int x = 0; x < width; x++)
+                {
+                    int dx = Mathf.Abs(x - width / 2);
+                    Color pixel = clear;
+                    if (dx <= radius) pixel = dx == radius ? edge : fill;
+                    if (dx == 0 && y >= 3 && y <= 8) pixel = shine;
+                    texture.SetPixel(x, y, pixel);
+                }
+            }
+            texture.Apply(false, false);
+            return texture;
+        }
+
+        private void UpdateReadyPresentation()
+        {
+            if (indicatorRoot == null || !indicatorRoot.gameObject.activeSelf) return;
+            readyBurst = Mathf.MoveTowards(readyBurst, 0f, Time.unscaledDeltaTime * 2.4f);
+            float time = Time.unscaledTime;
+            float pulse = 1f + Mathf.Sin(time * (isActive ? 11f : 7f)) * (isActive ? 0.12f : 0.07f);
+            float entrance = 1f + readyBurst * 0.32f;
+            indicatorRoot.localPosition = indicatorOffset + Vector2.up * (Mathf.Sin(time * 3.4f) * 0.08f);
+            indicatorRoot.localScale = Vector3.one * indicatorScale * pulse * entrance;
+
+            centerShard.localPosition = Vector2.up * (0.06f + Mathf.Sin(time * 4.2f) * 0.05f);
+            leftShard.localPosition = new Vector2(-0.48f - readyBurst * 0.12f,
+                -0.08f + Mathf.Sin(time * 4.2f + 1.8f) * 0.04f);
+            rightShard.localPosition = new Vector2(0.48f + readyBurst * 0.12f,
+                -0.08f + Mathf.Sin(time * 4.2f + 3.6f) * 0.04f);
+
+            Color color = isActive ? activeColor : Color.Lerp(readyColor, GameLoadout.AbilityColor, 0.38f);
+            centerRenderer.color = color;
+            leftRenderer.color = Color.Lerp(color, Color.white, 0.18f);
+            rightRenderer.color = Color.Lerp(color, Color.white, 0.18f);
+        }
+
+        private void RefreshIndicatorVisibility()
+        {
+            if (indicatorRoot != null) indicatorRoot.gameObject.SetActive(IsFullyCharged || isActive);
+        }
+
+        private void NotifyManaChanged()
+        {
+            bool fullyCharged = IsFullyCharged;
+            if (fullyCharged && !wasFullyCharged) readyBurst = 1f;
+            wasFullyCharged = fullyCharged;
+            RefreshIndicatorVisibility();
+            OnManaChanged?.Invoke(GetManaNormalized());
+            UpdateReadyPresentation();
+        }
+
         private void OnValidate()
         {
-            maxMana = Mathf.Max(0.01f, maxMana);
-            drainSpeed = Mathf.Max(0f, drainSpeed);
-            regenValue = Mathf.Max(0f, regenValue);
-            regenTime = Mathf.Max(0.01f, regenTime);
-            auraRadius = Mathf.Max(0.1f, auraRadius);
-            auraPulse = Mathf.Max(0f, auraPulse);
+            maxMana = Mathf.Max(1f, maxMana);
+            manaPerEnemyHit = Mathf.Max(0.1f, manaPerEnemyHit);
+            indicatorScale = Mathf.Max(0.1f, indicatorScale);
         }
     }
 }

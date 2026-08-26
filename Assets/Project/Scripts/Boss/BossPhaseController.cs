@@ -9,7 +9,7 @@ namespace Project.Scripts.Boss
     {
         [SerializeField] private Health bossHealth;
         [SerializeField] private EnemyAttackController attackController;
-        [SerializeField, Range(0.05f, 0.95f)] private float phaseTwoThreshold = 0.4f;
+        [SerializeField, Range(0.05f, 0.95f)] private float phaseTwoThreshold = 0.5f;
 
         public event Action<int> OnPhaseChanged;
 
@@ -20,6 +20,7 @@ namespace Project.Scripts.Boss
         {
             if (bossHealth == null) bossHealth = GetComponent<Health>();
             if (attackController == null) attackController = GetComponent<EnemyAttackController>();
+            phaseTwoThreshold = 0.5f;
         }
 
         private void OnEnable()
@@ -36,7 +37,6 @@ namespace Project.Scripts.Boss
         {
             if (CurrentPhase != 1 || maximum <= 0f) return;
             if (current / maximum > phaseTwoThreshold) return;
-
             SetPhase(2);
         }
 
@@ -61,6 +61,11 @@ namespace Project.Scripts.Boss
             bossHealth.RestoreHealth(health);
             if (attackController != null) attackController.RestartAttacks();
             OnPhaseChanged?.Invoke(CurrentPhase);
+        }
+
+        private void OnValidate()
+        {
+            phaseTwoThreshold = 0.5f;
         }
     }
 }

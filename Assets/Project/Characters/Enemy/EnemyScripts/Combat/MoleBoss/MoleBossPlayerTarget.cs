@@ -29,14 +29,20 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
 
         public bool TryDamage(float damage)
         {
-            if (IsInvulnerable) return false;
-            if (health != null) health.TakeDamage(Mathf.Max(0f, damage));
-            return true;
+            if (IsInvulnerable || health == null || !health.IsAlive || damage <= 0f) return false;
+            float before = health.CurrentHealth;
+            health.TakeDamage(damage);
+            return health.CurrentHealth < before;
         }
 
         public void ApplyKnockback(Vector2 velocity, float duration)
         {
             if (movement != null) movement.ApplyKnockback(velocity, duration);
+        }
+
+        public void ApplyStun(float duration)
+        {
+            if (movement != null) movement.ApplyStun(duration);
         }
 
         private T FindComponent<T>() where T : Component

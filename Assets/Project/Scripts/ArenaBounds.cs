@@ -14,7 +14,7 @@ namespace Project.Scripts.Arena
         [SerializeField] private Tilemap arenaTilemap;
         [SerializeField] private Camera arenaCamera;
         [SerializeField] private bool fitCameraToTilemap = true;
-        [SerializeField, Min(0f)] private float cameraMargin = 0.55f;
+        [SerializeField, Min(0f)] private float cameraMargin = 0.06f;
         [SerializeField] private Vector2 viewportPadding = new(0.025f, 0.04f);
         [SerializeField, Min(0.1f)] private float wallThickness = 0.5f;
         [SerializeField, Min(0f)] private float actorPadding = 0.2f;
@@ -27,6 +27,7 @@ namespace Project.Scripts.Arena
         [SerializeField, Min(0f)] private float innerFrameInset = 0.35f;
 
         [Header("Boundary Presentation")]
+        [SerializeField] private bool showBoundaryVisual;
         [SerializeField] private Color boundaryColor = new(1f, 0.28f, 0.04f, 0.95f);
         [SerializeField, Min(0.01f)] private float boundaryWidth = 0.16f;
 
@@ -52,7 +53,7 @@ namespace Project.Scripts.Arena
             DisableLegacyWallColliders();
             BuildMapDecoration();
             BuildPhysicalWalls();
-            BuildBoundaryVisual();
+            if (showBoundaryVisual) BuildBoundaryVisual();
         }
 
         private void Start()
@@ -166,21 +167,23 @@ namespace Project.Scripts.Arena
             float aspect = Mathf.Max(0.1f, arenaCamera.aspect);
             float verticalSize = size.y * 0.5f;
             float horizontalSize = size.x / (2f * aspect);
-            float orthographicSize = Mathf.Max(verticalSize, horizontalSize) + cameraMargin;
+            // Fill the viewport from inside the tilemap. Using the smaller axis prevents
+            // the camera from revealing the editor's blue clear area outside the cave.
+            float inwardMargin = Mathf.Clamp(cameraMargin, 0.02f, 0.18f);
+            float orthographicSize = Mathf.Max(0.1f, Mathf.Min(verticalSize, horizontalSize) - inwardMargin);
 
             arenaCamera.orthographicSize = orthographicSize;
+            arenaCamera.clearFlags = CameraClearFlags.SolidColor;
+            arenaCamera.backgroundColor = new Color(0.025f, 0.008f, 0.008f, 1f);
             Vector3 cameraPosition = arenaCamera.transform.position;
             arenaCamera.transform.position = new Vector3(center.x, center.y, cameraPosition.z);
 
             CinemachineCamera virtualCamera = FindFirstObjectByType<CinemachineCamera>();
             if (virtualCamera == null) return;
-
-            LensSettings lens = virtualCamera.Lens;
-            lens.OrthographicSize = orthographicSize;
-            virtualCamera.Lens = lens;
-
-            Vector3 virtualPosition = virtualCamera.transform.position;
-            virtualCamera.transform.position = new Vector3(center.x, center.y, virtualPosition.z);
+            // Exploration uses a following camera, but the boss arena must remain completely
+            // visible. Disabling the scene's tracking camera prevents its Player target from
+            // overriding the fixed arena framing on the next Cinemachine update.
+            virtualCamera.enabled = false;
         }
 
         private void DisableLegacyWallColliders()
@@ -225,7 +228,7 @@ namespace Project.Scripts.Arena
             }
 
             float safeInset = Mathf.Min(innerFrameInset, Mathf.Min(size.x, size.y) * 0.2f);
-            Color frameColor = new(boundaryColor.r, boundaryColor.g, boundaryColor.b, 0.28f);
+            Color frameColor = new(gridColor.r, gridColor.g, gridColor.b, 0.08f);
             CreateFrame(
                 "Arena Inner Frame",
                 Minimum + Vector2.one * safeInset,

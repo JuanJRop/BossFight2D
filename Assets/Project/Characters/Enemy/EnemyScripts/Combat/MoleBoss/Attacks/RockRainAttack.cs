@@ -91,7 +91,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
 
         private static void ResolveImpact(MoleBossCombatContext context, Vector2 target)
         {
-            context.Telegraphs.CreatePrefab("Rock impact FX", context.Config.RockImpactPrefab, target, 1.9f);
+            context.Telegraphs.CreatePrefab("Rock impact FX", context.Config.RockImpactPrefab, target, 2.15f);
+            context.PlaySound(context.Config.RockImpactSfx, 0.38f, Random.Range(0.88f, 1.04f));
             if (Vector2.Distance(context.Player.Position, target) <= context.Config.RockRadius)
                 context.Player.TryDamage(context.Config.RockDamage);
         }

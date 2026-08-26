@@ -479,12 +479,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Player.Movement.PlayerDodge
   dashForce: 18
   dashTime: 0.3
-  dodgeCost: 33.7
-  currentStamina: 100
-  maxStamina: 100
-  staminaBar: {fileID: 0}
-  regenTime: 3
-  regenValue: 11
+  maxDashCharges: 3
+  dashRechargeTime: 2.4
   trail: {fileID: 2500818933822206269}
   virtualCamera: {fileID: 0}
   volume: 0.165
@@ -533,7 +529,7 @@ MonoBehaviour:
   amplitude: 3
   frequency: 2
   deathEvent: {fileID: 2492194972572678298}
-  damageSound: {fileID: 8300000, guid: 5c5e1774e10df354e8b5823a18cd21c1, type: 3}
+  damageSound: {fileID: 8300000, guid: 184119ac7c78f2c478ea47225fd07d3f, type: 3}
   volume: 0.198
   enemyMove: {fileID: 0}
 --- !u!114 &1467763588695067316
@@ -548,10 +544,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4799fa839e6d944c84957eee1a2f7fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerUp
-  maxMana: 10
-  drainSpeed: 3.2
-  regenValue: 0.75
-  regenTime: 0.75
+  maxMana: 100
+  manaPerEnemyHit: 4
   activationKey: 113
   outerAuraColor: {r: 0.08, g: 0.95, b: 1, a: 0.9}
   innerAuraColor: {r: 1, g: 0.12, b: 0.52, a: 0.9}
@@ -591,11 +585,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Player.PlayerScripts.Controller.PlayerSoundController
   audioSource: {fileID: 1723123650684553243}
-  fire: {fileID: 8300000, guid: abb6311979875414aa2f8a33df1d80ce, type: 3}
+  fire: {fileID: 8300000, guid: d8d606dd0257b2c47933e6a0ca2c67a0, type: 3}
   dodge: {fileID: 8300000, guid: 6899df3382dfff549963fe7a4c6f15a9, type: 3}
   walk: {fileID: 8300000, guid: f26cf9ded47cf0140957490a16f85acc, type: 3}
   reload: {fileID: 8300000, guid: 3ae623a7534fe0c47b661d5c387314b3, type: 3}
-  damage: {fileID: 8300000, guid: 5c5e1774e10df354e8b5823a18cd21c1, type: 3}
+  damage: {fileID: 8300000, guid: 184119ac7c78f2c478ea47225fd07d3f, type: 3}
   win: {fileID: 0}
   lose: {fileID: 8300000, guid: 777de66687472754fa32ad11765435c6, type: 3}
 --- !u!82 &1723123650684553243

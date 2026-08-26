@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Enemy.EnemyScripts.Movement;
 using Project.Scripts.Arena;
 using Project.Scripts.Controller;
@@ -12,16 +13,29 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         private readonly Transform boss;
         private readonly Transform firePoint;
         private readonly Animator animator;
+        private readonly AudioSource audioSource;
+        private readonly SpriteRenderer bossRenderer;
+        private readonly Health bossHealth;
+        private readonly Collider2D[] bossColliders;
         private readonly Action<MoleBossState> changeState;
+        private readonly Vector3 phaseOneScale;
+        private readonly Color phaseOneColor;
 
         public MoleBossCombatContext(Transform boss, Transform firePoint, Animator animator, Rigidbody2D body,
             EnemyMove movement, MoleBossPlayerTarget player, MoleBossProjectileEmitter projectiles,
-            MoleBossTelegraphService telegraphs, MoleBossCombatConfig config, Action<MoleBossState> changeState)
+            MoleBossTelegraphService telegraphs, MoleBossCombatConfig config, AudioSource audioSource,
+            Action<MoleBossState> changeState, Vector3 phaseOneScale, Color phaseOneColor)
         {
             this.boss = boss;
             this.firePoint = firePoint;
             this.animator = animator;
             this.changeState = changeState;
+            this.audioSource = audioSource;
+            bossRenderer = boss != null ? boss.GetComponentInChildren<SpriteRenderer>() : null;
+            bossHealth = boss != null ? boss.GetComponentInChildren<Health>() : null;
+            bossColliders = boss != null ? boss.GetComponentsInChildren<Collider2D>(true) : Array.Empty<Collider2D>();
+            this.phaseOneScale = phaseOneScale;
+            this.phaseOneColor = phaseOneColor;
             Body = body;
             Movement = movement;
             Player = player;
@@ -38,8 +52,40 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public MoleBossCombatConfig Config { get; }
         public Vector2 BossPosition => boss != null ? boss.position : Vector2.zero;
         public Vector2 FirePosition => firePoint != null ? firePoint.position : BossPosition;
+        public Sprite BossSprite => bossRenderer != null ? bossRenderer.sprite : null;
+        public Color BossColor => bossRenderer != null ? bossRenderer.color : phaseOneColor;
 
         public void SetState(MoleBossState state) => changeState?.Invoke(state);
+
+        public void SetBossHidden(bool hidden)
+        {
+            if (bossRenderer != null) bossRenderer.enabled = !hidden;
+            foreach (Collider2D collider in bossColliders)
+            {
+                if (collider != null) collider.enabled = !hidden;
+            }
+            if (bossHealth != null) bossHealth.SetExternalInvulnerable(hidden);
+            if (hidden && Body != null) Body.linearVelocity = Vector2.zero;
+            if (!hidden && Movement != null && (bossHealth == null || bossHealth.IsAlive)) Movement.ForceEmerge();
+        }
+
+        public void ApplyPhasePresentation(int phase, float progress = 1f)
+        {
+            if (boss == null || Config == null) return;
+            float blend = phase == 2 ? Mathf.Clamp01(progress) : 0f;
+            boss.localScale = Vector3.Lerp(phaseOneScale, phaseOneScale * Config.PhaseTwoBossScale, blend);
+            Color color = Color.Lerp(phaseOneColor, Config.PhaseTwoBossColor, blend);
+            if (bossHealth != null) bossHealth.SetBaseColor(color);
+            else if (bossRenderer != null) bossRenderer.color = color;
+        }
+
+        public void PlaySound(AudioClip clip, float volume = 1f, float pitch = 1f)
+        {
+            if (audioSource == null || clip == null) return;
+            audioSource.pitch = Mathf.Clamp(pitch, 0.5f, 1.8f);
+            audioSource.PlayOneShot(clip, Mathf.Clamp01(volume));
+        }
+
         public void TriggerAttackAnimation()
         {
             if (animator != null) animator.SetTrigger("Attack");
@@ -89,7 +135,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             float radians = degrees * Mathf.Deg2Rad;
             float cosine = Mathf.Cos(radians);
             float sine = Mathf.Sin(radians);
-            return new Vector2(direction.x * cosine - direction.y * sine, direction.x * sine + direction.y * cosine);
+            return new Vector2(direction.x * cosine - direction.y * sine,
+                direction.x * sine + direction.y * cosine);
         }
     }
 }

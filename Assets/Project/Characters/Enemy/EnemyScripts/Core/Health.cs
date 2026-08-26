@@ -27,6 +27,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         private SpriteRenderer spriteRenderer;
         private Color originalColor;
         private Coroutine feedbackRoutine;
+        private bool externalInvulnerability;
 
         public event Action<float, float> OnHealthChanged;
         public event Action OnDied;
@@ -35,16 +36,30 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         public float CurrentHealth => currentHealth;
         public float NormalizedHealth => maxHealth > 0f ? currentHealth / maxHealth : 0f;
         public bool IsAlive => isAlive;
+        public bool IsInvulnerable => externalInvulnerability || (enemyMove != null && enemyMove.IsUnderGround);
 
         private void Awake()
         {
+            if (CompareTag("Player")) maxHealth *= GameLoadout.HealthMultiplier;
             maxHealth = Mathf.Max(1f, maxHealth);
             currentHealth = maxHealth;
             isAlive = true;
 
+            if (enemyMove == null && CompareTag("Enemy"))
+            {
+                enemyMove = GetComponent<EnemyMove>();
+                if (enemyMove == null) enemyMove = GetComponentInParent<EnemyMove>();
+                if (enemyMove == null) enemyMove = GetComponentInChildren<EnemyMove>();
+            }
+
             soundController = GetComponent<PlayerSoundController>();
             spriteRenderer = GetComponent<SpriteRenderer>();
-            if (spriteRenderer != null) originalColor = spriteRenderer.color;
+            if (spriteRenderer == null) spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                if (CompareTag("Player")) spriteRenderer.color = GameLoadout.CharacterColor;
+                originalColor = spriteRenderer.color;
+            }
 
             noise = virtualCamera != null
                 ? virtualCamera.GetComponent<CinemachineBasicMultiChannelPerlin>()
@@ -53,8 +68,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
 
         public void TakeDamage(float damage)
         {
-            if (!isAlive || damage <= 0f) return;
-            if (enemyMove != null && enemyMove.IsUnderGround) return;
+            if (!isAlive || damage <= 0f || IsInvulnerable) return;
 
             currentHealth = Mathf.Clamp(currentHealth - damage, 0f, maxHealth);
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
@@ -67,6 +81,28 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
             isAlive = false;
             OnDied?.Invoke();
             if (deathEvent != null) deathEvent.Die();
+        }
+
+        public void SetBaseColor(Color color)
+        {
+            originalColor = color;
+            if (feedbackRoutine == null && spriteRenderer != null) spriteRenderer.color = originalColor;
+        }
+
+        public void SetExternalInvulnerable(bool value)
+        {
+            externalInvulnerability = value;
+        }
+
+        public void ConfigureRuntime(float maximumHealth, bool refill = true)
+        {
+            maxHealth = Mathf.Max(1f, maximumHealth);
+            if (refill || currentHealth > maxHealth)
+            {
+                currentHealth = maxHealth;
+                isAlive = true;
+                OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            }
         }
 
         public void Heal(float amount)

@@ -18,7 +18,9 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         RadialBurst,
         Spiral,
         RockRain,
-        ChargeDash
+        ChargeDash,
+        TwinMoleLaser,
+        MinionHorde
     }
 
     public enum MoleProjectilePalette

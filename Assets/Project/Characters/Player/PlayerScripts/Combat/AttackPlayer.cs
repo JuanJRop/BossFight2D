@@ -49,6 +49,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         private bool isReloading;
         private float fireTimer;
         private float autoShootTimer;
+        private float weaponDamageMultiplier = 1f;
 
         public event Action<float, float> OnReloadChange;
 
@@ -56,6 +57,11 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         public int ShotsUsed => counterShoots;
 
         private int MagazineCapacity => Mathf.Max(1, Mathf.RoundToInt(chargerCapacity));
+
+        public void ConfigureRuntimePool(ObjectPool runtimePool)
+        {
+            if (runtimePool != null) objectPool = runtimePool;
+        }
 
         private void Awake()
         {
@@ -65,6 +71,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         private void Start()
         {
             currentAttack = attack;
+            ApplySelectedLoadout();
             ResolveEnemy();
 
             if (powerUpHoming != null)
@@ -94,14 +101,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             if (Input.GetKeyDown(KeyCode.R) && !isReloading && counterShoots > 0)
                 StartCoroutine(Reload());
 
-            if (powerUpHoming != null && powerUpHoming.IsActive)
-            {
-                AutoShoot();
-            }
-            else
-            {
-                HandleInputShoot();
-            }
+            HandleInputShoot();
         }
 
         private void OnPowerUpStateChanged(bool isActive)
@@ -171,7 +171,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                                    currentAttack == powerUpAttack;
             if (overdriveActive)
             {
-                ShootOverdriveVolley();
+                if (ShootAbilityVolley()) powerUpHoming.ConsumeCharge();
             }
             else
             {
@@ -196,7 +196,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 firePoint.rotation);
 
             if (bulletObject == null) return;
-            if (!ConfigureProjectile(bulletObject, firePoint.rotation, false))
+            if (!ConfigureProjectile(bulletObject, firePoint.rotation, false, 1f, 1f, Color.white))
             {
                 objectPool.ReturnObject(bulletObject, currentAttack.BulletPrefab);
                 return;
@@ -205,13 +205,13 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             RegisterVolley();
         }
 
-        private void ShootOverdriveVolley()
+        private bool ShootAbilityVolley()
         {
-            int projectileCount = Mathf.Clamp(overdriveProjectileCount, 3, 9);
+            int projectileCount = Mathf.Clamp(GameLoadout.AbilityProjectileCount, 1, 3);
             if (!objectPool.GetObjects(currentAttack.BulletPrefab, projectileCount, reservedProjectiles))
             {
-                Debug.LogError($"Overdrive could not reserve its complete {projectileCount}-projectile volley.", this);
-                return;
+                Debug.LogError($"Power ability could not reserve its complete {projectileCount}-projectile volley.", this);
+                return false;
             }
 
             for (int index = 0; index < reservedProjectiles.Count; index++)
@@ -222,8 +222,8 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                     projectile.GetComponentInChildren<Bullet>(true) == null)
                 {
                     ReturnReservedVolley();
-                    Debug.LogError("Every overdrive projectile requires Bullet and Rigidbody2D.", this);
-                    return;
+                    Debug.LogError("Every power projectile requires Bullet and Rigidbody2D.", this);
+                    return false;
                 }
             }
 
@@ -232,17 +232,26 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 float normalized = reservedProjectiles.Count == 1
                     ? 0.5f
                     : index / (reservedProjectiles.Count - 1f);
-                float angleOffset = Mathf.Lerp(-overdriveSpread * 0.5f, overdriveSpread * 0.5f, normalized);
+                float angleOffset = Mathf.Lerp(-GameLoadout.AbilitySpread * 0.5f,
+                    GameLoadout.AbilitySpread * 0.5f, normalized);
                 Quaternion rotation = Quaternion.Euler(0f, 0f, firePoint.eulerAngles.z + angleOffset);
-                ConfigureProjectile(reservedProjectiles[index], rotation, true);
+                if (!ConfigureProjectile(reservedProjectiles[index], rotation, GameLoadout.AbilityHoming,
+                        GameLoadout.AbilityDamageMultiplier, GameLoadout.AbilityVisualScale,
+                        GameLoadout.AbilityColor))
+                {
+                    ReturnReservedVolley();
+                    return false;
+                }
             }
 
             RegisterVolley();
             SpawnOverdriveShockwave();
             reservedProjectiles.Clear();
+            return true;
         }
 
-        private bool ConfigureProjectile(GameObject bulletObject, Quaternion rotation, bool homing)
+        private bool ConfigureProjectile(GameObject bulletObject, Quaternion rotation, bool homing,
+            float abilityDamageMultiplier, float visualScale, Color visualColor)
         {
             Rigidbody2D body = bulletObject.GetComponentInChildren<Rigidbody2D>(true);
             Bullet bullet = bulletObject.GetComponentInChildren<Bullet>(true);
@@ -261,8 +270,10 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 bulletObject,
                 currentAttack.LifeTime,
                 BulletOwner.Player,
-                currentAttack.Damage);
+                currentAttack.Damage * weaponDamageMultiplier * Mathf.Max(0.1f, abilityDamageMultiplier));
             bullet.SetTarget(enemyTarget, homing, currentAttack.Speed);
+            bullet.SetHitCallback(powerUpHoming != null ? powerUpHoming.RegisterEnemyHit : null);
+            bullet.SetEmpoweredVisual(visualScale > 1f, visualScale, visualColor);
             return true;
         }
 
@@ -337,6 +348,18 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             if (shader == null) shader = Shader.Find("Sprites/Default");
             overdriveMaterial = shader != null ? new Material(shader) : null;
             return overdriveMaterial;
+        }
+
+        private void ApplySelectedLoadout()
+        {
+            weaponDamageMultiplier = GameLoadout.WeaponDamageMultiplier;
+            chargerCapacity = Mathf.Max(1f, Mathf.Round(chargerCapacity * GameLoadout.MagazineMultiplier));
+            chargerTime = Mathf.Max(0.25f, chargerTime * GameLoadout.ReloadMultiplier);
+            fireRate = Mathf.Max(0.04f, fireRate * GameLoadout.FireRateMultiplier);
+
+            if (firePoint == null) return;
+            SpriteRenderer weaponRenderer = firePoint.GetComponentInParent<SpriteRenderer>();
+            if (weaponRenderer != null) weaponRenderer.color = GameLoadout.WeaponColor;
         }
 
         private void ResolveEnemy()

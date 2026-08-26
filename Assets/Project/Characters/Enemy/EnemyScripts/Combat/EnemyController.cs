@@ -22,6 +22,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         [SerializeField] private BossPhaseController phaseController;
         [SerializeField] private EnemyMove movement;
         [SerializeField] private Rigidbody2D bossBody;
+        [SerializeField] private AudioSource audioSource;
 
         private Coroutine attackRoutine;
         private MoleBossCombatContext context;
@@ -29,9 +30,12 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         private MoleBossAttackRegistry registry;
         private MoleBossPhaseTransition phaseTransition;
         private MoleBossTelegraphService telegraphs;
+        private Vector3 phaseOneScale;
+        private Color phaseOneColor = Color.white;
         private int observedPhase;
         private bool phaseTransitionPending;
         private bool missingReferencesReported;
+        private bool presentationCaptured;
 
         public event Action<MoleBossState> OnStateChanged;
         public event Action<MoleBossAttack> OnAttackStarted;
@@ -43,7 +47,9 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         private void Awake()
         {
             ResolveUnityReferences();
+            CapturePhaseOnePresentation();
             ComposeCombatObjects();
+            context.ApplyPhasePresentation(CurrentPhase);
             if (movement != null) movement.SetAiControlled(true);
         }
 
@@ -53,6 +59,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         {
             StopAttackRoutine();
             telegraphs?.ReleaseAll();
+            context?.SetBossHidden(false);
             if (bossBody != null) bossBody.linearVelocity = Vector2.zero;
             SetState(bossHealth != null && !bossHealth.IsAlive ? MoleBossState.Defeated : MoleBossState.Dormant);
         }
@@ -63,11 +70,14 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         {
             if (!isActiveAndEnabled) return;
             ResolveUnityReferences();
-            ComposeCombatObjects();
+            CapturePhaseOnePresentation();
             int nextPhase = CurrentPhase;
             phaseTransitionPending = observedPhase > 0 && nextPhase != observedPhase;
+            ComposeCombatObjects();
+            if (!phaseTransitionPending) context.ApplyPhasePresentation(nextPhase);
             StopAttackRoutine();
             telegraphs.ReleaseAll();
+            context.SetBossHidden(false);
 
             if (movement != null)
             {
@@ -112,7 +122,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
                     SetState(MoleBossState.Burrowing);
                     yield return movement.BurrowToRandomSpot(config.BurrowHideTime);
                     SetState(MoleBossState.Emerging);
-                    yield return context.Wait(0.2f);
+                    yield return context.Wait(phase == 2 ? 0.1f : 0.2f);
                 }
 
                 float distance = Vector2.Distance(transform.position, context.Player.Position);
@@ -136,13 +146,14 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             MoleBossPlayerTarget target = new(player);
             MoleBossProjectileEmitter projectiles = new(pool, config);
             context = new MoleBossCombatContext(transform, firePoint, animator, bossBody, movement, target,
-                projectiles, telegraphs, config, SetState);
+                projectiles, telegraphs, config, audioSource, SetState, phaseOneScale, phaseOneColor);
 
             IMoleBossAttack radial = new RadialBurstAttack();
             registry = new MoleBossAttackRegistry(new IMoleBossAttack[]
             {
                 new AimedFanAttack(), radial, new SpiralAttack(),
-                new RockRainAttack(), new ChargeDashAttack()
+                new RockRainAttack(), new ChargeDashAttack(), new TwinMoleLaserAttack(),
+                new MinionHordeAttack()
             });
             phaseTransition = new MoleBossPhaseTransition(radial);
         }
@@ -161,21 +172,33 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             if (movement == null) movement = GetComponent<EnemyMove>();
             if (bossBody == null) bossBody = GetComponent<Rigidbody2D>();
             if (animator == null) animator = GetComponent<Animator>();
+            if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        }
+
+        private void CapturePhaseOnePresentation()
+        {
+            if (presentationCaptured) return;
+            phaseOneScale = transform.localScale;
+            SpriteRenderer renderer = GetComponentInChildren<SpriteRenderer>();
+            phaseOneColor = renderer != null ? renderer.color : Color.white;
+            presentationCaptured = true;
         }
 
         private bool HasRequiredReferences()
         {
-            return config != null && context != null && context.Player.IsValid && context.Projectiles.IsValid && firePoint != null;
+            return config != null && context != null && context.Player.IsValid &&
+                   context.Projectiles.IsValid && firePoint != null;
         }
 
         private bool ShouldBurrow(int phase)
         {
-            return movement != null && movement.HasValidSpots && UnityEngine.Random.value < config.BurrowChance(phase);
+            return movement != null && movement.HasValidSpots &&
+                   UnityEngine.Random.value < config.BurrowChance(phase);
         }
 
         private int GetHealthPhase()
         {
-            return bossHealth != null && bossHealth.NormalizedHealth <= 0.4f ? 2 : 1;
+            return bossHealth != null && bossHealth.NormalizedHealth <= 0.5f ? 2 : 1;
         }
 
         private void SetState(MoleBossState state)

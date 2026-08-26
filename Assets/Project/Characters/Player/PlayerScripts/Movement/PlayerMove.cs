@@ -1,4 +1,5 @@
 using Project.Characters.Player.PlayerScripts.Controller;
+using Project.Scripts.Controller;
 using UnityEngine;
 
 namespace Project.Characters.Player.PlayerScripts.Movement
@@ -28,23 +29,39 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private float currentSpeed;
         private float stepTimer;
         private float knockbackTimer;
+        private float stunTimer;
         private bool isMoving = true;
+        private PlayerElectricStunFeedback stunFeedback;
 
         public Vector2 MoveInput => moveInput;
         public bool IsBeingKnockedBack => knockbackTimer > 0f;
+        public bool IsStunned => stunTimer > 0f;
 
         private void Awake()
         {
+            speed *= GameLoadout.MoveSpeedMultiplier;
             playerSoundController = GetComponent<PlayerSoundController>();
             playerDodge = GetComponent<PlayerDodge>();
             rb = GetComponent<Rigidbody2D>();
             animator = GetComponent<Animator>();
             spriteRenderer = GetComponent<SpriteRenderer>();
+            stunFeedback = GetComponent<PlayerElectricStunFeedback>();
+            if (stunFeedback == null) stunFeedback = gameObject.AddComponent<PlayerElectricStunFeedback>();
+            PlayerSkinController.Attach(gameObject, animator, spriteRenderer);
         }
 
         private void Update()
         {
             if (!isMoving) return;
+
+            if (stunTimer > 0f)
+            {
+                stunTimer = Mathf.Max(0f, stunTimer - Time.deltaTime);
+                moveInput = Vector2.zero;
+                currentSpeed = 0f;
+                UpdateAnimations();
+                return;
+            }
 
             InputMovement();
             HandleSpeed();
@@ -56,11 +73,16 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private void FixedUpdate()
         {
             if (rb == null) return;
+            if (IsStunned)
+            {
+                rb.linearVelocity = Vector2.zero;
+                return;
+            }
             if (playerDodge != null && playerDodge.IsDashing) return;
 
             if (knockbackTimer > 0f)
             {
-                knockbackTimer = Mathf.Max(0f, knockbackTimer - Time.fixedDeltaTime);
+                knockbackTimer = Mathf.Max(0.05f, knockbackTimer - Time.fixedDeltaTime);
                 rb.linearVelocity = knockbackVelocity;
                 knockbackVelocity = Vector2.MoveTowards(knockbackVelocity, Vector2.zero,
                     deceleration * Time.fixedDeltaTime);
@@ -77,6 +99,19 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             knockbackVelocity = velocity;
             knockbackTimer = Mathf.Max(0.05f, duration);
             if (rb != null) rb.linearVelocity = knockbackVelocity;
+        }
+
+        public void ApplyStun(float duration)
+        {
+            if (playerDodge != null && playerDodge.IsInvulnerable) return;
+
+            stunTimer = Mathf.Max(stunTimer, Mathf.Max(0.05f, duration));
+            knockbackTimer = 0f;
+            knockbackVelocity = Vector2.zero;
+            moveInput = Vector2.zero;
+            currentSpeed = 0f;
+            if (rb != null) rb.linearVelocity = Vector2.zero;
+            if (stunFeedback != null) stunFeedback.Show(stunTimer);
         }
 
         private void InputMovement()
@@ -133,6 +168,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private void OnDisable()
         {
             knockbackTimer = 0f;
+            stunTimer = 0f;
             knockbackVelocity = Vector2.zero;
             if (rb != null) rb.linearVelocity = Vector2.zero;
         }
