@@ -40,6 +40,7 @@ namespace Project.Scripts.Menu
                     if (bullet == null || spawnPoint == null || endPoint == null) continue;
 
                     GameObject instance = Instantiate(bullet, spawnPoint.position, spawnPoint.rotation);
+                    MoveRenderersBehindUi(instance);
                     instance.transform
                         .DOMove(endPoint.position, Mathf.Max(0.01f, travelTime))
                         .SetEase(Ease.Linear)
@@ -52,6 +53,26 @@ namespace Project.Scripts.Menu
 
                     yield return new WaitForSecondsRealtime(Mathf.Max(0.01f, timeBullets));
                 }
+            }
+        }
+
+        private static void MoveRenderersBehindUi(GameObject instance)
+        {
+            if (instance == null) return;
+            Renderer[] renderers = instance.GetComponentsInChildren<Renderer>(true);
+            foreach (Renderer renderer in renderers)
+            {
+                if (renderer == null) continue;
+                renderer.sortingLayerID = SortingLayer.NameToID("Default");
+                renderer.sortingOrder = -100;
+            }
+
+            Canvas[] canvases = instance.GetComponentsInChildren<Canvas>(true);
+            foreach (Canvas canvas in canvases)
+            {
+                if (canvas == null) continue;
+                canvas.overrideSorting = true;
+                canvas.sortingOrder = -100;
             }
         }
     }
