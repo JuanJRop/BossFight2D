@@ -7,7 +7,8 @@ namespace Project.Scripts.Controller
         Alex,
         Lyria,
         Manu,
-        Tori
+        Tori,
+        George
     }
 
     public enum PlayerWeapon
@@ -35,7 +36,7 @@ namespace Project.Scripts.Controller
 
         public static PlayerCharacter Character
         {
-            get => (PlayerCharacter)Mathf.Clamp(PlayerPrefs.GetInt(CharacterKey, 0), 0, 3);
+            get => (PlayerCharacter)Mathf.Clamp(PlayerPrefs.GetInt(CharacterKey, (int)PlayerCharacter.George), 0, 4);
             set => Save(CharacterKey, (int)value);
         }
 
@@ -176,6 +177,7 @@ namespace Project.Scripts.Controller
             PlayerCharacter.Lyria => "LYRIA",
             PlayerCharacter.Manu => "MANU",
             PlayerCharacter.Tori => "TORI",
+            PlayerCharacter.George => "GEORGE",
             _ => "ALEX"
         };
 
@@ -184,6 +186,7 @@ namespace Project.Scripts.Controller
             PlayerCharacter.Lyria => spanish ? "Ágil · Menos vida" : "Agile · Less health",
             PlayerCharacter.Manu => spanish ? "Resistente · Más lento" : "Tough · Slower",
             PlayerCharacter.Tori => spanish ? "Táctica · Versátil" : "Tactical · Versatile",
+            PlayerCharacter.George => spanish ? "Protagonista · Equilibrado" : "Main hero · Balanced",
             _ => spanish ? "Equilibrado" : "Balanced"
         };
 
@@ -210,7 +213,7 @@ namespace Project.Scripts.Controller
 
         public static void CycleCharacter(int direction)
         {
-            Character = (PlayerCharacter)Cycle((int)Character, direction, 4);
+            Character = (PlayerCharacter)Cycle((int)Character, direction, 5);
         }
 
         public static void CycleWeapon(int direction)
