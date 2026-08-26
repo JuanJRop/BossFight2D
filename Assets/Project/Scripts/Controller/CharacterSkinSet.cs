@@ -12,7 +12,32 @@ namespace Project.Scripts.Controller
         private Dictionary<string, Sprite> spriteLookup;
 
         public string DisplayName => displayName;
-        public Sprite PreviewSprite => Resolve("Idle_0");
+        public Sprite PreviewSprite
+        {
+            get
+            {
+                Sprite preview = Resolve("Idle_0");
+                if (preview != null) return preview;
+                if (sprites == null) return null;
+                foreach (Sprite sprite in sprites)
+                {
+                    if (sprite != null) return sprite;
+                }
+                return null;
+            }
+        }
+
+        public void PrepareForCrispRendering()
+        {
+            if (sprites == null) return;
+            foreach (Sprite sprite in sprites)
+            {
+                if (sprite == null || sprite.texture == null) continue;
+                sprite.texture.filterMode = FilterMode.Point;
+                sprite.texture.wrapMode = TextureWrapMode.Clamp;
+                sprite.texture.anisoLevel = 0;
+            }
+        }
 
         public Sprite Resolve(string sourceName)
         {
