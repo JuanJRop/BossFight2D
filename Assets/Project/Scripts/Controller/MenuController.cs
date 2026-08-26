@@ -99,7 +99,7 @@ namespace Project.Scripts.Controller
         {
             PlayerPrefs.Save();
             Time.timeScale = 1f;
-            SceneManager.LoadScene(1);
+            SceneManager.LoadScene("WorldPath");
         }
 
         public void BackToMenu()
