@@ -6,7 +6,6 @@ using Project.Scripts.Controller;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
@@ -15,10 +14,13 @@ namespace Project.Scripts.World
     [DefaultExecutionOrder(-600)]
     public sealed class WorldPathBootstrap : MonoBehaviour
     {
-        private const int WorldXMin = -24;
-        private const int WorldXMax = 24;
-        private const int WorldYMin = -60;
-        private const int WorldYMax = 60;
+        private const int RoomHalfWidth = 18;
+        private const int RoomHalfHeight = 12;
+        private const int MinimumRoomX = -1;
+        private const int MaximumRoomX = 1;
+        private const int MinimumRoomY = 0;
+        private const int MaximumRoomY = 3;
+        private const float DoorInset = 1.35f;
 
         [Header("Shared project assets")]
         [SerializeField] private GameObject playerPrefab;
@@ -30,30 +32,46 @@ namespace Project.Scripts.World
         [SerializeField] private TileBase startAreaAccentTile;
         [SerializeField] private TileBase[] decorationTiles;
 
-        [Header("Destination")]
+        [Header("Reserved destination")]
         [SerializeField] private string bossSceneName = "BossFight";
 
-        private readonly HashSet<Vector3Int> walkable = new();
-        private readonly List<Vector3Int> explorationRooms = new();
         private readonly List<Tile> runtimeTiles = new();
+        private readonly List<GameObject> roomObjects = new();
+        private readonly HashSet<Vector2Int> visitedRooms = new();
+
+        private Tilemap background;
+        private Tilemap floor;
+        private Tilemap walls;
+        private Tilemap details;
+        private TileBase collisionWall;
+        private Rigidbody2D playerBody;
+        private WorldPathCamera worldCamera;
+        private CanvasGroup transitionFade;
         private GameObject tutorialOverlay;
         private GameObject objectiveHud;
-        private GameObject exitPrompt;
+        private TextMeshProUGUI roomLabel;
         private float tutorialUnlockTime;
         private bool tutorialOpen;
+        private bool transitioning;
+        private Vector2Int currentRoom;
 
-        private static readonly Vector3Int StartCell = new(0, -52, 0);
-        private static readonly Vector3Int ExitCell = new(0, 54, 0);
+        private static readonly Vector2Int StartRoom = Vector2Int.zero;
 
         private void Awake()
         {
             Time.timeScale = 1f;
-            BuildWorld();
+            BuildReusableRoom();
             GameObject player = SpawnPlayer();
-            BuildCamera(ResolvePlayerFollowTarget(player));
+            playerBody = ResolvePlayerBody(player);
+            worldCamera = BuildCamera(playerBody != null
+                ? playerBody.transform
+                : player != null ? player.transform : null);
+            BuildWorldLighting();
             BuildInterface();
-            BuildExitPortal();
+            BuildTransitionFade();
+            LoadRoom(StartRoom, RoomDirection.None);
             OpenTutorial();
+            StartCoroutine(FadeFromBlack());
         }
 
         private void Update()
@@ -67,186 +85,317 @@ namespace Project.Scripts.World
 
         private void OnDestroy()
         {
-            if (tutorialOpen) Time.timeScale = 1f;
+            Time.timeScale = 1f;
             foreach (Tile tile in runtimeTiles)
             {
                 if (tile != null) Destroy(tile);
             }
         }
 
-        private void BuildWorld()
+        internal void RequestRoomChange(RoomDirection direction)
+        {
+            if (transitioning || tutorialOpen || direction == RoomDirection.None) return;
+            Vector2Int destination = currentRoom + DirectionOffset(direction);
+            if (!IsValidRoom(destination)) return;
+            StartCoroutine(ChangeRoom(destination, direction));
+        }
+
+        private IEnumerator ChangeRoom(Vector2Int destination, RoomDirection travelDirection)
+        {
+            transitioning = true;
+            if (playerBody != null)
+            {
+                playerBody.linearVelocity = Vector2.zero;
+                playerBody.simulated = false;
+            }
+
+            yield return FadeTo(1f, 0.22f);
+            LoadRoom(destination, travelDirection);
+            yield return new WaitForSecondsRealtime(0.08f);
+
+            if (playerBody != null) playerBody.simulated = true;
+            yield return FadeTo(0f, 0.3f);
+            transitioning = false;
+        }
+
+        private void BuildReusableRoom()
         {
             if (backgroundTile == null || pathTile == null || wallTile == null)
             {
-                Debug.LogError("WorldPath requires the shared cave background, path and wall tiles.", this);
+                Debug.LogError("WorldPath requires background, floor and wall tiles.", this);
                 return;
             }
 
-            GameObject gridObject = new("World Grid");
+            GameObject gridObject = new("Room Grid");
             Grid grid = gridObject.AddComponent<Grid>();
             grid.cellSize = Vector3.one;
 
-            Tilemap floor = CreateTilemap(gridObject.transform, "Cave Background", 0);
-            Tilemap startClearing = CreateTilemap(gridObject.transform, "Bright Starting Clearing", 1);
-            Tilemap path = CreateTilemap(gridObject.transform, "Exploration Path", 2);
-            Tilemap walls = CreateTilemap(gridObject.transform, "Cave Walls", 5);
-            Tilemap details = CreateTilemap(gridObject.transform, "Path Decorations", 4);
-
-            CarveMainRoute();
-            CarveExplorationBranches();
-
-            for (int x = WorldXMin; x <= WorldXMax; x++)
-            {
-                for (int y = WorldYMin; y <= WorldYMax; y++)
-                {
-                    Vector3Int cell = new(x, y, 0);
-                    floor.SetTile(cell, backgroundTile);
-                    if (startAreaTile != null && IsInsideStartClearing(cell))
-                    {
-                        int clearingHash = Mathf.Abs(x * 83492791 ^ y * 297121507);
-                        startClearing.SetTile(cell,
-                            startAreaAccentTile != null && clearingHash % 8 == 0
-                                ? startAreaAccentTile
-                                : startAreaTile);
-                    }
-                    if (walkable.Contains(cell))
-                    {
-                        int hash = Mathf.Abs(x * 73856093 ^ y * 19349663);
-                        path.SetTile(cell, alternatePathTile != null && hash % 9 == 0
-                            ? alternatePathTile
-                            : pathTile);
-                    }
-                }
-            }
-
-            TileBase collisionWall = CreateCollisionWallTile(wallTile);
-            for (int x = WorldXMin; x <= WorldXMax; x++)
-            {
-                for (int y = WorldYMin; y <= WorldYMax; y++)
-                {
-                    Vector3Int cell = new(x, y, 0);
-                    if (walkable.Contains(cell)) continue;
-                    if (TouchesWalkable(cell) || x == WorldXMin || x == WorldXMax ||
-                        y == WorldYMin || y == WorldYMax)
-                        walls.SetTile(cell, collisionWall);
-                }
-            }
-
-            PaintDecorations(details);
+            background = CreateTilemap(gridObject.transform, "Room Background", 0);
+            floor = CreateTilemap(gridObject.transform, "Room Floor", 1);
+            details = CreateTilemap(gridObject.transform, "Room Details", 3);
+            walls = CreateTilemap(gridObject.transform, "Room Walls", 5);
+            collisionWall = CreateCollisionWallTile(wallTile);
             ConfigureWallCollision(walls);
+        }
+
+        private void LoadRoom(Vector2Int room, RoomDirection enteredThrough)
+        {
+            currentRoom = room;
+            visitedRooms.Add(room);
+            ClearRoom();
+            PaintRoom(room);
+            BuildDoors(room);
+
+            Vector2 roomMinimum = new(-RoomHalfWidth, -RoomHalfHeight);
+            Vector2 roomMaximum = new(RoomHalfWidth + 1f, RoomHalfHeight + 1f);
+            if (worldCamera != null)
+            {
+                worldCamera.SetBounds(roomMinimum, roomMaximum);
+            }
+
+            Vector2 entry = GetEntryPosition(enteredThrough);
+            if (playerBody != null)
+            {
+                playerBody.position = entry;
+                playerBody.linearVelocity = Vector2.zero;
+            }
+
+            if (worldCamera != null) worldCamera.SnapToTarget();
+            UpdateRoomHud();
+        }
+
+        private void ClearRoom()
+        {
+            if (background != null) background.ClearAllTiles();
+            if (floor != null) floor.ClearAllTiles();
+            if (walls != null) walls.ClearAllTiles();
+            if (details != null) details.ClearAllTiles();
+
+            foreach (GameObject roomObject in roomObjects)
+            {
+                if (roomObject != null) Destroy(roomObject);
+            }
+            roomObjects.Clear();
+        }
+
+        private void PaintRoom(Vector2Int room)
+        {
+            if (background == null || floor == null || walls == null) return;
+
+            for (int x = -RoomHalfWidth - 1; x <= RoomHalfWidth + 1; x++)
+            {
+                for (int y = -RoomHalfHeight - 1; y <= RoomHalfHeight + 1; y++)
+                {
+                    Vector3Int cell = new(x, y, 0);
+                    background.SetTile(cell, backgroundTile);
+
+                    if (x > -RoomHalfWidth && x < RoomHalfWidth &&
+                        y > -RoomHalfHeight && y < RoomHalfHeight)
+                    {
+                        int hash = StableHash(room, x, y);
+                        TileBase roomFloor = startAreaTile != null ? startAreaTile : pathTile;
+                        if (startAreaAccentTile != null && hash % 11 == 0)
+                            roomFloor = startAreaAccentTile;
+                        else if (alternatePathTile != null && hash % 17 == 0)
+                            roomFloor = alternatePathTile;
+                        floor.SetTile(cell, roomFloor);
+                    }
+                }
+            }
+
+            RoomOpenings openings = GetOpenings(room);
+            PaintHorizontalWall(RoomHalfHeight, openings.Up);
+            PaintHorizontalWall(-RoomHalfHeight, openings.Down);
+            PaintVerticalWall(-RoomHalfWidth, openings.Left);
+            PaintVerticalWall(RoomHalfWidth, openings.Right);
+            PaintRoomFeatures(room);
+            PaintDecorations(room);
+
+            background.CompressBounds();
             floor.CompressBounds();
-            startClearing.CompressBounds();
-            path.CompressBounds();
             walls.CompressBounds();
             details.CompressBounds();
         }
 
-        private void CarveMainRoute()
+        private void PaintHorizontalWall(int y, bool hasDoor)
         {
-            Vector3Int[] route =
+            for (int x = -RoomHalfWidth; x <= RoomHalfWidth; x++)
             {
-                StartCell,
-                new(0, -42, 0),
-                new(-8, -30, 0),
-                new(-8, -16, 0),
-                new(6, 0, 0),
-                new(6, 17, 0),
-                new(-4, 31, 0),
-                new(0, 45, 0),
-                ExitCell
-            };
-
-            for (int index = 0; index < route.Length - 1; index++)
-                CarveLine(route[index], route[index + 1], 5);
-
-            CarveRoom(StartCell, 6);
-            CarveRoom(ExitCell, 6);
-        }
-
-        private void CarveExplorationBranches()
-        {
-            AddBranch(new Vector3Int(-3, -37, 0), new Vector3Int(-18, -37, 0), 5);
-            AddBranch(new Vector3Int(-8, -17, 0), new Vector3Int(18, -17, 0), 6);
-            AddBranch(new Vector3Int(5, 4, 0), new Vector3Int(-18, 7, 0), 5);
-            AddBranch(new Vector3Int(5, 20, 0), new Vector3Int(18, 28, 0), 5);
-        }
-
-        private void AddBranch(Vector3Int fork, Vector3Int end, int roomRadius)
-        {
-            CarveLine(fork, end, 5);
-            CarveRoom(end, roomRadius);
-            explorationRooms.Add(end);
-        }
-
-        private void CarveLine(Vector3Int from, Vector3Int to, int width)
-        {
-            int radius = Mathf.Max(1, width / 2);
-            int steps = Mathf.Max(Mathf.Abs(to.x - from.x), Mathf.Abs(to.y - from.y));
-            steps = Mathf.Max(1, steps);
-            for (int step = 0; step <= steps; step++)
-            {
-                float progress = step / (float)steps;
-                Vector3Int center = new(
-                    Mathf.RoundToInt(Mathf.Lerp(from.x, to.x, progress)),
-                    Mathf.RoundToInt(Mathf.Lerp(from.y, to.y, progress)),
-                    0);
-                CarveRoom(center, radius);
+                if (hasDoor && Mathf.Abs(x) <= 1) continue;
+                walls.SetTile(new Vector3Int(x, y, 0), collisionWall);
             }
         }
 
-        private void CarveRoom(Vector3Int center, int radius)
+        private void PaintVerticalWall(int x, bool hasDoor)
         {
-            for (int x = -radius; x <= radius; x++)
+            for (int y = -RoomHalfHeight; y <= RoomHalfHeight; y++)
             {
-                for (int y = -radius; y <= radius; y++)
-                {
-                    if (x * x + y * y > radius * radius + 2) continue;
-                    Vector3Int cell = center + new Vector3Int(x, y, 0);
-                    if (cell.x <= WorldXMin || cell.x >= WorldXMax ||
-                        cell.y <= WorldYMin || cell.y >= WorldYMax) continue;
-                    walkable.Add(cell);
-                }
+                if (hasDoor && Mathf.Abs(y) <= 1) continue;
+                walls.SetTile(new Vector3Int(x, y, 0), collisionWall);
             }
         }
 
-        private bool TouchesWalkable(Vector3Int cell)
+        private void PaintRoomFeatures(Vector2Int room)
+        {
+            int pattern = Mathf.Abs(room.x * 31 + room.y * 17) % 4;
+            switch (pattern)
+            {
+                case 0:
+                    PaintPillarCluster(new Vector3Int(-7, 4, 0));
+                    PaintPillarCluster(new Vector3Int(7, -4, 0));
+                    break;
+                case 1:
+                    PaintShortWall(new Vector3Int(-9, 4, 0), true, 6);
+                    PaintShortWall(new Vector3Int(4, -5, 0), true, 6);
+                    break;
+                case 2:
+                    PaintShortWall(new Vector3Int(-7, -6, 0), false, 5);
+                    PaintShortWall(new Vector3Int(7, 2, 0), false, 5);
+                    break;
+                default:
+                    PaintPillarCluster(new Vector3Int(-8, -5, 0));
+                    PaintPillarCluster(new Vector3Int(8, 5, 0));
+                    PaintPillarCluster(new Vector3Int(0, 0, 0));
+                    break;
+            }
+        }
+
+        private void PaintPillarCluster(Vector3Int center)
         {
             for (int x = -1; x <= 1; x++)
             {
                 for (int y = -1; y <= 1; y++)
                 {
-                    if (x == 0 && y == 0) continue;
-                    if (walkable.Contains(cell + new Vector3Int(x, y, 0))) return true;
+                    if (Mathf.Abs(x) + Mathf.Abs(y) > 1) continue;
+                    walls.SetTile(center + new Vector3Int(x, y, 0), collisionWall);
                 }
             }
-            return false;
         }
 
-        private static bool IsInsideStartClearing(Vector3Int cell)
+        private void PaintShortWall(Vector3Int start, bool horizontal, int length)
         {
-            float normalizedX = (cell.x - StartCell.x) / 14f;
-            float normalizedY = (cell.y - StartCell.y) / 8f;
-            return normalizedX * normalizedX + normalizedY * normalizedY <= 1f;
-        }
-
-        private void PaintDecorations(Tilemap details)
-        {
-            if (decorationTiles == null || decorationTiles.Length == 0) return;
-            Vector3Int[] offsets =
+            for (int index = 0; index < length; index++)
             {
-                new(-3, 3, 0), new(3, 3, 0), new(-3, -3, 0), new(3, -3, 0)
+                Vector3Int offset = horizontal
+                    ? new Vector3Int(index, 0, 0)
+                    : new Vector3Int(0, index, 0);
+                walls.SetTile(start + offset, collisionWall);
+            }
+        }
+
+        private void PaintDecorations(Vector2Int room)
+        {
+            if (details == null || decorationTiles == null || decorationTiles.Length == 0) return;
+            Vector3Int[] positions =
+            {
+                new(-13, 8, 0), new(13, 8, 0), new(-13, -8, 0), new(13, -8, 0),
+                new(-5, 8, 0), new(5, -8, 0)
             };
 
-            for (int roomIndex = 0; roomIndex < explorationRooms.Count; roomIndex++)
+            for (int index = 0; index < positions.Length; index++)
             {
-                Vector3Int room = explorationRooms[roomIndex];
-                for (int index = 0; index < offsets.Length; index++)
-                {
-                    Vector3Int cell = room + offsets[index];
-                    if (!walkable.Contains(cell)) continue;
-                    TileBase tile = decorationTiles[(roomIndex * 2 + index) % decorationTiles.Length];
-                    if (tile != null) details.SetTile(cell, tile);
-                }
+                TileBase decoration = decorationTiles[Mathf.Abs(room.x * 5 + room.y * 3 + index) %
+                                                     decorationTiles.Length];
+                if (decoration != null) details.SetTile(positions[index], decoration);
+            }
+        }
+
+        private void BuildDoors(Vector2Int room)
+        {
+            RoomOpenings openings = GetOpenings(room);
+            if (openings.Up)
+                CreateDoor("North Door", RoomDirection.Up, new Vector2(0f, RoomHalfHeight - 0.15f),
+                    new Vector2(3.4f, 1.1f));
+            if (openings.Down)
+                CreateDoor("South Door", RoomDirection.Down, new Vector2(0f, -RoomHalfHeight + 0.15f),
+                    new Vector2(3.4f, 1.1f));
+            if (openings.Left)
+                CreateDoor("West Door", RoomDirection.Left, new Vector2(-RoomHalfWidth + 0.15f, 0f),
+                    new Vector2(1.1f, 3.4f));
+            if (openings.Right)
+                CreateDoor("East Door", RoomDirection.Right, new Vector2(RoomHalfWidth - 0.15f, 0f),
+                    new Vector2(1.1f, 3.4f));
+        }
+
+        private void CreateDoor(string objectName, RoomDirection direction, Vector2 position, Vector2 size)
+        {
+            GameObject door = new(objectName);
+            door.transform.position = position;
+            roomObjects.Add(door);
+
+            SpriteRenderer renderer = door.AddComponent<SpriteRenderer>();
+            renderer.sprite = RuntimeWhiteSprite.Instance;
+            renderer.color = new Color(0.72f, 0.29f, 0.1f, 1f);
+            renderer.sortingOrder = 6;
+            door.transform.localScale = new Vector3(size.x, size.y, 1f);
+
+            GameObject glow = new("Door Glow");
+            glow.transform.SetParent(door.transform, false);
+            SpriteRenderer glowRenderer = glow.AddComponent<SpriteRenderer>();
+            glowRenderer.sprite = RuntimeWhiteSprite.Instance;
+            glowRenderer.color = new Color(1f, 0.68f, 0.26f, 0.38f);
+            glowRenderer.sortingOrder = 5;
+            glow.transform.localScale = direction is RoomDirection.Up or RoomDirection.Down
+                ? new Vector3(1.22f, 2.1f, 1f)
+                : new Vector3(2.1f, 1.22f, 1f);
+
+            BoxCollider2D trigger = door.AddComponent<BoxCollider2D>();
+            trigger.isTrigger = true;
+            trigger.size = Vector2.one;
+
+            WorldRoomDoor roomDoor = door.AddComponent<WorldRoomDoor>();
+            roomDoor.Configure(this, direction);
+        }
+
+        private RoomOpenings GetOpenings(Vector2Int room)
+        {
+            return new RoomOpenings(
+                room.y < MaximumRoomY,
+                room.y > MinimumRoomY,
+                room.x > MinimumRoomX,
+                room.x < MaximumRoomX);
+        }
+
+        private static bool IsValidRoom(Vector2Int room)
+        {
+            return room.x >= MinimumRoomX && room.x <= MaximumRoomX &&
+                   room.y >= MinimumRoomY && room.y <= MaximumRoomY;
+        }
+
+        private static Vector2Int DirectionOffset(RoomDirection direction)
+        {
+            return direction switch
+            {
+                RoomDirection.Up => Vector2Int.up,
+                RoomDirection.Down => Vector2Int.down,
+                RoomDirection.Left => Vector2Int.left,
+                RoomDirection.Right => Vector2Int.right,
+                _ => Vector2Int.zero
+            };
+        }
+
+        private static Vector2 GetEntryPosition(RoomDirection travelDirection)
+        {
+            return travelDirection switch
+            {
+                RoomDirection.Up => new Vector2(0f, -RoomHalfHeight + DoorInset + 1f),
+                RoomDirection.Down => new Vector2(0f, RoomHalfHeight - DoorInset - 1f),
+                RoomDirection.Left => new Vector2(RoomHalfWidth - DoorInset - 1f, 0f),
+                RoomDirection.Right => new Vector2(-RoomHalfWidth + DoorInset + 1f, 0f),
+                _ => new Vector2(0f, -5f)
+            };
+        }
+
+        private static int StableHash(Vector2Int room, int x, int y)
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + room.x;
+                hash = hash * 31 + room.y;
+                hash = hash * 31 + x;
+                hash = hash * 31 + y;
+                return hash == int.MinValue ? 0 : Mathf.Abs(hash);
             }
         }
 
@@ -273,13 +422,13 @@ namespace Project.Scripts.World
             return collisionTile;
         }
 
-        private static void ConfigureWallCollision(Tilemap walls)
+        private static void ConfigureWallCollision(Tilemap wallMap)
         {
-            Rigidbody2D body = walls.gameObject.AddComponent<Rigidbody2D>();
+            Rigidbody2D body = wallMap.gameObject.AddComponent<Rigidbody2D>();
             body.bodyType = RigidbodyType2D.Static;
-            CompositeCollider2D composite = walls.gameObject.AddComponent<CompositeCollider2D>();
+            CompositeCollider2D composite = wallMap.gameObject.AddComponent<CompositeCollider2D>();
             composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
-            TilemapCollider2D collider = walls.gameObject.AddComponent<TilemapCollider2D>();
+            TilemapCollider2D collider = wallMap.gameObject.AddComponent<TilemapCollider2D>();
             collider.compositeOperation = Collider2D.CompositeOperation.Merge;
         }
 
@@ -287,12 +436,11 @@ namespace Project.Scripts.World
         {
             if (playerPrefab == null)
             {
-                Debug.LogError("WorldPath requires the main Player prefab.", this);
+                Debug.LogError("WorldPath requires the Player prefab.", this);
                 return null;
             }
 
-            GameObject player = Instantiate(playerPrefab, (Vector3)StartCell + new Vector3(0.5f, 0.5f),
-                Quaternion.identity);
+            GameObject player = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
             player.name = "Player";
 
             GameObject poolObject = new("World Projectile Pool");
@@ -302,14 +450,12 @@ namespace Project.Scripts.World
             return player;
         }
 
-        private static Transform ResolvePlayerFollowTarget(GameObject player)
+        private static Rigidbody2D ResolvePlayerBody(GameObject player)
         {
-            if (player == null) return null;
-            Rigidbody2D movementBody = player.GetComponentInChildren<Rigidbody2D>(true);
-            return movementBody != null ? movementBody.transform : player.transform;
+            return player != null ? player.GetComponentInChildren<Rigidbody2D>(true) : null;
         }
 
-        private static void BuildCamera(Transform target)
+        private static WorldPathCamera BuildCamera(Transform target)
         {
             GameObject cameraObject = new("World Camera");
             cameraObject.tag = "MainCamera";
@@ -319,13 +465,13 @@ namespace Project.Scripts.World
             camera.orthographicSize = 8f;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.24f, 0.12f, 0.055f, 1f);
-            camera.transform.position = new Vector3(StartCell.x + 0.5f, StartCell.y + 0.5f, -10f);
+            camera.transform.position = new Vector3(0f, -5f, -10f);
             cameraObject.AddComponent<AudioListener>();
-            BuildWorldLighting();
 
             WorldPathCamera follow = cameraObject.AddComponent<WorldPathCamera>();
-            follow.Configure(target, new Vector2(WorldXMin, WorldYMin),
-                new Vector2(WorldXMax + 1f, WorldYMax + 1f));
+            follow.Configure(target, new Vector2(-RoomHalfWidth, -RoomHalfHeight),
+                new Vector2(RoomHalfWidth + 1f, RoomHalfHeight + 1f));
+            return follow;
         }
 
         private static void BuildWorldLighting()
@@ -350,50 +496,89 @@ namespace Project.Scripts.World
             canvasObject.AddComponent<GraphicRaycaster>();
 
             RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
-            objectiveHud = CreatePanel("Objective", canvasRect, new Vector2(0.25f, 0.91f),
-                new Vector2(0.75f, 0.975f), new Color(0.09f, 0.025f, 0.018f, 0.92f));
-            CreateText("Objective Text", objectiveHud.transform as RectTransform,
-                Vector2.zero, Vector2.one,
-                GameLoadout.IsSpanish
-                    ? "OBJETIVO  ·  SIGUE EL SENDERO Y EXPLORA LOS DESVÍOS"
-                    : "OBJECTIVE  ·  FOLLOW THE PATH AND EXPLORE ITS BRANCHES",
-                25f, new Color(1f, 0.88f, 0.68f), TextAlignmentOptions.Center);
+            objectiveHud = CreatePanel("Room HUD", canvasRect, new Vector2(0.28f, 0.91f),
+                new Vector2(0.72f, 0.975f), new Color(0.09f, 0.025f, 0.018f, 0.9f));
+            roomLabel = CreateText("Room Text", objectiveHud.transform as RectTransform,
+                Vector2.zero, Vector2.one, string.Empty, 24f,
+                new Color(1f, 0.88f, 0.68f), TextAlignmentOptions.Center);
             objectiveHud.SetActive(false);
 
-            exitPrompt = CreatePanel("Exit Prompt", canvasRect, new Vector2(0.34f, 0.075f),
-                new Vector2(0.66f, 0.15f), new Color(0.08f, 0.018f, 0.014f, 0.95f));
-            CreateText("Exit Prompt Text", exitPrompt.transform as RectTransform,
-                Vector2.zero, Vector2.one,
-                GameLoadout.IsSpanish ? "[ E ]  ENTRAR A LA GUARIDA" : "[ E ]  ENTER THE LAIR",
-                27f, new Color(1f, 0.78f, 0.42f), TextAlignmentOptions.Center);
-            exitPrompt.SetActive(false);
-
             tutorialOverlay = CreatePanel("Tutorial Overlay", canvasRect, Vector2.zero, Vector2.one,
-                new Color(0.16f, 0.065f, 0.025f, 0.2f));
+                new Color(0.1f, 0.035f, 0.018f, 0.08f));
             GameObject card = CreatePanel("Tutorial Card", tutorialOverlay.transform as RectTransform,
-                new Vector2(0.265f, 0.17f), new Vector2(0.735f, 0.83f),
+                new Vector2(0.27f, 0.18f), new Vector2(0.73f, 0.82f),
                 new Color(0.19f, 0.065f, 0.032f, 0.96f));
 
-            string title = GameLoadout.IsSpanish ? "EL CAMINO A SPIKE" : "THE ROAD TO SPIKE";
-            string subtitle = GameLoadout.IsSpanish
-                ? "Antes de entrar en la guarida, aprende a controlar a tu cazador."
-                : "Learn to control your hunter before entering the lair.";
-            string controls = GameLoadout.IsSpanish
-                ? "WASD / FLECHAS     MOVERSE\nRATÓN                 APUNTAR\nCLIC IZQUIERDO        DISPARAR\nSHIFT                  DASH · 3 CARGAS\nR                      RECARGAR\nE                      INTERACTUAR"
-                : "WASD / ARROWS      MOVE\nMOUSE                  AIM\nLEFT CLICK             SHOOT\nSHIFT                  DASH · 3 CHARGES\nR                      RELOAD\nE                      INTERACT";
-            string continueText = GameLoadout.IsSpanish
-                ? "PULSA CUALQUIER TECLA PARA COMENZAR"
-                : "PRESS ANY KEY TO BEGIN";
+            bool spanish = GameLoadout.IsSpanish;
+            string title = spanish ? "SALAS DE LA CAVERNA" : "CAVERN ROOMS";
+            string subtitle = spanish
+                ? "Explora libremente. Cada puerta conduce a una sala distinta."
+                : "Explore freely. Every door leads to a different room.";
+            string controls = spanish
+                ? "WASD / FLECHAS     MOVERSE\nRATÓN                 APUNTAR\nCLIC IZQUIERDO        DISPARAR\nSHIFT                  DASH · 3 CARGAS\nR                      RECARGAR\nPUERTAS                CAMBIAR DE SALA"
+                : "WASD / ARROWS      MOVE\nMOUSE                  AIM\nLEFT CLICK             SHOOT\nSHIFT                  DASH · 3 CHARGES\nR                      RELOAD\nDOORS                   CHANGE ROOM";
+            string continueText = spanish
+                ? "PULSA CUALQUIER TECLA PARA EXPLORAR"
+                : "PRESS ANY KEY TO EXPLORE";
 
             RectTransform cardRect = card.transform as RectTransform;
-            CreateText("Tutorial Title", cardRect, new Vector2(0.06f, 0.79f), new Vector2(0.94f, 0.94f),
-                title, 47f, new Color(1f, 0.88f, 0.68f), TextAlignmentOptions.Center);
-            CreateText("Tutorial Subtitle", cardRect, new Vector2(0.08f, 0.67f), new Vector2(0.92f, 0.8f),
-                subtitle, 23f, new Color(0.83f, 0.63f, 0.48f), TextAlignmentOptions.Center);
-            CreateText("Tutorial Controls", cardRect, new Vector2(0.13f, 0.22f), new Vector2(0.87f, 0.65f),
-                controls, 26f, new Color(0.96f, 0.86f, 0.72f), TextAlignmentOptions.Left);
+            CreateText("Tutorial Title", cardRect, new Vector2(0.06f, 0.8f), new Vector2(0.94f, 0.94f),
+                title, 44f, new Color(1f, 0.88f, 0.68f), TextAlignmentOptions.Center);
+            CreateText("Tutorial Subtitle", cardRect, new Vector2(0.08f, 0.66f), new Vector2(0.92f, 0.8f),
+                subtitle, 23f, new Color(0.87f, 0.67f, 0.5f), TextAlignmentOptions.Center);
+            CreateText("Tutorial Controls", cardRect, new Vector2(0.13f, 0.21f), new Vector2(0.87f, 0.63f),
+                controls, 25f, new Color(0.96f, 0.86f, 0.72f), TextAlignmentOptions.Left);
             CreateText("Tutorial Continue", cardRect, new Vector2(0.08f, 0.07f), new Vector2(0.92f, 0.17f),
                 continueText, 22f, new Color(1f, 0.53f, 0.24f), TextAlignmentOptions.Center);
+        }
+
+        private void BuildTransitionFade()
+        {
+            GameObject canvasObject = new("Room Transition");
+            Canvas canvas = canvasObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 1000;
+            canvasObject.AddComponent<CanvasScaler>();
+
+            GameObject black = new("Black Fade", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image),
+                typeof(CanvasGroup));
+            RectTransform rect = black.GetComponent<RectTransform>();
+            rect.SetParent(canvasObject.GetComponent<RectTransform>(), false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Image image = black.GetComponent<Image>();
+            image.color = Color.black;
+            image.raycastTarget = true;
+            transitionFade = black.GetComponent<CanvasGroup>();
+            transitionFade.alpha = 1f;
+            transitionFade.blocksRaycasts = true;
+        }
+
+        private IEnumerator FadeFromBlack()
+        {
+            yield return null;
+            yield return FadeTo(0f, 0.42f);
+        }
+
+        private IEnumerator FadeTo(float target, float duration)
+        {
+            if (transitionFade == null) yield break;
+            float start = transitionFade.alpha;
+            float elapsed = 0f;
+            transitionFade.blocksRaycasts = true;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = duration <= 0f ? 1f : Mathf.Clamp01(elapsed / duration);
+                transitionFade.alpha = Mathf.Lerp(start, target, Mathf.SmoothStep(0f, 1f, progress));
+                yield return null;
+            }
+
+            transitionFade.alpha = target;
+            transitionFade.blocksRaycasts = target > 0.01f;
         }
 
         private void OpenTutorial()
@@ -404,33 +589,18 @@ namespace Project.Scripts.World
             if (tutorialOverlay != null) tutorialOverlay.SetActive(true);
         }
 
-        private void BuildExitPortal()
+        private void UpdateRoomHud()
         {
-            GameObject portal = new("Entrance To Spike's Lair");
-            portal.transform.position = ExitCell + new Vector3(0.5f, 1.2f, 0f);
-
-            Sprite markerSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, 1f, 1f),
-                new Vector2(0.5f, 0.5f), 1f);
-            SpriteRenderer marker = portal.AddComponent<SpriteRenderer>();
-            marker.sprite = markerSprite;
-            marker.color = new Color(0.23f, 0.035f, 0.025f, 0.96f);
-            marker.sortingOrder = 3;
-            portal.transform.localScale = new Vector3(4.5f, 3.6f, 1f);
-
-            BoxCollider2D trigger = portal.AddComponent<BoxCollider2D>();
-            trigger.isTrigger = true;
-            trigger.size = new Vector2(1.4f, 1.2f);
-
-            WorldExitPortal exit = portal.AddComponent<WorldExitPortal>();
-            exit.Configure(bossSceneName, exitPrompt);
+            if (roomLabel == null) return;
+            int roomNumber = (currentRoom.y - MinimumRoomY) * (MaximumRoomX - MinimumRoomX + 1) +
+                             (currentRoom.x - MinimumRoomX) + 1;
+            roomLabel.text = GameLoadout.IsSpanish
+                ? $"SALA {roomNumber:00}  ·  EXPLORADAS {visitedRooms.Count:00}/12"
+                : $"ROOM {roomNumber:00}  ·  EXPLORED {visitedRooms.Count:00}/12";
         }
 
-        private static GameObject CreatePanel(
-            string objectName,
-            RectTransform parent,
-            Vector2 anchorMinimum,
-            Vector2 anchorMaximum,
-            Color color)
+        private static GameObject CreatePanel(string objectName, RectTransform parent,
+            Vector2 anchorMinimum, Vector2 anchorMaximum, Color color)
         {
             GameObject panel = new(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             RectTransform rect = panel.GetComponent<RectTransform>();
@@ -445,15 +615,9 @@ namespace Project.Scripts.World
             return panel;
         }
 
-        private static TextMeshProUGUI CreateText(
-            string objectName,
-            RectTransform parent,
-            Vector2 anchorMinimum,
-            Vector2 anchorMaximum,
-            string value,
-            float fontSize,
-            Color color,
-            TextAlignmentOptions alignment)
+        private static TextMeshProUGUI CreateText(string objectName, RectTransform parent,
+            Vector2 anchorMinimum, Vector2 anchorMaximum, string value, float fontSize,
+            Color color, TextAlignmentOptions alignment)
         {
             GameObject textObject = new(objectName, typeof(RectTransform), typeof(CanvasRenderer),
                 typeof(TextMeshProUGUI));
@@ -472,6 +636,64 @@ namespace Project.Scripts.World
             text.raycastTarget = false;
             return text;
         }
+
+        private readonly struct RoomOpenings
+        {
+            public RoomOpenings(bool up, bool down, bool left, bool right)
+            {
+                Up = up;
+                Down = down;
+                Left = left;
+                Right = right;
+            }
+
+            public bool Up { get; }
+            public bool Down { get; }
+            public bool Left { get; }
+            public bool Right { get; }
+        }
+    }
+
+    public enum RoomDirection
+    {
+        None,
+        Up,
+        Down,
+        Left,
+        Right
+    }
+
+    public sealed class WorldRoomDoor : MonoBehaviour
+    {
+        private WorldPathBootstrap world;
+        private RoomDirection direction;
+        private bool entered;
+
+        public void Configure(WorldPathBootstrap owner, RoomDirection doorDirection)
+        {
+            world = owner;
+            direction = doorDirection;
+        }
+
+        private void OnTriggerEnter2D(Collider2D other)
+        {
+            if (entered || !IsPlayer(other)) return;
+            entered = true;
+            world?.RequestRoomChange(direction);
+        }
+
+        private void OnTriggerExit2D(Collider2D other)
+        {
+            if (IsPlayer(other)) entered = false;
+        }
+
+        private static bool IsPlayer(Collider2D other)
+        {
+            if (other == null) return false;
+            if (other.CompareTag("Player")) return true;
+            Transform root = other.transform.root;
+            return root != null && root.CompareTag("Player");
+        }
     }
 
     public sealed class WorldPathCamera : MonoBehaviour
@@ -484,73 +706,63 @@ namespace Project.Scripts.World
         public void Configure(Transform followTarget, Vector2 worldMinimum, Vector2 worldMaximum)
         {
             target = followTarget;
+            worldCamera = GetComponent<Camera>();
+            SetBounds(worldMinimum, worldMaximum);
+        }
+
+        public void SetBounds(Vector2 worldMinimum, Vector2 worldMaximum)
+        {
             minimum = worldMinimum;
             maximum = worldMaximum;
-            worldCamera = GetComponent<Camera>();
+        }
+
+        public void SnapToTarget()
+        {
+            if (target == null || worldCamera == null) return;
+            transform.position = ResolveDesiredPosition();
         }
 
         private void LateUpdate()
         {
             if (target == null || worldCamera == null) return;
+            Vector3 desired = ResolveDesiredPosition();
+            transform.position = Vector3.Lerp(transform.position, desired,
+                1f - Mathf.Exp(-11f * Time.unscaledDeltaTime));
+        }
+
+        private Vector3 ResolveDesiredPosition()
+        {
             float halfHeight = worldCamera.orthographicSize;
             float halfWidth = halfHeight * Mathf.Max(0.1f, worldCamera.aspect);
             Vector3 desired = target.position;
             desired.x = Mathf.Clamp(desired.x, minimum.x + halfWidth, maximum.x - halfWidth);
             desired.y = Mathf.Clamp(desired.y, minimum.y + halfHeight, maximum.y - halfHeight);
-            desired.z = transform.position.z;
-            transform.position = Vector3.Lerp(transform.position, desired, 1f - Mathf.Exp(-10f * Time.unscaledDeltaTime));
+            desired.z = -10f;
+            return desired;
         }
     }
 
-    public sealed class WorldExitPortal : MonoBehaviour
+    internal static class RuntimeWhiteSprite
     {
-        private string destination;
-        private GameObject prompt;
-        private bool playerInside;
-        private bool loading;
+        private static Sprite instance;
 
-        public void Configure(string sceneName, GameObject promptObject)
+        public static Sprite Instance
         {
-            destination = string.IsNullOrEmpty(sceneName) ? "BossFight" : sceneName;
-            prompt = promptObject;
-        }
-
-        private void Update()
-        {
-            if (!playerInside || loading || !Input.GetKeyDown(KeyCode.E)) return;
-            loading = true;
-            if (prompt != null) prompt.SetActive(false);
-            StartCoroutine(LoadDestination());
-        }
-
-        private void OnTriggerEnter2D(Collider2D other)
-        {
-            if (!IsPlayer(other)) return;
-            playerInside = true;
-            if (prompt != null) prompt.SetActive(true);
-        }
-
-        private void OnTriggerExit2D(Collider2D other)
-        {
-            if (!IsPlayer(other)) return;
-            playerInside = false;
-            if (prompt != null) prompt.SetActive(false);
-        }
-
-        private IEnumerator LoadDestination()
-        {
-            Time.timeScale = 1f;
-            AsyncOperation operation = SceneManager.LoadSceneAsync(destination, LoadSceneMode.Single);
-            if (operation == null) yield break;
-            while (!operation.isDone) yield return null;
-        }
-
-        private static bool IsPlayer(Collider2D other)
-        {
-            if (other == null) return false;
-            if (other.CompareTag("Player")) return true;
-            Transform root = other.transform.root;
-            return root != null && root.CompareTag("Player");
+            get
+            {
+                if (instance != null) return instance;
+                Texture2D texture = new(1, 1, TextureFormat.RGBA32, false)
+                {
+                    name = "Runtime White Pixel",
+                    filterMode = FilterMode.Point
+                };
+                texture.SetPixel(0, 0, Color.white);
+                texture.Apply();
+                instance = Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f),
+                    new Vector2(0.5f, 0.5f), 1f);
+                instance.name = "Runtime White Sprite";
+                return instance;
+            }
         }
     }
 }
