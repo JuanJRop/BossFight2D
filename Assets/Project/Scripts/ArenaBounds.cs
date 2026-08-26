@@ -49,6 +49,7 @@ namespace Project.Scripts.Arena
 
             Instance = this;
             ResolveBounds();
+            BranchingBossPath.BuildFrom(arenaTilemap);
             FitCameraToArena();
             DisableLegacyWallColliders();
             BuildMapDecoration();
