@@ -135,6 +135,10 @@ namespace Project.Scripts.Controller
             RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
             menuRoot = CreateRect("Professional Cave Menu", canvasRect, Vector2.zero, Vector2.one);
             menuRoot.SetAsLastSibling();
+            Canvas menuCanvas = menuRoot.gameObject.AddComponent<Canvas>();
+            menuCanvas.overrideSorting = true;
+            menuCanvas.sortingOrder = 200;
+            menuRoot.gameObject.AddComponent<GraphicRaycaster>();
 
             Image dim = CreateImage("Backdrop Dim", menuRoot, Vector2.zero, Vector2.one,
                 new Color(0.015f, 0.005f, 0.004f, 0.28f)).GetComponent<Image>();
@@ -261,7 +265,7 @@ namespace Project.Scripts.Controller
         {
             RectTransform panel = CreateFramedPanel("Options Panel", menuRoot,
                 new Vector2(0.31f, 0.215f), new Vector2(0.69f, 0.775f), Panel);
-            optionsPanel = panel.gameObject;
+            optionsPanel = panel.parent.gameObject;
 
             optionsTitle = CreateText("Options Title", panel, new Vector2(0.09f, 0.84f),
                 new Vector2(0.78f, 0.95f), string.Empty, 27f, Cream,
