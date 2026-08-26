@@ -42,6 +42,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             rb = GetComponent<Rigidbody2D>();
             animator = GetComponent<Animator>();
             spriteRenderer = GetComponent<SpriteRenderer>();
+            PlayerSkinController.Attach(gameObject, animator, spriteRenderer);
         }
 
         private void Update()
@@ -62,7 +63,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
 
             if (knockbackTimer > 0f)
             {
-                knockbackTimer = Mathf.Max(0f, knockbackTimer - Time.fixedDeltaTime);
+                knockbackTimer = Mathf.Max(0.05f, knockbackTimer - Time.fixedDeltaTime);
                 rb.linearVelocity = knockbackVelocity;
                 knockbackVelocity = Vector2.MoveTowards(knockbackVelocity, Vector2.zero,
                     deceleration * Time.fixedDeltaTime);

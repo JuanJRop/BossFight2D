@@ -4,9 +4,10 @@ namespace Project.Scripts.Controller
 {
     public enum PlayerCharacter
     {
-        Vanguard,
-        Striker,
-        Bulwark
+        Alex,
+        Lyria,
+        Manu,
+        Tori
     }
 
     public enum PlayerWeapon
@@ -34,7 +35,7 @@ namespace Project.Scripts.Controller
 
         public static PlayerCharacter Character
         {
-            get => (PlayerCharacter)Mathf.Clamp(PlayerPrefs.GetInt(CharacterKey, 0), 0, 2);
+            get => (PlayerCharacter)Mathf.Clamp(PlayerPrefs.GetInt(CharacterKey, 0), 0, 3);
             set => Save(CharacterKey, (int)value);
         }
 
@@ -80,24 +81,21 @@ namespace Project.Scripts.Controller
 
         public static float HealthMultiplier => Character switch
         {
-            PlayerCharacter.Striker => 0.86f,
-            PlayerCharacter.Bulwark => 1.25f,
+            PlayerCharacter.Lyria => 0.88f,
+            PlayerCharacter.Manu => 1.25f,
+            PlayerCharacter.Tori => 1.05f,
             _ => 1f
         };
 
         public static float MoveSpeedMultiplier => Character switch
         {
-            PlayerCharacter.Striker => 1.16f,
-            PlayerCharacter.Bulwark => 0.9f,
+            PlayerCharacter.Lyria => 1.15f,
+            PlayerCharacter.Manu => 0.9f,
+            PlayerCharacter.Tori => 1.04f,
             _ => 1f
         };
 
-        public static Color CharacterColor => Character switch
-        {
-            PlayerCharacter.Striker => new Color(0.28f, 0.94f, 1f, 1f),
-            PlayerCharacter.Bulwark => new Color(1f, 0.58f, 0.2f, 1f),
-            _ => Color.white
-        };
+        public static Color CharacterColor => Color.white;
 
         public static float WeaponDamageMultiplier => Weapon switch
         {
@@ -175,9 +173,18 @@ namespace Project.Scripts.Controller
 
         public static string CharacterName(bool spanish) => Character switch
         {
-            PlayerCharacter.Striker => spanish ? "VELOCISTA" : "STRIKER",
-            PlayerCharacter.Bulwark => spanish ? "BASTIÓN" : "BULWARK",
-            _ => spanish ? "VANGUARDIA" : "VANGUARD"
+            PlayerCharacter.Lyria => "LYRIA",
+            PlayerCharacter.Manu => "MANU",
+            PlayerCharacter.Tori => "TORI",
+            _ => "ALEX"
+        };
+
+        public static string CharacterRole(bool spanish) => Character switch
+        {
+            PlayerCharacter.Lyria => spanish ? "Ágil · Menos vida" : "Agile · Less health",
+            PlayerCharacter.Manu => spanish ? "Resistente · Más lento" : "Tough · Slower",
+            PlayerCharacter.Tori => spanish ? "Táctica · Versátil" : "Tactical · Versatile",
+            _ => spanish ? "Equilibrado" : "Balanced"
         };
 
         public static string WeaponName(bool spanish) => Weapon switch
@@ -194,9 +201,16 @@ namespace Project.Scripts.Controller
             _ => spanish ? "BALA SOBRECARGADA" : "CHARGED ROUND"
         };
 
+        public static string AbilityDescription(bool spanish) => Ability switch
+        {
+            PlayerAbility.PrismBurst => spanish ? "Tres proyectiles de energía en abanico" : "Three energy projectiles in a fan",
+            PlayerAbility.SeekerCore => spanish ? "Dos núcleos que persiguen al objetivo" : "Two cores that seek the target",
+            _ => spanish ? "Una bala concentrada de alto impacto" : "One concentrated high-impact round"
+        };
+
         public static void CycleCharacter(int direction)
         {
-            Character = (PlayerCharacter)Cycle((int)Character, direction, 3);
+            Character = (PlayerCharacter)Cycle((int)Character, direction, 4);
         }
 
         public static void CycleWeapon(int direction)
