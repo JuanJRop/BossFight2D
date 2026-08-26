@@ -5,6 +5,7 @@ using Project.Characters.Player.PlayerScripts.Core;
 using Project.Scripts.Controller;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
@@ -49,7 +50,7 @@ namespace Project.Scripts.World
             Time.timeScale = 1f;
             BuildWorld();
             GameObject player = SpawnPlayer();
-            BuildCamera(player != null ? player.transform : null);
+            BuildCamera(ResolvePlayerFollowTarget(player));
             BuildInterface();
             BuildExitPortal();
             OpenTutorial();
@@ -301,21 +302,39 @@ namespace Project.Scripts.World
             return player;
         }
 
+        private static Transform ResolvePlayerFollowTarget(GameObject player)
+        {
+            if (player == null) return null;
+            Rigidbody2D movementBody = player.GetComponentInChildren<Rigidbody2D>(true);
+            return movementBody != null ? movementBody.transform : player.transform;
+        }
+
         private static void BuildCamera(Transform target)
         {
             GameObject cameraObject = new("World Camera");
             cameraObject.tag = "MainCamera";
             Camera camera = cameraObject.AddComponent<Camera>();
+            cameraObject.AddComponent<UniversalAdditionalCameraData>();
             camera.orthographic = true;
             camera.orthographicSize = 8f;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.12f, 0.045f, 0.022f, 1f);
+            camera.backgroundColor = new Color(0.24f, 0.12f, 0.055f, 1f);
             camera.transform.position = new Vector3(StartCell.x + 0.5f, StartCell.y + 0.5f, -10f);
             cameraObject.AddComponent<AudioListener>();
+            BuildWorldLighting();
 
             WorldPathCamera follow = cameraObject.AddComponent<WorldPathCamera>();
             follow.Configure(target, new Vector2(WorldXMin, WorldYMin),
                 new Vector2(WorldXMax + 1f, WorldYMax + 1f));
+        }
+
+        private static void BuildWorldLighting()
+        {
+            GameObject lightObject = new("World Global Light 2D");
+            Light2D globalLight = lightObject.AddComponent<Light2D>();
+            globalLight.lightType = Light2D.LightType.Global;
+            globalLight.color = new Color(1f, 0.94f, 0.86f, 1f);
+            globalLight.intensity = 1.15f;
         }
 
         private void BuildInterface()
