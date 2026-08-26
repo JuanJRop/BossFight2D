@@ -25,6 +25,8 @@ namespace Project.Scripts.World
         [SerializeField] private TileBase pathTile;
         [SerializeField] private TileBase alternatePathTile;
         [SerializeField] private TileBase wallTile;
+        [SerializeField] private TileBase startAreaTile;
+        [SerializeField] private TileBase startAreaAccentTile;
         [SerializeField] private TileBase[] decorationTiles;
 
         [Header("Destination")]
@@ -84,6 +86,7 @@ namespace Project.Scripts.World
             grid.cellSize = Vector3.one;
 
             Tilemap floor = CreateTilemap(gridObject.transform, "Cave Background", 0);
+            Tilemap startClearing = CreateTilemap(gridObject.transform, "Bright Starting Clearing", 1);
             Tilemap path = CreateTilemap(gridObject.transform, "Exploration Path", 2);
             Tilemap walls = CreateTilemap(gridObject.transform, "Cave Walls", 5);
             Tilemap details = CreateTilemap(gridObject.transform, "Path Decorations", 4);
@@ -97,6 +100,14 @@ namespace Project.Scripts.World
                 {
                     Vector3Int cell = new(x, y, 0);
                     floor.SetTile(cell, backgroundTile);
+                    if (startAreaTile != null && IsInsideStartClearing(cell))
+                    {
+                        int clearingHash = Mathf.Abs(x * 83492791 ^ y * 297121507);
+                        startClearing.SetTile(cell,
+                            startAreaAccentTile != null && clearingHash % 8 == 0
+                                ? startAreaAccentTile
+                                : startAreaTile);
+                    }
                     if (walkable.Contains(cell))
                     {
                         int hash = Mathf.Abs(x * 73856093 ^ y * 19349663);
@@ -123,6 +134,7 @@ namespace Project.Scripts.World
             PaintDecorations(details);
             ConfigureWallCollision(walls);
             floor.CompressBounds();
+            startClearing.CompressBounds();
             path.CompressBounds();
             walls.CompressBounds();
             details.CompressBounds();
@@ -209,6 +221,13 @@ namespace Project.Scripts.World
             return false;
         }
 
+        private static bool IsInsideStartClearing(Vector3Int cell)
+        {
+            float normalizedX = (cell.x - StartCell.x) / 14f;
+            float normalizedY = (cell.y - StartCell.y) / 8f;
+            return normalizedX * normalizedX + normalizedY * normalizedY <= 1f;
+        }
+
         private void PaintDecorations(Tilemap details)
         {
             if (decorationTiles == null || decorationTiles.Length == 0) return;
@@ -290,7 +309,7 @@ namespace Project.Scripts.World
             camera.orthographic = true;
             camera.orthographicSize = 8f;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.025f, 0.008f, 0.008f, 1f);
+            camera.backgroundColor = new Color(0.12f, 0.045f, 0.022f, 1f);
             camera.transform.position = new Vector3(StartCell.x + 0.5f, StartCell.y + 0.5f, -10f);
             cameraObject.AddComponent<AudioListener>();
 
@@ -331,10 +350,10 @@ namespace Project.Scripts.World
             exitPrompt.SetActive(false);
 
             tutorialOverlay = CreatePanel("Tutorial Overlay", canvasRect, Vector2.zero, Vector2.one,
-                new Color(0.02f, 0.006f, 0.006f, 0.88f));
+                new Color(0.16f, 0.065f, 0.025f, 0.2f));
             GameObject card = CreatePanel("Tutorial Card", tutorialOverlay.transform as RectTransform,
                 new Vector2(0.265f, 0.17f), new Vector2(0.735f, 0.83f),
-                new Color(0.12f, 0.035f, 0.023f, 0.98f));
+                new Color(0.19f, 0.065f, 0.032f, 0.96f));
 
             string title = GameLoadout.IsSpanish ? "EL CAMINO A SPIKE" : "THE ROAD TO SPIKE";
             string subtitle = GameLoadout.IsSpanish
