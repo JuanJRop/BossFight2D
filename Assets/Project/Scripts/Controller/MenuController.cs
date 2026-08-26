@@ -130,6 +130,7 @@ namespace Project.Scripts.Controller
 
             Canvas sceneCanvas = canvasObject.GetComponent<Canvas>();
             if (sceneCanvas != null) sceneCanvas.pixelPerfect = true;
+            PrepareLegacyArtForPixelRendering(canvasObject);
 
             CaptureLegacyStyle();
             HideLegacyMenuObjects();
@@ -658,6 +659,27 @@ namespace Project.Scripts.Controller
             Shadow shadow = image.gameObject.AddComponent<Shadow>();
             shadow.effectColor = color;
             shadow.effectDistance = distance;
+        }
+
+        private static void PrepareLegacyArtForPixelRendering(GameObject canvasObject)
+        {
+            if (canvasObject == null) return;
+            foreach (Image image in canvasObject.GetComponentsInChildren<Image>(true))
+            {
+                ConfigurePixelTexture(image != null && image.sprite != null ? image.sprite.texture : null);
+            }
+            foreach (RawImage image in canvasObject.GetComponentsInChildren<RawImage>(true))
+            {
+                ConfigurePixelTexture(image != null ? image.texture as Texture2D : null);
+            }
+        }
+
+        private static void ConfigurePixelTexture(Texture2D texture)
+        {
+            if (texture == null) return;
+            texture.filterMode = FilterMode.Point;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.anisoLevel = 0;
         }
 
         private static Button FindButton(string objectName)
