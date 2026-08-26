@@ -11,26 +11,25 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         [SerializeField, Min(0.1f)] private float manaPerEnemyHit = 4f;
         [SerializeField] private KeyCode activationKey = KeyCode.Q;
 
-        [Header("Charged Core Presentation")]
-        [SerializeField] private Color outerAuraColor = new(0.08f, 0.95f, 1f, 0.9f);
-        [SerializeField] private Color innerAuraColor = new(1f, 0.12f, 0.52f, 0.9f);
-        [SerializeField, Min(0.1f)] private float auraRadius = 0.95f;
-        [SerializeField, Min(0f)] private float auraPulse = 0.18f;
-        [SerializeField] private Vector2 coreOffset = new(0f, 1.1f);
-
-        private const int AuraSegments = 48;
+        [Header("Ready Presentation")]
+        [SerializeField] private Color readyColor = new(0.1f, 0.95f, 1f, 1f);
+        [SerializeField] private Color activeColor = new(1f, 0.18f, 0.55f, 1f);
+        [SerializeField] private Vector2 indicatorOffset = new(0f, 1.25f);
+        [SerializeField, Min(0.1f)] private float indicatorScale = 0.58f;
 
         private float currentMana;
         private bool isActive;
-        private Transform auraRoot;
-        private LineRenderer outerAura;
-        private LineRenderer innerAura;
-        private LineRenderer chargeRing;
-        private Transform chargeCore;
-        private SpriteRenderer chargeCoreRenderer;
-        private Material auraMaterial;
-        private Texture2D coreTexture;
-        private Sprite coreSprite;
+        private bool wasFullyCharged;
+        private float readyBurst;
+        private Transform indicatorRoot;
+        private Transform centerShard;
+        private Transform leftShard;
+        private Transform rightShard;
+        private SpriteRenderer centerRenderer;
+        private SpriteRenderer leftRenderer;
+        private SpriteRenderer rightRenderer;
+        private Texture2D shardTexture;
+        private Sprite shardSprite;
 
         public event Action<bool> OnPowerUpStateChanged;
         public event Action<float> OnManaChanged;
@@ -43,7 +42,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         private void Awake()
         {
             maxMana = Mathf.Max(1f, maxMana);
-            BuildAura();
+            BuildReadyIndicator();
         }
 
         private void Start()
@@ -57,14 +56,13 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         {
             if (UIManager.instance != null && UIManager.instance.IsPaused) return;
             if (Input.GetKeyDown(activationKey) && IsFullyCharged && !isActive) SetActive(true);
-            UpdateChargePresentation();
+            UpdateReadyPresentation();
         }
 
         private void OnDestroy()
         {
-            if (auraMaterial != null) Destroy(auraMaterial);
-            if (coreSprite != null) Destroy(coreSprite);
-            if (coreTexture != null) Destroy(coreTexture);
+            if (shardSprite != null) Destroy(shardSprite);
+            if (shardTexture != null) Destroy(shardTexture);
         }
 
         public void RegisterEnemyHit(float dealtDamage)
@@ -107,158 +105,123 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         {
             if (isActive == active)
             {
-                if (auraRoot != null) auraRoot.gameObject.SetActive(active || currentMana > 0f);
+                RefreshIndicatorVisibility();
                 return;
             }
 
             isActive = active;
-            if (auraRoot != null) auraRoot.gameObject.SetActive(isActive || currentMana > 0f);
+            if (active) readyBurst = 1f;
+            RefreshIndicatorVisibility();
             OnPowerUpStateChanged?.Invoke(isActive);
         }
 
-        private void BuildAura()
+        private void BuildReadyIndicator()
         {
-            GameObject root = new("Charged Shot Core");
+            GameObject root = new("Power Up Ready Shards");
             root.transform.SetParent(transform, false);
-            auraRoot = root.transform;
+            root.transform.localPosition = indicatorOffset;
+            indicatorRoot = root.transform;
 
-            Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
-            if (shader == null) shader = Shader.Find("Sprites/Default");
-            auraMaterial = shader != null ? new Material(shader) : null;
+            shardTexture = BuildShardTexture();
+            shardSprite = Sprite.Create(shardTexture, new Rect(0f, 0f, shardTexture.width, shardTexture.height),
+                new Vector2(0.5f, 0.5f), 12f, 0, SpriteMeshType.FullRect);
+            shardSprite.name = "Power Up Crystal Shard";
 
-            outerAura = CreateAuraRing("Outer Charge Ring", 0.065f, outerAuraColor, 32, true);
-            innerAura = CreateAuraRing("Inner Charge Ring", 0.045f, innerAuraColor, 33, true);
-            chargeRing = CreateAuraRing("Charge Progress", 0.12f, Color.white, 34, false);
-            BuildChargeCore();
+            centerShard = CreateShard("Ready core", Vector2.zero, 42, out centerRenderer);
+            leftShard = CreateShard("Left ready shard", new Vector2(-0.48f, -0.08f), 41, out leftRenderer);
+            rightShard = CreateShard("Right ready shard", new Vector2(0.48f, -0.08f), 41, out rightRenderer);
+            leftShard.localRotation = Quaternion.Euler(0f, 0f, 18f);
+            rightShard.localRotation = Quaternion.Euler(0f, 0f, -18f);
             root.SetActive(false);
         }
 
-        private LineRenderer CreateAuraRing(string objectName, float width, Color color, int sortingOrder, bool loop)
+        private Transform CreateShard(string objectName, Vector2 position, int sortingOrder,
+            out SpriteRenderer renderer)
         {
-            GameObject ringObject = new(objectName);
-            ringObject.transform.SetParent(auraRoot, false);
-            LineRenderer ring = ringObject.AddComponent<LineRenderer>();
-            ring.useWorldSpace = false;
-            ring.loop = loop;
-            ring.positionCount = loop ? AuraSegments : 2;
-            ring.startWidth = width;
-            ring.endWidth = width;
-            ring.startColor = color;
-            ring.endColor = color;
-            ring.numCornerVertices = 2;
-            ring.numCapVertices = 3;
-            ring.sortingOrder = sortingOrder;
-            ring.material = auraMaterial;
-            if (loop) SetRingRadius(ring, auraRadius);
-            return ring;
+            GameObject shard = new(objectName);
+            shard.transform.SetParent(indicatorRoot, false);
+            shard.transform.localPosition = position;
+            renderer = shard.AddComponent<SpriteRenderer>();
+            renderer.sprite = shardSprite;
+            renderer.sortingOrder = sortingOrder;
+            return shard.transform;
         }
 
-        private void BuildChargeCore()
+        private static Texture2D BuildShardTexture()
         {
-            coreTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false)
+            const int width = 9;
+            const int height = 13;
+            Texture2D texture = new(width, height, TextureFormat.RGBA32, false)
             {
-                name = "Runtime Charged Core Texture",
+                name = "Power Up Crystal Texture",
                 filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Clamp,
                 hideFlags = HideFlags.HideAndDontSave
             };
-            coreTexture.SetPixel(0, 0, Color.white);
-            coreTexture.Apply();
-            coreSprite = Sprite.Create(coreTexture, new Rect(0f, 0f, 1f, 1f),
-                new Vector2(0.5f, 0.5f), 1f);
-            coreSprite.hideFlags = HideFlags.HideAndDontSave;
 
-            GameObject coreObject = new("Forming Powerful Bullet");
-            coreObject.transform.SetParent(auraRoot, false);
-            coreObject.transform.localPosition = coreOffset;
-            chargeCore = coreObject.transform;
-            chargeCoreRenderer = coreObject.AddComponent<SpriteRenderer>();
-            chargeCoreRenderer.sprite = coreSprite;
-            chargeCoreRenderer.sortingOrder = 36;
+            Color clear = Color.clear;
+            Color edge = new(0.08f, 0.38f, 0.62f, 1f);
+            Color fill = new(0.18f, 0.92f, 1f, 1f);
+            Color shine = Color.white;
+            for (int y = 0; y < height; y++)
+            {
+                int distanceFromTip = Mathf.Min(y, height - 1 - y);
+                int radius = Mathf.Min(3, Mathf.CeilToInt(distanceFromTip * 0.65f));
+                for (int x = 0; x < width; x++)
+                {
+                    int dx = Mathf.Abs(x - width / 2);
+                    Color pixel = clear;
+                    if (dx <= radius) pixel = dx == radius ? edge : fill;
+                    if (dx == 0 && y >= 3 && y <= 8) pixel = shine;
+                    texture.SetPixel(x, y, pixel);
+                }
+            }
+            texture.Apply(false, false);
+            return texture;
         }
 
-        private void UpdateChargePresentation()
+        private void UpdateReadyPresentation()
         {
-            if (auraRoot == null) return;
-            float progress = GetManaNormalized();
-            bool visible = progress > 0f || isActive;
-            if (auraRoot.gameObject.activeSelf != visible) auraRoot.gameObject.SetActive(visible);
-            if (!visible) return;
+            if (indicatorRoot == null || !indicatorRoot.gameObject.activeSelf) return;
+            readyBurst = Mathf.MoveTowards(readyBurst, 0f, Time.unscaledDeltaTime * 2.4f);
+            float time = Time.unscaledTime;
+            float pulse = 1f + Mathf.Sin(time * (isActive ? 11f : 7f)) * (isActive ? 0.12f : 0.07f);
+            float entrance = 1f + readyBurst * 0.32f;
+            indicatorRoot.localPosition = indicatorOffset + Vector2.up * (Mathf.Sin(time * 3.4f) * 0.08f);
+            indicatorRoot.localScale = Vector3.one * indicatorScale * pulse * entrance;
 
-            float pulse = (Mathf.Sin(Time.unscaledTime * (IsFullyCharged ? 13f : 6f)) + 1f) * 0.5f;
-            float stagedRadius = Mathf.Lerp(auraRadius * 0.58f, auraRadius, progress);
-            SetRingRadius(outerAura, stagedRadius + pulse * auraPulse * progress, 0.025f * progress);
-            SetRingRadius(innerAura, stagedRadius * 0.64f + (1f - pulse) * auraPulse * 0.35f);
-            SetProgressRing(chargeRing, progress, auraRadius * 1.13f);
+            centerShard.localPosition = Vector2.up * (0.06f + Mathf.Sin(time * 4.2f) * 0.05f);
+            leftShard.localPosition = new Vector2(-0.48f - readyBurst * 0.12f,
+                -0.08f + Mathf.Sin(time * 4.2f + 1.8f) * 0.04f);
+            rightShard.localPosition = new Vector2(0.48f + readyBurst * 0.12f,
+                -0.08f + Mathf.Sin(time * 4.2f + 3.6f) * 0.04f);
 
-            Color progressColor = Color.Lerp(outerAuraColor, GameLoadout.AbilityColor, progress);
-            progressColor.a = Mathf.Lerp(0.3f, 1f, progress);
-            chargeRing.startColor = progressColor;
-            chargeRing.endColor = progressColor;
-
-            outerAura.startColor = new Color(outerAuraColor.r, outerAuraColor.g, outerAuraColor.b,
-                Mathf.Lerp(0.15f, outerAuraColor.a, progress));
-            outerAura.endColor = outerAura.startColor;
-            innerAura.startColor = new Color(innerAuraColor.r, innerAuraColor.g, innerAuraColor.b,
-                Mathf.Lerp(0.08f, innerAuraColor.a, progress));
-            innerAura.endColor = innerAura.startColor;
-
-            if (chargeCore != null)
-            {
-                chargeCore.localPosition = coreOffset + Vector2.up * (Mathf.Sin(Time.unscaledTime * 4f) * 0.08f);
-                float coreScale = Mathf.Lerp(0.08f, 0.42f, progress);
-                if (IsFullyCharged) coreScale *= Mathf.Lerp(0.92f, 1.18f, pulse);
-                chargeCore.localScale = Vector3.one * coreScale;
-                chargeCore.localRotation = Quaternion.Euler(0f, 0f, Time.unscaledTime * 120f);
-            }
-
-            if (chargeCoreRenderer != null)
-            {
-                chargeCoreRenderer.color = Color.Lerp(outerAuraColor, GameLoadout.AbilityColor, progress);
-            }
-
-            auraRoot.localRotation = Quaternion.Euler(0f, 0f, Time.unscaledTime * 32f * progress);
+            Color color = isActive ? activeColor : Color.Lerp(readyColor, GameLoadout.AbilityColor, 0.38f);
+            centerRenderer.color = color;
+            leftRenderer.color = Color.Lerp(color, Color.white, 0.18f);
+            rightRenderer.color = Color.Lerp(color, Color.white, 0.18f);
         }
 
-        private static void SetRingRadius(LineRenderer ring, float radius, float distortion = 0f)
+        private void RefreshIndicatorVisibility()
         {
-            if (ring == null) return;
-            ring.loop = true;
-            ring.positionCount = AuraSegments;
-            for (int index = 0; index < AuraSegments; index++)
-            {
-                float angle = index / (float)AuraSegments * Mathf.PI * 2f;
-                float shapedRadius = radius * (1f + Mathf.Sin(angle * 8f) * distortion);
-                ring.SetPosition(index, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * shapedRadius);
-            }
-        }
-
-        private static void SetProgressRing(LineRenderer ring, float progress, float radius)
-        {
-            if (ring == null) return;
-            int points = Mathf.Max(2, Mathf.CeilToInt((AuraSegments - 1) * Mathf.Clamp01(progress)) + 1);
-            ring.loop = progress >= 0.999f;
-            ring.positionCount = points;
-            for (int index = 0; index < points; index++)
-            {
-                float normalized = points <= 1 ? 0f : index / (float)(AuraSegments - 1);
-                float angle = normalized * Mathf.PI * 2f + Mathf.PI * 0.5f;
-                ring.SetPosition(index, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
-            }
+            if (indicatorRoot != null) indicatorRoot.gameObject.SetActive(IsFullyCharged || isActive);
         }
 
         private void NotifyManaChanged()
         {
+            bool fullyCharged = IsFullyCharged;
+            if (fullyCharged && !wasFullyCharged) readyBurst = 1f;
+            wasFullyCharged = fullyCharged;
+            RefreshIndicatorVisibility();
             OnManaChanged?.Invoke(GetManaNormalized());
-            UpdateChargePresentation();
+            UpdateReadyPresentation();
         }
 
         private void OnValidate()
         {
             maxMana = Mathf.Max(1f, maxMana);
             manaPerEnemyHit = Mathf.Max(0.1f, manaPerEnemyHit);
-            auraRadius = Mathf.Max(0.1f, auraRadius);
-            auraPulse = Mathf.Max(0f, auraPulse);
+            indicatorScale = Mathf.Max(0.1f, indicatorScale);
         }
     }
 }

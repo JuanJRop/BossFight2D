@@ -17,39 +17,43 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [SerializeField] private GameObject rockImpactPrefab;
         [SerializeField] private GameObject dashChargeFxPrefab;
 
+        [Header("Phase Two Presentation")]
+        [SerializeField] private Color phaseTwoBossColor = new(0.78f, 0.16f, 0.08f, 1f);
+        [SerializeField, Range(1f, 1.5f)] private float phaseTwoBossScale = 1.22f;
+
         [Header("AI Rhythm")]
         [SerializeField, Min(0f)] private float phaseOneMinDelay = 0.65f;
         [SerializeField, Min(0f)] private float phaseOneMaxDelay = 1.2f;
-        [SerializeField, Min(0f)] private float phaseTwoMinDelay = 0.42f;
-        [SerializeField, Min(0f)] private float phaseTwoMaxDelay = 0.82f;
+        [SerializeField, Min(0f)] private float phaseTwoMinDelay = 0.32f;
+        [SerializeField, Min(0f)] private float phaseTwoMaxDelay = 0.68f;
         [SerializeField, Range(0f, 1f)] private float phaseOneBurrowChance = 0.45f;
-        [SerializeField, Range(0f, 1f)] private float phaseTwoBurrowChance = 0.7f;
+        [SerializeField, Range(0f, 1f)] private float phaseTwoBurrowChance = 0.78f;
         [SerializeField, Min(0.1f)] private float burrowHideTime = 0.55f;
         [SerializeField, Min(0f)] private float phaseOneRecovery = 0.45f;
-        [SerializeField, Min(0f)] private float phaseTwoRecovery = 0.25f;
+        [SerializeField, Min(0f)] private float phaseTwoRecovery = 0.18f;
         [SerializeField, Min(0.1f)] private float phaseTransitionTime = 1.25f;
 
         [Header("Aimed Fan")]
         [SerializeField, Min(1)] private int phaseOneFanVolleys = 4;
-        [SerializeField, Min(1)] private int phaseTwoFanVolleys = 6;
+        [SerializeField, Min(1)] private int phaseTwoFanVolleys = 7;
         [SerializeField, Min(1)] private int phaseOneFanProjectiles = 5;
-        [SerializeField, Min(1)] private int phaseTwoFanProjectiles = 7;
+        [SerializeField, Min(1)] private int phaseTwoFanProjectiles = 9;
         [SerializeField, Min(0f)] private float phaseOneFanSpread = 16f;
-        [SerializeField, Min(0f)] private float phaseTwoFanSpread = 13f;
+        [SerializeField, Min(0f)] private float phaseTwoFanSpread = 11f;
 
         [Header("Radial and Spiral")]
         [SerializeField, Min(1)] private int phaseOneRadialRings = 3;
-        [SerializeField, Min(1)] private int phaseTwoRadialRings = 4;
+        [SerializeField, Min(1)] private int phaseTwoRadialRings = 5;
         [SerializeField, Min(1)] private int phaseOneRadialCount = 18;
-        [SerializeField, Min(1)] private int phaseTwoRadialCount = 26;
+        [SerializeField, Min(1)] private int phaseTwoRadialCount = 30;
         [SerializeField, Min(1)] private int phaseOneSpiralSteps = 30;
-        [SerializeField, Min(1)] private int phaseTwoSpiralSteps = 46;
+        [SerializeField, Min(1)] private int phaseTwoSpiralSteps = 52;
         [SerializeField, Min(1)] private int phaseOneSpiralArms = 4;
-        [SerializeField, Min(1)] private int phaseTwoSpiralArms = 5;
+        [SerializeField, Min(1)] private int phaseTwoSpiralArms = 6;
 
         [Header("Rock Rain")]
         [SerializeField, Min(1)] private int phaseOneRockCount = 10;
-        [SerializeField, Min(1)] private int phaseTwoRockCount = 18;
+        [SerializeField, Min(1)] private int phaseTwoRockCount = 22;
         [SerializeField, Min(0.1f)] private float rockWarningTime = 1f;
         [SerializeField, Min(0.1f)] private float rockRadius = 1.7f;
         [SerializeField, Min(0f)] private float rockDamage = 18f;
@@ -57,7 +61,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         [Header("Twin Mole Laser")]
         [SerializeField, Min(0.1f)] private float twinLaserWarningTime = 1.25f;
         [SerializeField, Min(0.1f)] private float phaseOneTwinLaserDuration = 4.8f;
-        [SerializeField, Min(0.1f)] private float phaseTwoTwinLaserDuration = 6.2f;
+        [SerializeField, Min(0.1f)] private float phaseTwoTwinLaserDuration = 7f;
         [SerializeField, Min(0.1f)] private float twinLaserMoveSpeed = 4.4f;
         [SerializeField, Min(0.05f)] private float twinLaserRadius = 0.42f;
         [SerializeField, Min(0f)] private float twinLaserDamage = 16f;
@@ -87,13 +91,14 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public GameObject RockVisualPrefab => rockVisualPrefab;
         public GameObject RockImpactPrefab => rockImpactPrefab;
         public GameObject DashChargeFxPrefab => dashChargeFxPrefab;
+        public Color PhaseTwoBossColor => phaseTwoBossColor;
+        public float PhaseTwoBossScale => phaseTwoBossScale;
         public float BurrowHideTime => burrowHideTime;
         public float PhaseTransitionTime => phaseTransitionTime;
         public float RockWarningTime => rockWarningTime;
         public float RockRadius => rockRadius;
         public float RockDamage => rockDamage;
         public float TwinLaserWarningTime => twinLaserWarningTime;
-        public float TwinLaserMoveSpeed => twinLaserMoveSpeed;
         public float TwinLaserRadius => twinLaserRadius;
         public float TwinLaserDamage => twinLaserDamage;
         public float TwinLaserDamageCooldown => twinLaserDamageCooldown;
@@ -123,12 +128,14 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
         public int SpiralArms(int phase) => phase == 2 ? phaseTwoSpiralArms : phaseOneSpiralArms;
         public int RockCount(int phase) => phase == 2 ? phaseTwoRockCount : phaseOneRockCount;
         public float TwinLaserDuration(int phase) => phase == 2 ? phaseTwoTwinLaserDuration : phaseOneTwinLaserDuration;
+        public float TwinLaserMoveSpeed(int phase) => twinLaserMoveSpeed * (phase == 2 ? 1.32f : 1f);
 
         private void OnValidate()
         {
             phaseOneMaxDelay = Mathf.Max(phaseOneMinDelay, phaseOneMaxDelay);
             phaseTwoMaxDelay = Mathf.Max(phaseTwoMinDelay, phaseTwoMaxDelay);
             projectilePoolPrewarm = Mathf.Max(1, projectilePoolPrewarm);
+            phaseTwoBossScale = Mathf.Clamp(phaseTwoBossScale, 1f, 1.5f);
         }
     }
 }

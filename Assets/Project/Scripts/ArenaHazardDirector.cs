@@ -38,6 +38,7 @@ namespace Project.Scripts.Arena
         private Health playerHealth;
         private PlayerDodge playerDodge;
         private Material laserMaterial;
+        private Texture2D laserTexture;
         private int completedCycles;
 
         private void Awake()
@@ -60,6 +61,7 @@ namespace Project.Scripts.Arena
         private void OnDestroy()
         {
             if (laserMaterial != null) Destroy(laserMaterial);
+            if (laserTexture != null) Destroy(laserTexture);
         }
 
         private IEnumerator HazardLoop()
@@ -224,6 +226,9 @@ namespace Project.Scripts.Arena
             line.numCapVertices = 4;
             line.sortingOrder = 25;
             line.material = GetLaserMaterial();
+            line.textureMode = LineTextureMode.Tile;
+            line.numCapVertices = 0;
+            line.textureScale = new Vector2(Mathf.Max(1f, Vector2.Distance(start, end) / 0.55f), 1f);
             line.SetPosition(0, start);
             line.SetPosition(1, end);
             return visual;
@@ -234,8 +239,42 @@ namespace Project.Scripts.Arena
             if (laserMaterial != null) return laserMaterial;
             Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
             if (shader == null) shader = Shader.Find("Sprites/Default");
-            laserMaterial = shader != null ? new Material(shader) : null;
+            if (shader == null) return null;
+            laserTexture = BuildPixelLaserTexture();
+            laserMaterial = new Material(shader)
+            {
+                name = "Arena Pixel Laser Material",
+                mainTexture = laserTexture
+            };
             return laserMaterial;
+        }
+
+        private static Texture2D BuildPixelLaserTexture()
+        {
+            const int width = 24;
+            const int height = 8;
+            Texture2D texture = new(width, height, TextureFormat.RGBA32, false)
+            {
+                name = "Arena Pixel Laser Strip",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Repeat,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            for (int x = 0; x < width; x++)
+            {
+                bool notch = x % 6 <= 1;
+                for (int y = 0; y < height; y++)
+                {
+                    int centerDistance = Mathf.Abs(y - (height - 1) / 2);
+                    Color pixel = Color.clear;
+                    if (centerDistance <= 1) pixel = Color.white;
+                    else if (centerDistance == 2) pixel = new Color(0.72f, 0.95f, 1f, 0.95f);
+                    else if (centerDistance == 3 && !notch) pixel = new Color(0.2f, 0.58f, 1f, 0.72f);
+                    texture.SetPixel(x, y, pixel);
+                }
+            }
+            texture.Apply(false, false);
+            return texture;
         }
 
         private IEnumerator Wait(float duration)

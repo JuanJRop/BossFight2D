@@ -74,16 +74,16 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
 
             GameObject[] beamGlows =
             {
-                context.Telegraphs.CreateLine("Horizontal mole laser glow", GlowColor, 0.9f,
+                context.Telegraphs.CreatePixelLaser("Horizontal mole laser glow", GlowColor, 0.9f,
                     positions[Left], positions[Right]),
-                context.Telegraphs.CreateLine("Vertical mole laser glow", GlowColor, 0.9f,
+                context.Telegraphs.CreatePixelLaser("Vertical mole laser glow", GlowColor, 0.9f,
                     positions[Bottom], positions[Top])
             };
             GameObject[] beamCores =
             {
-                context.Telegraphs.CreateLine("Horizontal mole laser core", CoreColor, 0.22f,
+                context.Telegraphs.CreatePixelLaser("Horizontal mole laser core", CoreColor, 0.22f,
                     positions[Left], positions[Right]),
-                context.Telegraphs.CreateLine("Vertical mole laser core", CoreColor, 0.22f,
+                context.Telegraphs.CreatePixelLaser("Vertical mole laser core", CoreColor, 0.22f,
                     positions[Bottom], positions[Top])
             };
             context.PlaySound(context.Config.LaserFireSfx, 0.68f, phase == 2 ? 0.9f : 0.82f);
@@ -104,9 +104,9 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                     damageCooldown -= Time.deltaTime;
 
                     float horizontalSweep = Mathf.PingPong(horizontalPhase +
-                        elapsed * context.Config.TwinLaserMoveSpeed / arenaHeight, 1f);
+                        elapsed * context.Config.TwinLaserMoveSpeed(phase) / arenaHeight, 1f);
                     float verticalSweep = Mathf.PingPong(verticalPhase +
-                        elapsed * context.Config.TwinLaserMoveSpeed / arenaWidth, 1f);
+                        elapsed * context.Config.TwinLaserMoveSpeed(phase) / arenaWidth, 1f);
                     float horizontalCenter = Mathf.Lerp(minimum.y, maximum.y, horizontalSweep);
                     float verticalCenter = Mathf.Lerp(minimum.x, maximum.x, verticalSweep);
                     float waveSpeed = phase == 2 ? 2.15f : 1.65f;
@@ -262,6 +262,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             if (line == null) return;
             line.SetPosition(0, start);
             line.SetPosition(1, end);
+            if (line.textureMode == LineTextureMode.Tile)
+                line.textureScale = new Vector2(Mathf.Max(1f, Vector2.Distance(start, end) / 0.55f), 1f);
             line.startWidth = Mathf.Max(0.02f, width);
             line.endWidth = line.startWidth;
         }

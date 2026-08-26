@@ -35,6 +35,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         public float CurrentHealth => currentHealth;
         public float NormalizedHealth => maxHealth > 0f ? currentHealth / maxHealth : 0f;
         public bool IsAlive => isAlive;
+        public bool IsInvulnerable => enemyMove != null && enemyMove.IsUnderGround;
 
         private void Awake()
         {
@@ -43,8 +44,16 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
             currentHealth = maxHealth;
             isAlive = true;
 
+            if (enemyMove == null && CompareTag("Enemy"))
+            {
+                enemyMove = GetComponent<EnemyMove>();
+                if (enemyMove == null) enemyMove = GetComponentInParent<EnemyMove>();
+                if (enemyMove == null) enemyMove = GetComponentInChildren<EnemyMove>();
+            }
+
             soundController = GetComponent<PlayerSoundController>();
             spriteRenderer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer == null) spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             if (spriteRenderer != null)
             {
                 if (CompareTag("Player")) spriteRenderer.color = GameLoadout.CharacterColor;
@@ -58,8 +67,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
 
         public void TakeDamage(float damage)
         {
-            if (!isAlive || damage <= 0f) return;
-            if (enemyMove != null && enemyMove.IsUnderGround) return;
+            if (!isAlive || damage <= 0f || IsInvulnerable) return;
 
             currentHealth = Mathf.Clamp(currentHealth - damage, 0f, maxHealth);
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
@@ -72,6 +80,12 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
             isAlive = false;
             OnDied?.Invoke();
             if (deathEvent != null) deathEvent.Die();
+        }
+
+        public void SetBaseColor(Color color)
+        {
+            originalColor = color;
+            if (feedbackRoutine == null && spriteRenderer != null) spriteRenderer.color = originalColor;
         }
 
         public void Heal(float amount)
