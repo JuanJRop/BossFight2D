@@ -5,9 +5,18 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
 {
     public sealed class TwinMoleLaserAttack : IMoleBossAttack
     {
+        private const int Left = 0;
+        private const int Right = 1;
+        private const int Bottom = 2;
+        private const int Top = 3;
+        private const int Horizontal = 0;
+        private const int Vertical = 1;
+
         private static readonly Color WarningColor = new(1f, 0.62f, 0.08f, 0.95f);
         private static readonly Color GlowColor = new(0.95f, 0.04f, 0.62f, 0.58f);
         private static readonly Color CoreColor = new(0.75f, 0.95f, 1f, 1f);
+        private static readonly Color CyanAccent = new(0.25f, 0.9f, 1f, 1f);
+        private static readonly Color MagentaAccent = new(1f, 0.3f, 0.72f, 1f);
 
         public MoleBossAttack Id => MoleBossAttack.TwinMoleLaser;
 
@@ -19,66 +28,119 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             maximum -= Vector2.one * sideInset;
             if (minimum.x >= maximum.x || minimum.y >= maximum.y) yield break;
 
-            float startNormalizedY = Random.Range(0.2f, 0.8f);
-            Vector2 leftPosition = new(minimum.x, Mathf.Lerp(minimum.y, maximum.y, startNormalizedY));
-            Vector2 rightPosition = new(maximum.x, leftPosition.y);
-            Sprite miniSprite = context.BossSprite != null ? context.BossSprite : context.Projectiles.ProjectileSprite;
+            float startNormalizedY = Random.Range(0.22f, 0.78f);
+            float startNormalizedX = Random.Range(0.22f, 0.78f);
+            Vector2[] positions =
+            {
+                new(minimum.x, Mathf.Lerp(minimum.y, maximum.y, startNormalizedY)),
+                new(maximum.x, Mathf.Lerp(minimum.y, maximum.y, startNormalizedY)),
+                new(Mathf.Lerp(minimum.x, maximum.x, startNormalizedX), minimum.y),
+                new(Mathf.Lerp(minimum.x, maximum.x, startNormalizedX), maximum.y)
+            };
 
-            GameObject leftMole = CreateMiniMole(context, "Left laser mole", leftPosition, miniSprite, false);
-            GameObject rightMole = CreateMiniMole(context, "Right laser mole", rightPosition, miniSprite, true);
-            GameObject leftAura = context.Telegraphs.CreateCircle("Left mole energy ring", leftPosition, 0.8f,
-                new Color(0.1f, 0.9f, 1f, 0.85f));
-            GameObject rightAura = context.Telegraphs.CreateCircle("Right mole energy ring", rightPosition, 0.8f,
-                new Color(1f, 0.12f, 0.72f, 0.85f));
-            GameObject warningBeam = context.Telegraphs.CreateLine("Twin mole laser warning", WarningColor, 0.08f,
-                leftPosition, rightPosition);
+            Sprite miniSprite = context.BossSprite != null
+                ? context.BossSprite
+                : context.Projectiles.ProjectileSprite;
+            GameObject[] moles =
+            {
+                CreateMiniMole(context, "Left laser mole", positions[Left], miniSprite, false, CyanAccent),
+                CreateMiniMole(context, "Right laser mole", positions[Right], miniSprite, true, MagentaAccent),
+                CreateMiniMole(context, "Bottom laser mole", positions[Bottom], miniSprite, false, MagentaAccent),
+                CreateMiniMole(context, "Top laser mole", positions[Top], miniSprite, true, CyanAccent)
+            };
+            GameObject[] auras =
+            {
+                context.Telegraphs.CreateCircle("Left mole energy ring", positions[Left], 0.8f, CyanAccent),
+                context.Telegraphs.CreateCircle("Right mole energy ring", positions[Right], 0.8f, MagentaAccent),
+                context.Telegraphs.CreateCircle("Bottom mole energy ring", positions[Bottom], 0.8f, MagentaAccent),
+                context.Telegraphs.CreateCircle("Top mole energy ring", positions[Top], 0.8f, CyanAccent)
+            };
+            GameObject[] warnings =
+            {
+                context.Telegraphs.CreateLine("Horizontal mole laser warning", WarningColor, 0.08f,
+                    positions[Left], positions[Right]),
+                context.Telegraphs.CreateLine("Vertical mole laser warning", WarningColor, 0.08f,
+                    positions[Bottom], positions[Top])
+            };
 
             context.SetState(MoleBossState.Telegraphing);
-            context.PlaySound(context.Config.MinionSpawnSfx, 0.45f, 1.15f);
-            context.PlaySound(context.Config.LaserChargeSfx, 0.28f, 0.72f);
-            yield return AnimateEntrance(context, leftMole, rightMole, leftAura, rightAura, warningBeam,
-                leftPosition, rightPosition);
+            context.PlaySound(context.Config.MinionSpawnSfx, 0.48f, 1.08f);
+            context.PlaySound(context.Config.LaserChargeSfx, 0.32f, 0.72f);
+            yield return AnimateEntrance(context, moles, auras, warnings, positions);
 
             context.SetState(MoleBossState.Attacking);
             context.TriggerAttackAnimation();
-            context.Telegraphs.Release(warningBeam);
-            GameObject beamGlow = context.Telegraphs.CreateLine("Twin mole laser glow", GlowColor, 0.9f,
-                leftPosition, rightPosition);
-            GameObject beamCore = context.Telegraphs.CreateLine("Twin mole laser core", CoreColor, 0.22f,
-                leftPosition, rightPosition);
-            context.PlaySound(context.Config.LaserFireSfx, 0.62f, phase == 2 ? 0.9f : 0.82f);
+            ReleaseAll(context, warnings);
+
+            GameObject[] beamGlows =
+            {
+                context.Telegraphs.CreateLine("Horizontal mole laser glow", GlowColor, 0.9f,
+                    positions[Left], positions[Right]),
+                context.Telegraphs.CreateLine("Vertical mole laser glow", GlowColor, 0.9f,
+                    positions[Bottom], positions[Top])
+            };
+            GameObject[] beamCores =
+            {
+                context.Telegraphs.CreateLine("Horizontal mole laser core", CoreColor, 0.22f,
+                    positions[Left], positions[Right]),
+                context.Telegraphs.CreateLine("Vertical mole laser core", CoreColor, 0.22f,
+                    positions[Bottom], positions[Top])
+            };
+            context.PlaySound(context.Config.LaserFireSfx, 0.68f, phase == 2 ? 0.9f : 0.82f);
 
             float elapsed = 0f;
             float damageCooldown = 0f;
             float duration = context.Config.TwinLaserDuration(phase);
             float arenaHeight = Mathf.Max(0.1f, maximum.y - minimum.y);
-            float direction = Random.value < 0.5f ? -1f : 1f;
+            float arenaWidth = Mathf.Max(0.1f, maximum.x - minimum.x);
+            float horizontalPhase = Random.Range(0f, 1f);
+            float verticalPhase = Random.Range(0f, 1f);
+
             while (elapsed < duration)
             {
                 if (!context.IsPaused)
                 {
                     elapsed += Time.deltaTime;
                     damageCooldown -= Time.deltaTime;
-                    float sweep = Mathf.PingPong(startNormalizedY + direction *
+
+                    float horizontalSweep = Mathf.PingPong(horizontalPhase +
                         elapsed * context.Config.TwinLaserMoveSpeed / arenaHeight, 1f);
-                    float centerY = Mathf.Lerp(minimum.y, maximum.y, sweep);
-                    float tilt = Mathf.Sin(elapsed * (phase == 2 ? 2.15f : 1.65f)) *
-                                 context.Config.TwinLaserTilt;
-                    leftPosition.y = Mathf.Clamp(centerY + tilt, minimum.y, maximum.y);
-                    rightPosition.y = Mathf.Clamp(centerY - tilt, minimum.y, maximum.y);
+                    float verticalSweep = Mathf.PingPong(verticalPhase +
+                        elapsed * context.Config.TwinLaserMoveSpeed / arenaWidth, 1f);
+                    float horizontalCenter = Mathf.Lerp(minimum.y, maximum.y, horizontalSweep);
+                    float verticalCenter = Mathf.Lerp(minimum.x, maximum.x, verticalSweep);
+                    float waveSpeed = phase == 2 ? 2.15f : 1.65f;
+                    float horizontalTilt = Mathf.Sin(elapsed * waveSpeed) * context.Config.TwinLaserTilt;
+                    float verticalTilt = Mathf.Cos(elapsed * waveSpeed * 1.08f) * context.Config.TwinLaserTilt;
 
-                    UpdatePositions(leftMole, rightMole, leftAura, rightAura, beamGlow, beamCore,
-                        leftPosition, rightPosition, elapsed);
+                    positions[Left].y = Mathf.Clamp(horizontalCenter + horizontalTilt, minimum.y, maximum.y);
+                    positions[Right].y = Mathf.Clamp(horizontalCenter - horizontalTilt, minimum.y, maximum.y);
+                    positions[Bottom].x = Mathf.Clamp(verticalCenter - verticalTilt, minimum.x, maximum.x);
+                    positions[Top].x = Mathf.Clamp(verticalCenter + verticalTilt, minimum.x, maximum.x);
 
+                    UpdatePositions(moles, auras, beamGlows, beamCores, positions, elapsed);
+
+                    float horizontalDistance = DistanceToSegment(context.Player.Position,
+                        positions[Left], positions[Right]);
+                    float verticalDistance = DistanceToSegment(context.Player.Position,
+                        positions[Bottom], positions[Top]);
                     if (damageCooldown <= 0f &&
-                        DistanceToSegment(context.Player.Position, leftPosition, rightPosition) <=
-                        context.Config.TwinLaserRadius)
+                        Mathf.Min(horizontalDistance, verticalDistance) <= context.Config.TwinLaserRadius)
                     {
                         if (context.Player.TryDamage(context.Config.TwinLaserDamage))
                         {
                             damageCooldown = context.Config.TwinLaserDamageCooldown;
-                            Vector2 push = context.Player.Position.y >= (leftPosition.y + rightPosition.y) * 0.5f
-                                ? Vector2.up : Vector2.down;
+                            Vector2 push;
+                            if (horizontalDistance <= verticalDistance)
+                            {
+                                float centerY = (positions[Left].y + positions[Right].y) * 0.5f;
+                                push = context.Player.Position.y >= centerY ? Vector2.up : Vector2.down;
+                            }
+                            else
+                            {
+                                float centerX = (positions[Bottom].x + positions[Top].x) * 0.5f;
+                                push = context.Player.Position.x >= centerX ? Vector2.right : Vector2.left;
+                            }
                             context.Player.ApplyKnockback(push * 7.5f, 0.18f);
                         }
                     }
@@ -86,21 +148,17 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 yield return null;
             }
 
-            context.Telegraphs.Release(beamGlow);
-            context.Telegraphs.Release(beamCore);
-            yield return AnimateExit(context, leftMole, rightMole, leftAura, rightAura);
-            context.Telegraphs.Release(leftMole);
-            context.Telegraphs.Release(rightMole);
-            context.Telegraphs.Release(leftAura);
-            context.Telegraphs.Release(rightAura);
+            ReleaseAll(context, beamGlows);
+            ReleaseAll(context, beamCores);
+            yield return AnimateExit(context, moles, auras);
+            ReleaseAll(context, moles);
+            ReleaseAll(context, auras);
         }
 
         private static GameObject CreateMiniMole(MoleBossCombatContext context, string name, Vector2 position,
-            Sprite sprite, bool flipX)
+            Sprite sprite, bool flipX, Color accent)
         {
-            Color tint = Color.Lerp(context.BossColor, flipX
-                ? new Color(1f, 0.3f, 0.72f, 1f)
-                : new Color(0.25f, 0.9f, 1f, 1f), 0.24f);
+            Color tint = Color.Lerp(context.BossColor, accent, 0.24f);
             GameObject mini = context.Telegraphs.CreateSprite(name, position, sprite, tint, 28);
             mini.transform.localScale = Vector3.zero;
             SpriteRenderer renderer = mini.GetComponent<SpriteRenderer>();
@@ -108,13 +166,11 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
             return mini;
         }
 
-        private static IEnumerator AnimateEntrance(MoleBossCombatContext context, GameObject leftMole,
-            GameObject rightMole, GameObject leftAura, GameObject rightAura, GameObject warningBeam,
-            Vector2 leftPosition, Vector2 rightPosition)
+        private static IEnumerator AnimateEntrance(MoleBossCombatContext context, GameObject[] moles,
+            GameObject[] auras, GameObject[] warnings, Vector2[] positions)
         {
             float elapsed = 0f;
             float duration = context.Config.TwinLaserWarningTime;
-            LineRenderer warningLine = GetLine(warningBeam);
             while (elapsed < duration)
             {
                 if (!context.IsPaused)
@@ -122,27 +178,24 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                     elapsed += Time.deltaTime;
                     float progress = Mathf.Clamp01(elapsed / duration);
                     float overshoot = Mathf.Sin(progress * Mathf.PI) * 0.14f;
-                    float scale = (Mathf.SmoothStep(0f, context.Config.MiniMoleScale, progress) + overshoot);
-                    if (leftMole != null) leftMole.transform.localScale = Vector3.one * scale;
-                    if (rightMole != null) rightMole.transform.localScale = Vector3.one * scale;
-                    UpdateCircle(leftAura, leftPosition, Mathf.Lerp(0.25f, 0.92f, progress));
-                    UpdateCircle(rightAura, rightPosition, Mathf.Lerp(0.25f, 0.92f, progress));
-                    if (warningLine != null)
+                    float scale = Mathf.SmoothStep(0f, context.Config.MiniMoleScale, progress) + overshoot;
+                    for (int i = 0; i < moles.Length; i++)
                     {
-                        warningLine.SetPosition(0, leftPosition);
-                        warningLine.SetPosition(1, rightPosition);
-                        float width = Mathf.Lerp(0.05f, 0.16f, progress) +
-                                      Mathf.PingPong(elapsed * 0.12f, 0.06f);
-                        warningLine.startWidth = width;
-                        warningLine.endWidth = width;
+                        if (moles[i] != null) moles[i].transform.localScale = Vector3.one * scale;
+                        UpdateCircle(auras[i], positions[i], Mathf.Lerp(0.25f, 0.92f, progress));
                     }
+
+                    float width = Mathf.Lerp(0.05f, 0.16f, progress) +
+                                  Mathf.PingPong(elapsed * 0.12f, 0.06f);
+                    UpdateLine(warnings[Horizontal], positions[Left], positions[Right], width);
+                    UpdateLine(warnings[Vertical], positions[Bottom], positions[Top], width);
                 }
                 yield return null;
             }
         }
 
-        private static IEnumerator AnimateExit(MoleBossCombatContext context, GameObject leftMole,
-            GameObject rightMole, GameObject leftAura, GameObject rightAura)
+        private static IEnumerator AnimateExit(MoleBossCombatContext context, GameObject[] moles,
+            GameObject[] auras)
         {
             float elapsed = 0f;
             const float duration = 0.28f;
@@ -152,36 +205,50 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 {
                     elapsed += Time.deltaTime;
                     float scale = Mathf.Lerp(context.Config.MiniMoleScale, 0f, elapsed / duration);
-                    if (leftMole != null) leftMole.transform.localScale = Vector3.one * scale;
-                    if (rightMole != null) rightMole.transform.localScale = Vector3.one * scale;
-                    if (leftAura != null) leftAura.transform.localScale = Vector3.one * Mathf.Max(0f, scale * 2f);
-                    if (rightAura != null) rightAura.transform.localScale = Vector3.one * Mathf.Max(0f, scale * 2f);
+                    for (int i = 0; i < moles.Length; i++)
+                    {
+                        if (moles[i] != null) moles[i].transform.localScale = Vector3.one * scale;
+                        if (auras[i] != null)
+                            auras[i].transform.localScale = Vector3.one * Mathf.Max(0f, scale * 2f);
+                    }
                 }
                 yield return null;
             }
         }
 
-        private static void UpdatePositions(GameObject leftMole, GameObject rightMole, GameObject leftAura,
-            GameObject rightAura, GameObject beamGlow, GameObject beamCore, Vector2 leftPosition,
-            Vector2 rightPosition, float elapsed)
+        private static void UpdatePositions(GameObject[] moles, GameObject[] auras, GameObject[] beamGlows,
+            GameObject[] beamCores, Vector2[] positions, float elapsed)
         {
-            if (leftMole != null)
+            for (int i = 0; i < moles.Length; i++)
             {
-                leftMole.transform.position = leftPosition;
-                leftMole.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Sin(elapsed * 3f) * 4f);
-            }
-            if (rightMole != null)
-            {
-                rightMole.transform.position = rightPosition;
-                rightMole.transform.rotation = Quaternion.Euler(0f, 0f, -Mathf.Sin(elapsed * 3f) * 4f);
+                if (moles[i] != null)
+                {
+                    moles[i].transform.position = positions[i];
+                    float direction = i % 2 == 0 ? 1f : -1f;
+                    moles[i].transform.rotation = Quaternion.Euler(0f, 0f,
+                        direction * Mathf.Sin(elapsed * 3f + i * 0.7f) * 4f);
+                }
+                UpdateCircle(auras[i], positions[i],
+                    0.82f + Mathf.Sin(elapsed * 5f + i * Mathf.PI * 0.5f) * 0.12f);
             }
 
-            UpdateCircle(leftAura, leftPosition, 0.82f + Mathf.Sin(elapsed * 5f) * 0.12f);
-            UpdateCircle(rightAura, rightPosition, 0.82f + Mathf.Sin(elapsed * 5f + Mathf.PI) * 0.12f);
-            UpdateLine(beamGlow, leftPosition, rightPosition,
+            UpdateLine(beamGlows[Horizontal], positions[Left], positions[Right],
                 0.82f + Mathf.Sin(elapsed * 18f) * 0.12f);
-            UpdateLine(beamCore, leftPosition, rightPosition,
+            UpdateLine(beamCores[Horizontal], positions[Left], positions[Right],
                 0.2f + Mathf.Sin(elapsed * 24f) * 0.045f);
+            UpdateLine(beamGlows[Vertical], positions[Bottom], positions[Top],
+                0.82f + Mathf.Sin(elapsed * 18f + Mathf.PI) * 0.12f);
+            UpdateLine(beamCores[Vertical], positions[Bottom], positions[Top],
+                0.2f + Mathf.Sin(elapsed * 24f + Mathf.PI) * 0.045f);
+        }
+
+        private static void ReleaseAll(MoleBossCombatContext context, GameObject[] visuals)
+        {
+            if (visuals == null) return;
+            foreach (GameObject visual in visuals)
+            {
+                context.Telegraphs.Release(visual);
+            }
         }
 
         private static void UpdateCircle(GameObject visual, Vector2 center, float radius)
