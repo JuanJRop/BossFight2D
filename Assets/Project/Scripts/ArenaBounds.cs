@@ -180,13 +180,10 @@ namespace Project.Scripts.Arena
 
             CinemachineCamera virtualCamera = FindFirstObjectByType<CinemachineCamera>();
             if (virtualCamera == null) return;
-
-            LensSettings lens = virtualCamera.Lens;
-            lens.OrthographicSize = orthographicSize;
-            virtualCamera.Lens = lens;
-
-            Vector3 virtualPosition = virtualCamera.transform.position;
-            virtualCamera.transform.position = new Vector3(center.x, center.y, virtualPosition.z);
+            // Exploration uses a following camera, but the boss arena must remain completely
+            // visible. Disabling the scene's tracking camera prevents its Player target from
+            // overriding the fixed arena framing on the next Cinemachine update.
+            virtualCamera.enabled = false;
         }
 
         private void DisableLegacyWallColliders()
