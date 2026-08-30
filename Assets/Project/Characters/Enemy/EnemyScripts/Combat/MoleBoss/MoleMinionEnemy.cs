@@ -35,6 +35,11 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
             body = GetComponent<Rigidbody2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             if (health != null) health.OnDied += HandleDied;
+
+            FloatingHealthBar healthBar = GetComponent<FloatingHealthBar>();
+            if (healthBar == null) healthBar = gameObject.AddComponent<FloatingHealthBar>();
+            healthBar.ConfigureRuntime(health, new Vector2(1.3f, 0.14f), new Vector2(0f, 0.92f),
+                new Color(1f, 0.3f, 0.08f, 1f));
         }
 
         private void FixedUpdate()

@@ -6,6 +6,7 @@ using Project.Scripts.Controller;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
@@ -35,6 +36,11 @@ namespace Project.Scripts.World
         [Header("Reserved destination")]
         [SerializeField] private string bossSceneName = "BossFight";
 
+        [Header("Destructible cover")]
+        [SerializeField] private bool spawnDestructibles = true;
+        [SerializeField, Range(0, 8)] private int destructiblesPerRoom = 5;
+        [SerializeField, Min(1f)] private float destructibleHealth = 52f;
+
         private readonly List<Tile> runtimeTiles = new();
         private readonly List<GameObject> roomObjects = new();
         private readonly HashSet<Vector2Int> visitedRooms = new();
@@ -50,6 +56,7 @@ namespace Project.Scripts.World
         private Rigidbody2D playerBody;
         private WorldPathCamera worldCamera;
         private CanvasGroup transitionFade;
+        private TextMeshProUGUI transitionLabel;
         private GameObject tutorialOverlay;
         private GameObject objectiveHud;
         private TextMeshProUGUI roomLabel;
@@ -61,6 +68,8 @@ namespace Project.Scripts.World
         private Vector2Int currentRoom;
 
         private static readonly Vector2Int StartRoom = Vector2Int.zero;
+        private static readonly Vector2Int BossGatewayRoom = new(0, MaximumRoomY);
+        private static readonly Vector2Int BossRoom = new(0, MaximumRoomY + 1);
 
         private void Awake()
         {
@@ -107,13 +116,21 @@ namespace Project.Scripts.World
         {
             if (transitioning || tutorialOpen || direction == RoomDirection.None) return;
             Vector2Int destination = currentRoom + DirectionOffset(direction);
+            if (destination == BossRoom)
+            {
+                StartCoroutine(EnterBossRoom());
+                return;
+            }
+
             if (!IsValidRoom(destination)) return;
-            StartCoroutine(ChangeRoom(destination, direction));
+            StartCoroutine(ChangeRoom(destination, OppositeDirection(direction)));
         }
 
-        private IEnumerator ChangeRoom(Vector2Int destination, RoomDirection travelDirection)
+        private IEnumerator ChangeRoom(Vector2Int destination, RoomDirection entrySide)
         {
             transitioning = true;
+            Time.timeScale = 1f;
+            SetTransitionLabel(destination);
             if (playerBody != null)
             {
                 playerBody.linearVelocity = Vector2.zero;
@@ -121,12 +138,47 @@ namespace Project.Scripts.World
             }
 
             yield return FadeTo(1f, 0.22f);
-            LoadRoom(destination, travelDirection);
-            yield return new WaitForSecondsRealtime(0.08f);
+            LoadRoom(destination, entrySide);
+            yield return new WaitForSecondsRealtime(0.12f);
 
             if (playerBody != null) playerBody.simulated = true;
             yield return FadeTo(0f, 0.3f);
             transitioning = false;
+        }
+
+        private IEnumerator EnterBossRoom()
+        {
+            transitioning = true;
+            Time.timeScale = 1f;
+            SetTransitionLabel(BossRoom);
+            if (playerBody != null)
+            {
+                playerBody.linearVelocity = Vector2.zero;
+                playerBody.simulated = false;
+            }
+
+            yield return FadeTo(1f, 0.34f);
+            if (string.IsNullOrWhiteSpace(bossSceneName) ||
+                !Application.CanStreamedLevelBeLoaded(bossSceneName))
+            {
+                Debug.LogError($"WorldPath cannot load the boss scene '{bossSceneName}'.", this);
+                if (playerBody != null) playerBody.simulated = true;
+                transitioning = false;
+                yield return FadeTo(0f, 0.3f);
+                yield break;
+            }
+
+            AsyncOperation loadOperation = SceneManager.LoadSceneAsync(bossSceneName);
+            if (loadOperation != null)
+            {
+                yield return loadOperation;
+                yield break;
+            }
+
+            Debug.LogError($"WorldPath failed to start loading the boss scene '{bossSceneName}'.", this);
+            if (playerBody != null) playerBody.simulated = true;
+            transitioning = false;
+            yield return FadeTo(0f, 0.3f);
         }
 
         private void BuildReusableRoom()
@@ -149,7 +201,7 @@ namespace Project.Scripts.World
             ConfigureWallCollision(walls);
         }
 
-        private void LoadRoom(Vector2Int room, RoomDirection enteredThrough)
+        private void LoadRoom(Vector2Int room, RoomDirection entrySide)
         {
             currentRoom = room;
             visitedRooms.Add(room);
@@ -164,7 +216,7 @@ namespace Project.Scripts.World
                 worldCamera.SetBounds(roomMinimum, roomMaximum);
             }
 
-            Vector2 entry = GetEntryPosition(enteredThrough);
+            Vector2 entry = GetEntryPosition(entrySide);
             if (playerBody != null)
             {
                 playerBody.position = entry;
@@ -269,6 +321,45 @@ namespace Project.Scripts.World
                     PaintPillarCluster(new Vector3Int(0, 0, 0));
                     break;
             }
+
+            BuildDestructibles(room);
+        }
+
+        private void BuildDestructibles(Vector2Int room)
+        {
+            if (!spawnDestructibles || destructiblesPerRoom <= 0) return;
+
+            Vector3Int[] candidates =
+            {
+                new(-12, 8, 0), new(12, 8, 0), new(-12, -8, 0), new(12, -8, 0),
+                new(-6, 7, 0), new(6, 7, 0), new(-6, -7, 0), new(6, -7, 0),
+                new(0, 8, 0), new(0, -8, 0)
+            };
+            int targetCount = Mathf.Min(destructiblesPerRoom, candidates.Length);
+            int startIndex = StableHash(room, 13, 7) % candidates.Length;
+            int created = 0;
+
+            for (int attempt = 0; attempt < candidates.Length && created < targetCount; attempt++)
+            {
+                Vector3Int cell = candidates[(startIndex + attempt) % candidates.Length];
+                DestructiblePropType type = (attempt + room.x + room.y) % 2 == 0
+                    ? DestructiblePropType.Crate
+                    : DestructiblePropType.Boulder;
+                Vector2 size = type == DestructiblePropType.Crate
+                    ? new Vector2(0.95f, 0.95f)
+                    : new Vector2(1.25f, 1.1f);
+                Color color = type == DestructiblePropType.Crate
+                    ? new Color(0.78f, 0.3f, 0.1f, 1f)
+                    : new Color(0.18f, 0.66f, 0.74f, 1f);
+
+                DestructibleProp prop = DestructibleProp.CreateRuntime(
+                    $"Room Cover {created + 1}", new Vector2(cell.x, cell.y), size, color, type,
+                    destructibleHealth, transform);
+                if (prop == null) continue;
+
+                roomObjects.Add(prop.gameObject);
+                created++;
+            }
         }
 
         private void PaintPillarCluster(Vector3Int center)
@@ -315,8 +406,9 @@ namespace Project.Scripts.World
         {
             RoomOpenings openings = GetOpenings(room);
             if (openings.Up)
-                CreateDoor("North Door", RoomDirection.Up, new Vector2(0f, RoomHalfHeight - 0.15f),
-                    new Vector2(3.4f, 1.1f));
+                CreateDoor(room == BossGatewayRoom ? "Boss Door" : "North Door", RoomDirection.Up,
+                    new Vector2(0f, RoomHalfHeight - 0.15f), new Vector2(3.4f, 1.1f),
+                    room == BossGatewayRoom);
             if (openings.Down)
                 CreateDoor("South Door", RoomDirection.Down, new Vector2(0f, -RoomHalfHeight + 0.15f),
                     new Vector2(3.4f, 1.1f));
@@ -328,7 +420,8 @@ namespace Project.Scripts.World
                     new Vector2(1.1f, 3.4f));
         }
 
-        private void CreateDoor(string objectName, RoomDirection direction, Vector2 position, Vector2 size)
+        private void CreateDoor(string objectName, RoomDirection direction, Vector2 position, Vector2 size,
+            bool bossDoor = false)
         {
             GameObject door = new(objectName);
             door.transform.position = position;
@@ -336,7 +429,9 @@ namespace Project.Scripts.World
 
             SpriteRenderer renderer = door.AddComponent<SpriteRenderer>();
             renderer.sprite = RuntimeWhiteSprite.Instance;
-            renderer.color = new Color(0.72f, 0.29f, 0.1f, 1f);
+            renderer.color = bossDoor
+                ? new Color(0.9f, 0.12f, 0.06f, 1f)
+                : new Color(0.72f, 0.29f, 0.1f, 1f);
             renderer.sortingOrder = 6;
             door.transform.localScale = new Vector3(size.x, size.y, 1f);
 
@@ -344,7 +439,9 @@ namespace Project.Scripts.World
             glow.transform.SetParent(door.transform, false);
             SpriteRenderer glowRenderer = glow.AddComponent<SpriteRenderer>();
             glowRenderer.sprite = RuntimeWhiteSprite.Instance;
-            glowRenderer.color = new Color(1f, 0.68f, 0.26f, 0.38f);
+            glowRenderer.color = bossDoor
+                ? new Color(1f, 0.22f, 0.05f, 0.55f)
+                : new Color(1f, 0.68f, 0.26f, 0.38f);
             glowRenderer.sortingOrder = 5;
             glow.transform.localScale = direction is RoomDirection.Up or RoomDirection.Down
                 ? new Vector3(1.22f, 2.1f, 1f)
@@ -361,7 +458,7 @@ namespace Project.Scripts.World
         private RoomOpenings GetOpenings(Vector2Int room)
         {
             return new RoomOpenings(
-                room.y < MaximumRoomY,
+                room.y < MaximumRoomY || room == BossGatewayRoom,
                 room.y > MinimumRoomY,
                 room.x > MinimumRoomX,
                 room.x < MaximumRoomX);
@@ -385,14 +482,27 @@ namespace Project.Scripts.World
             };
         }
 
-        private static Vector2 GetEntryPosition(RoomDirection travelDirection)
+        // La salida de la sala actual se convierte en el lado opuesto de entrada de la nueva.
+        private static RoomDirection OppositeDirection(RoomDirection direction)
         {
-            return travelDirection switch
+            return direction switch
             {
-                RoomDirection.Up => new Vector2(0f, -RoomHalfHeight + DoorInset + 1f),
-                RoomDirection.Down => new Vector2(0f, RoomHalfHeight - DoorInset - 1f),
-                RoomDirection.Left => new Vector2(RoomHalfWidth - DoorInset - 1f, 0f),
-                RoomDirection.Right => new Vector2(-RoomHalfWidth + DoorInset + 1f, 0f),
+                RoomDirection.Up => RoomDirection.Down,
+                RoomDirection.Down => RoomDirection.Up,
+                RoomDirection.Left => RoomDirection.Right,
+                RoomDirection.Right => RoomDirection.Left,
+                _ => RoomDirection.None
+            };
+        }
+
+        private static Vector2 GetEntryPosition(RoomDirection entrySide)
+        {
+            return entrySide switch
+            {
+                RoomDirection.Up => new Vector2(0f, RoomHalfHeight - DoorInset - 1f),
+                RoomDirection.Down => new Vector2(0f, -RoomHalfHeight + DoorInset + 1f),
+                RoomDirection.Left => new Vector2(-RoomHalfWidth + DoorInset + 1f, 0f),
+                RoomDirection.Right => new Vector2(RoomHalfWidth - DoorInset - 1f, 0f),
                 _ => new Vector2(0f, -5f)
             };
         }
@@ -527,8 +637,8 @@ namespace Project.Scripts.World
                 ? "Explora libremente. Cada puerta conduce a una sala distinta."
                 : "Explore freely. Every door leads to a different room.";
             string controls = spanish
-                ? "WASD / FLECHAS     MOVERSE\nRATÓN                 APUNTAR\nCLIC IZQUIERDO        DISPARAR\nSHIFT                  DASH · 3 CARGAS\nR                      RECARGAR\nPUERTAS                CAMBIAR DE SALA"
-                : "WASD / ARROWS      MOVE\nMOUSE                  AIM\nLEFT CLICK             SHOOT\nSHIFT                  DASH · 3 CHARGES\nR                      RELOAD\nDOORS                   CHANGE ROOM";
+                ? "WASD / FLECHAS     MOVERSE\nRATÓN                 APUNTAR\nCLIC IZQUIERDO        DISPARAR\nESPACIO               DASH · GOLPE · CARGAS\nR                      RECARGAR\nPUERTAS                CAMBIAR DE SALA"
+                : "WASD / ARROWS      MOVE\nMOUSE                  AIM\nLEFT CLICK             SHOOT\nSPACE                  DASH · STRIKE · CHARGES\nR                      RELOAD\nDOORS                   CHANGE ROOM";
             string continueText = spanish
                 ? "PULSA CUALQUIER TECLA PARA EXPLORAR"
                 : "PRESS ANY KEY TO EXPLORE";
@@ -567,6 +677,8 @@ namespace Project.Scripts.World
                 }
             }
 
+            CreateMapConnection(BossGatewayRoom, BossRoom);
+
             for (int y = MinimumRoomY; y <= MaximumRoomY; y++)
             {
                 for (int x = MinimumRoomX; x <= MaximumRoomX; x++)
@@ -574,6 +686,8 @@ namespace Project.Scripts.World
                     CreateMapCell(new Vector2Int(x, y));
                 }
             }
+
+            CreateMapCell(BossRoom);
         }
 
         private void CreateMapConnection(Vector2Int first, Vector2Int second)
@@ -612,8 +726,9 @@ namespace Project.Scripts.World
                 typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             RectTransform cell = cellObject.GetComponent<RectTransform>();
             cell.SetParent(mapPanel, false);
-            cell.anchorMin = center - Vector2.one * 0.052f;
-            cell.anchorMax = center + Vector2.one * 0.052f;
+            float cellHalfSize = room == BossRoom ? 0.07f : 0.052f;
+            cell.anchorMin = center - Vector2.one * cellHalfSize;
+            cell.anchorMax = center + Vector2.one * cellHalfSize;
             cell.offsetMin = Vector2.zero;
             cell.offsetMax = Vector2.zero;
 
@@ -623,18 +738,36 @@ namespace Project.Scripts.World
             mapCells.Add(room, image);
 
             TextMeshProUGUI label = CreateText("Room State", cell, Vector2.zero, Vector2.one,
-                "?", 20f, new Color(0.38f, 0.28f, 0.22f), TextAlignmentOptions.Center);
+                room == BossRoom ? "BOSS" : "?", room == BossRoom ? 14f : 20f,
+                room == BossRoom ? new Color(1f, 0.2f, 0.08f) : new Color(0.38f, 0.28f, 0.22f),
+                TextAlignmentOptions.Center);
             mapCellLabels.Add(room, label);
         }
 
         private void UpdateMap()
         {
+            bool bossUnlocked = visitedRooms.Contains(BossGatewayRoom);
             foreach (KeyValuePair<Vector2Int, Image> pair in mapCells)
             {
                 bool visited = visitedRooms.Contains(pair.Key);
                 bool current = pair.Key == currentRoom;
                 Image image = pair.Value;
                 TextMeshProUGUI label = mapCellLabels[pair.Key];
+
+                if (pair.Key == BossRoom)
+                {
+                    image.color = bossUnlocked
+                        ? new Color(0.78f, 0.12f, 0.05f, 1f)
+                        : new Color(0.22f, 0.025f, 0.018f, 1f);
+                    label.text = "BOSS";
+                    label.color = bossUnlocked
+                        ? new Color(1f, 0.9f, 0.6f, 1f)
+                        : new Color(0.76f, 0.14f, 0.08f, 1f);
+                    image.rectTransform.localScale = bossUnlocked
+                        ? Vector3.one * 1.12f
+                        : Vector3.one;
+                    continue;
+                }
 
                 if (!visited)
                 {
@@ -657,8 +790,10 @@ namespace Project.Scripts.World
 
             foreach (MapConnection connection in mapConnections)
             {
-                bool unlocked = visitedRooms.Contains(connection.First) &&
-                                visitedRooms.Contains(connection.Second);
+                bool bossConnection = connection.First == BossRoom || connection.Second == BossRoom;
+                bool unlocked = bossConnection
+                    ? bossUnlocked
+                    : visitedRooms.Contains(connection.First) && visitedRooms.Contains(connection.Second);
                 connection.Image.gameObject.SetActive(unlocked);
             }
         }
@@ -684,7 +819,7 @@ namespace Project.Scripts.World
         private static Vector2 GetMapPosition(Vector2Int room)
         {
             float normalizedX = Mathf.InverseLerp(MinimumRoomX, MaximumRoomX, room.x);
-            float normalizedY = Mathf.InverseLerp(MinimumRoomY, MaximumRoomY, room.y);
+            float normalizedY = Mathf.InverseLerp(MinimumRoomY, BossRoom.y, room.y);
             return new Vector2(Mathf.Lerp(0.18f, 0.82f, normalizedX),
                 Mathf.Lerp(0.12f, 0.8f, normalizedY));
         }
@@ -695,7 +830,10 @@ namespace Project.Scripts.World
             Canvas canvas = canvasObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 1000;
-            canvasObject.AddComponent<CanvasScaler>();
+            CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
 
             GameObject black = new("Black Fade", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image),
                 typeof(CanvasGroup));
@@ -711,6 +849,10 @@ namespace Project.Scripts.World
             transitionFade = black.GetComponent<CanvasGroup>();
             transitionFade.alpha = 1f;
             transitionFade.blocksRaycasts = true;
+            transitionLabel = CreateText("Transition Label", rect, new Vector2(0.2f, 0.44f),
+                new Vector2(0.8f, 0.56f), string.Empty, 38f,
+                new Color(1f, 0.82f, 0.56f), TextAlignmentOptions.Center);
+            transitionLabel.raycastTarget = false;
         }
 
         private IEnumerator FadeFromBlack()
@@ -755,6 +897,23 @@ namespace Project.Scripts.World
                 ? $"SALA {roomNumber:00}  ·  EXPLORADAS {visitedRooms.Count:00}/12"
                 : $"ROOM {roomNumber:00}  ·  EXPLORED {visitedRooms.Count:00}/12";
             UpdateMap();
+        }
+
+        private void SetTransitionLabel(Vector2Int destination)
+        {
+            if (transitionLabel == null) return;
+
+            if (destination == BossRoom)
+            {
+                transitionLabel.text = GameLoadout.IsSpanish ? "SALA DEL JEFE" : "BOSS ROOM";
+                return;
+            }
+
+            int roomNumber = (destination.y - MinimumRoomY) * (MaximumRoomX - MinimumRoomX + 1) +
+                             (destination.x - MinimumRoomX) + 1;
+            transitionLabel.text = GameLoadout.IsSpanish
+                ? $"SALA {roomNumber:00}"
+                : $"ROOM {roomNumber:00}";
         }
 
         private static GameObject CreatePanel(string objectName, RectTransform parent,

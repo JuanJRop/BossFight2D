@@ -176,6 +176,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fcf8dba43b057a845ab54a2164198cd7, type: 2}
   - {fileID: 11400000, guid: 4882bc1b92530aa43a91f6cda538efd6, type: 2}
   bossSceneName: BossFight
+  spawnDestructibles: 1
+  destructiblesPerRoom: 5
+  destructibleHealth: 52
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

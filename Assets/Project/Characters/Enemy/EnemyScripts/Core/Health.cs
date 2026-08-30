@@ -15,6 +15,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         [SerializeField] private CinemachineCamera virtualCamera;
         [SerializeField] private float amplitude;
         [SerializeField] private float frequency;
+        [SerializeField] private Color damageFlashColor = Color.white;
+        [SerializeField, Min(1)] private int damageFlashCount = 2;
         [SerializeField] private DeathEvent deathEvent;
         [SerializeField] private AudioClip damageSound;
         [SerializeField, Range(0f, 0.5f)] private float volume;
@@ -30,6 +32,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         private bool externalInvulnerability;
 
         public event Action<float, float> OnHealthChanged;
+        public event Action<float> OnDamaged;
         public event Action OnDied;
 
         public float MaxHealth => maxHealth;
@@ -61,6 +64,12 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
                 originalColor = spriteRenderer.color;
             }
 
+            if (virtualCamera == null)
+            {
+                Camera mainCamera = Camera.main;
+                if (mainCamera != null) virtualCamera = mainCamera.GetComponent<CinemachineCamera>();
+            }
+
             noise = virtualCamera != null
                 ? virtualCamera.GetComponent<CinemachineBasicMultiChannelPerlin>()
                 : null;
@@ -72,6 +81,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
 
             currentHealth = Mathf.Clamp(currentHealth - damage, 0f, maxHealth);
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            OnDamaged?.Invoke(damage);
 
             if (feedbackRoutine != null) StopCoroutine(feedbackRoutine);
             feedbackRoutine = StartCoroutine(ApplyDamageFeedback());
@@ -134,7 +144,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         private IEnumerator ApplyDamageFeedback()
         {
             if (soundController != null) soundController.PlayDamage(damageSound, volume);
-            if (spriteRenderer != null) spriteRenderer.color = Color.red;
+            if (spriteRenderer != null) spriteRenderer.color = damageFlashColor;
 
             if (noise != null)
             {
@@ -142,7 +152,16 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
                 noise.FrequencyGain = frequency;
             }
 
-            yield return new WaitForSeconds(Mathf.Max(0.01f, flashTime));
+            int flashes = Mathf.Max(1, damageFlashCount);
+            float halfFlashTime = Mathf.Max(0.01f, flashTime) / flashes;
+            for (int i = 0; i < flashes; i++)
+            {
+                yield return new WaitForSeconds(halfFlashTime);
+                if (spriteRenderer != null) spriteRenderer.color = originalColor;
+                yield return new WaitForSeconds(halfFlashTime);
+                if (spriteRenderer != null && i < flashes - 1) spriteRenderer.color = damageFlashColor;
+            }
+
             ResetFeedback();
             feedbackRoutine = null;
         }

@@ -96,6 +96,29 @@ namespace Project.Scripts.Controller
             _ => 1f
         };
 
+        public static int DashChargeBonus => Character switch
+        {
+            PlayerCharacter.Lyria => 1,
+            PlayerCharacter.Manu => -1,
+            _ => 0
+        };
+
+        public static float DashRechargeMultiplier => Character switch
+        {
+            PlayerCharacter.Lyria => 0.9f,
+            PlayerCharacter.Tori => 0.72f,
+            PlayerCharacter.Manu => 1.12f,
+            _ => 1f
+        };
+
+        public static float DashDamageMultiplier => Character switch
+        {
+            PlayerCharacter.Manu => 1.45f,
+            PlayerCharacter.Tori => 1.12f,
+            PlayerCharacter.Lyria => 0.88f,
+            _ => 1f
+        };
+
         public static Color CharacterColor => Color.white;
 
         public static float WeaponDamageMultiplier => Weapon switch
@@ -183,9 +206,9 @@ namespace Project.Scripts.Controller
 
         public static string CharacterRole(bool spanish) => Character switch
         {
-            PlayerCharacter.Lyria => spanish ? "Ágil · Menos vida" : "Agile · Less health",
-            PlayerCharacter.Manu => spanish ? "Resistente · Más lento" : "Tough · Slower",
-            PlayerCharacter.Tori => spanish ? "Táctica · Versátil" : "Tactical · Versatile",
+            PlayerCharacter.Lyria => spanish ? "Ágil · Más cargas de dash" : "Agile · More dash charges",
+            PlayerCharacter.Manu => spanish ? "Resistente · Dash demoledor" : "Tough · Devastating dash",
+            PlayerCharacter.Tori => spanish ? "Táctica · Dash rápido" : "Tactical · Fast dash recharge",
             PlayerCharacter.George => spanish ? "Protagonista · Equilibrado" : "Main hero · Balanced",
             _ => spanish ? "Equilibrado" : "Balanced"
         };

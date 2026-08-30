@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Player.PlayerScripts.Movement;
 using Project.Scripts.Controller;
+using Project.Scripts.World;
 using UnityEngine;
 
 namespace Project.Scripts.Arena
@@ -32,7 +33,13 @@ namespace Project.Scripts.Arena
         [SerializeField, Min(0f)] private float hardLaserDamage = 30f;
         [SerializeField, Range(0f, 0.2f)] private float positionJitter = 0.055f;
 
+        [Header("Destructible cover")]
+        [SerializeField] private bool spawnDestructibles = true;
+        [SerializeField, Range(0, 8)] private int destructibleCount = 6;
+        [SerializeField, Min(1f)] private float destructibleHealth = 70f;
+
         private readonly List<GameObject> runtimeVisuals = new();
+        private readonly List<GameObject> destructibles = new();
         private Coroutine hazardRoutine;
         private Transform playerCombatTransform;
         private Health playerHealth;
@@ -44,6 +51,7 @@ namespace Project.Scripts.Arena
         private void Awake()
         {
             ResolveReferences();
+            BuildDestructibles();
         }
 
         private void OnEnable()
@@ -56,6 +64,7 @@ namespace Project.Scripts.Arena
             if (hazardRoutine != null) StopCoroutine(hazardRoutine);
             hazardRoutine = null;
             ReleaseAll();
+            ReleaseDestructibles();
         }
 
         private void OnDestroy()
@@ -208,6 +217,48 @@ namespace Project.Scripts.Arena
             if (playerHealth == null) playerHealth = player.GetComponentInChildren<Health>();
             playerDodge = player.GetComponent<PlayerDodge>();
             if (playerDodge == null) playerDodge = player.GetComponentInChildren<PlayerDodge>();
+        }
+
+        private void BuildDestructibles()
+        {
+            if (!spawnDestructibles || destructibleCount <= 0 || arenaBounds == null) return;
+
+            arenaBounds.GetInnerBounds(out Vector2 minimum, out Vector2 maximum, 1.8f);
+            Vector2[] anchors =
+            {
+                new(-0.68f, -0.55f), new(0.68f, -0.55f), new(-0.68f, 0.55f), new(0.68f, 0.55f),
+                new(-0.34f, 0.18f), new(0.34f, -0.18f), new(0f, 0.7f), new(0f, -0.7f)
+            };
+
+            for (int index = 0; index < Mathf.Min(destructibleCount, anchors.Length); index++)
+            {
+                Vector2 position = new(
+                    Mathf.Lerp(minimum.x, maximum.x, 0.5f + anchors[index].x * 0.5f),
+                    Mathf.Lerp(minimum.y, maximum.y, 0.5f + anchors[index].y * 0.5f));
+                if (player != null && Vector2.Distance(position, player.position) < 2.4f) continue;
+
+                DestructiblePropType type = index % 2 == 0
+                    ? DestructiblePropType.Boulder
+                    : DestructiblePropType.Crate;
+                Vector2 size = type == DestructiblePropType.Boulder
+                    ? new Vector2(1.35f, 1.18f)
+                    : new Vector2(1.1f, 1.1f);
+                Color color = type == DestructiblePropType.Boulder
+                    ? new Color(0.1f, 0.58f, 0.7f, 1f)
+                    : new Color(0.82f, 0.25f, 0.08f, 1f);
+                DestructibleProp prop = DestructibleProp.CreateRuntime(
+                    $"Arena Cover {index + 1}", position, size, color, type, destructibleHealth, transform);
+                if (prop != null) destructibles.Add(prop.gameObject);
+            }
+        }
+
+        private void ReleaseDestructibles()
+        {
+            foreach (GameObject destructible in destructibles)
+            {
+                if (destructible != null) Destroy(destructible);
+            }
+            destructibles.Clear();
         }
 
         private GameObject CreateLine(string objectName, Color color, float width, Vector2 start, Vector2 end)
@@ -374,6 +425,8 @@ namespace Project.Scripts.Arena
             hardActiveTime = Mathf.Max(0.1f, hardActiveTime);
             laserWidth = Mathf.Max(0.1f, laserWidth);
             hardLaserWidth = Mathf.Max(laserWidth, hardLaserWidth);
+            destructibleCount = Mathf.Clamp(destructibleCount, 0, 8);
+            destructibleHealth = Mathf.Max(1f, destructibleHealth);
         }
     }
 }

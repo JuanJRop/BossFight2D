@@ -3,6 +3,7 @@ using System.Collections;
 using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Player.PlayerScripts.Core;
 using Project.Characters.Player.PlayerScripts.Movement;
+using Project.Scripts.Controller;
 using UnityEngine;
 
 namespace Project.Characters.Player.PlayerScripts.Combat
@@ -109,6 +110,12 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             }
         }
 
+        public void SetWeaponVisual(Color color)
+        {
+            if (isEmpowered || spriteRenderer == null) return;
+            spriteRenderer.color = color;
+        }
+
         private IEnumerator LifeRoutine()
         {
             yield return new WaitForSeconds(lifeTime);
@@ -142,9 +149,13 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 return;
             }
 
-            if (owner == BulletOwner.Player && other.CompareTag("Enemy"))
+            if (owner == BulletOwner.Player)
             {
-                ApplyDamage(other);
+                Health health = other.GetComponentInParent<Health>();
+                if (health != null && !health.CompareTag("Player"))
+                {
+                    ApplyDamage(other, health.CompareTag("Enemy"));
+                }
                 return;
             }
 
@@ -152,21 +163,44 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
             PlayerDodge dodge = other.GetComponentInParent<PlayerDodge>();
             if (dodge != null && dodge.IsInvulnerable) return;
-            ApplyDamage(other);
+            ApplyDamage(other, false);
         }
 
-        private void ApplyDamage(Collider2D other)
+        private void ApplyDamage(Collider2D other, bool registerEnemyHit)
         {
             Health health = other.GetComponentInParent<Health>();
             float before = health != null ? health.CurrentHealth : 0f;
             if (health != null) health.TakeDamage(damage);
             float dealtDamage = health != null ? Mathf.Max(0f, before - health.CurrentHealth) : 0f;
-            if (owner == BulletOwner.Player && dealtDamage > 0f) onEnemyHit?.Invoke(dealtDamage);
+            if (owner == BulletOwner.Player && registerEnemyHit && dealtDamage > 0f)
+                onEnemyHit?.Invoke(dealtDamage);
 
-            if (explosionPrefab != null)
-                Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+            SpawnImpactEffect();
 
             ReturnToPool();
+        }
+
+        private void SpawnImpactEffect()
+        {
+            if (explosionPrefab == null) return;
+
+            if (pool != null)
+            {
+                GameObject effect = pool.GetObject(explosionPrefab, transform.position, Quaternion.identity);
+                if (effect != null)
+                {
+                    ExplosionAutoDestroy autoDestroy = effect.GetComponentInChildren<ExplosionAutoDestroy>(true);
+                    if (autoDestroy != null)
+                    {
+                        autoDestroy.Configure(pool, explosionPrefab, effect);
+                        return;
+                    }
+
+                    pool.ReturnObject(effect, explosionPrefab);
+                }
+            }
+
+            Instantiate(explosionPrefab, transform.position, Quaternion.identity);
         }
 
         public void ReturnToPool()

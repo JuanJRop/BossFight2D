@@ -458,8 +458,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Player.Movement.PlayerMove
   speed: 7
-  acceleration: 1
-  deceleration: 2
+  acceleration: 14
+  deceleration: 18
   walkStepRate: 0.32
   runStepRate: 0.23
   walkStep: {fileID: 8300000, guid: f26cf9ded47cf0140957490a16f85acc, type: 3}
@@ -481,6 +481,8 @@ MonoBehaviour:
   dashTime: 0.3
   maxDashCharges: 3
   dashRechargeTime: 2.4
+  dashDamage: 34
+  dashHitRadius: 0.9
   trail: {fileID: 2500818933822206269}
   virtualCamera: {fileID: 0}
   volume: 0.165

@@ -274,6 +274,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             bullet.SetTarget(enemyTarget, homing, currentAttack.Speed);
             bullet.SetHitCallback(powerUpHoming != null ? powerUpHoming.RegisterEnemyHit : null);
             bullet.SetEmpoweredVisual(visualScale > 1f, visualScale, visualColor);
+            bullet.SetWeaponVisual(GameLoadout.WeaponColor);
             return true;
         }
 

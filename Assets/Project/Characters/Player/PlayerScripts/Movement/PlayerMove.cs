@@ -34,6 +34,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private PlayerElectricStunFeedback stunFeedback;
 
         public Vector2 MoveInput => moveInput;
+        public Vector2 LastMove => lastMove;
         public bool IsBeingKnockedBack => knockbackTimer > 0f;
         public bool IsStunned => stunTimer > 0f;
 
@@ -52,7 +53,13 @@ namespace Project.Characters.Player.PlayerScripts.Movement
 
         private void Update()
         {
-            if (!isMoving) return;
+            if (!isMoving)
+            {
+                moveInput = Vector2.zero;
+                currentSpeed = 0f;
+                UpdateAnimations();
+                return;
+            }
 
             if (stunTimer > 0f)
             {
@@ -89,7 +96,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
                 return;
             }
 
-            rb.linearVelocity = moveInput * speed;
+            rb.linearVelocity = moveInput * speed * currentSpeed;
         }
 
         public void ApplyKnockback(Vector2 velocity, float duration)
@@ -157,7 +164,6 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             if (moveInput.x < 0f)
             {
                 spriteRenderer.flipX = true;
-                lastMove.x = -lastMove.x;
             }
             else if (moveInput.x > 0f)
             {
@@ -167,6 +173,8 @@ namespace Project.Characters.Player.PlayerScripts.Movement
 
         private void OnDisable()
         {
+            moveInput = Vector2.zero;
+            currentSpeed = 0f;
             knockbackTimer = 0f;
             stunTimer = 0f;
             knockbackVelocity = Vector2.zero;

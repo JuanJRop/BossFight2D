@@ -587,6 +587,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Controller
       objectReference: {fileID: 0}
+    - target: {fileID: 8420392811566787147, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: AmplitudeGain
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8420392811566787147, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: FrequencyGain
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1057,6 +1065,7 @@ MonoBehaviour:
   spawnPoint: {fileID: 315300739}
   endPoint: {fileID: 1165947905}
   timeBullets: 1.78
+  travelTime: 2
   isMenu: 1
 --- !u!114 &1180889282
 MonoBehaviour:

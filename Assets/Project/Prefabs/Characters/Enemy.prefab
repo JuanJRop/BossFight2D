@@ -516,6 +516,8 @@ MonoBehaviour:
   bossHealth: {fileID: 8939012618320290551}
   attackController: {fileID: 4204562694648455952}
   phaseTwoThreshold: 0.5
+  goldReward: 100
+  experienceReward: 200
 --- !u!114 &910500001
 MonoBehaviour:
   m_ObjectHideFlags: 0

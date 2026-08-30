@@ -53,9 +53,10 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
                 return;
             }
 
-            if (owner == BulletOwner.Player && other.CompareTag("Enemy"))
+            if (owner == BulletOwner.Player)
             {
-                ApplyDamage(other);
+                Health health = other.GetComponentInParent<Health>();
+                if (health != null && !health.CompareTag("Player")) ApplyDamage(other);
                 return;
             }
 

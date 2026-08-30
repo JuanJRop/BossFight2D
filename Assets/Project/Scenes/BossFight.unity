@@ -35836,6 +35836,9 @@ MonoBehaviour:
   laserDamage: 24
   hardLaserDamage: 30
   positionJitter: 0.055
+  spawnDestructibles: 1
+  destructibleCount: 6
+  destructibleHealth: 70
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

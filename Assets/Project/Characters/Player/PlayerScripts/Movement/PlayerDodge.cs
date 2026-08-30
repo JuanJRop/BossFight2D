@@ -1,5 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using Project.Characters.Enemy.EnemyScripts.Core;
+using Project.Characters.Player.PlayerScripts.Combat;
 using Project.Characters.Player.PlayerScripts.Controller;
 using Project.Scripts.Controller;
 using Unity.Cinemachine;
@@ -17,6 +20,10 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         [SerializeField, Range(1, 6)] private int maxDashCharges = 3;
         [SerializeField, Min(0.1f)] private float dashRechargeTime = 2.4f;
 
+        [Header("Impact Dash")]
+        [SerializeField, Min(0f)] private float dashDamage = 34f;
+        [SerializeField, Min(0.1f)] private float dashHitRadius = 0.9f;
+
         [Header("References")]
         [SerializeField] private TrailRenderer trail;
 
@@ -28,6 +35,8 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private Rigidbody2D rb;
         private CinemachineBasicMultiChannelPerlin noise;
         private PlayerSoundController playerSoundController;
+        private PowerUp powerUp;
+        private readonly HashSet<Health> dashHitTargets = new();
         private float rechargeTimer;
         private int dashCharges;
         private bool isDashing;
@@ -51,12 +60,23 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             playerSoundController = GetComponent<PlayerSoundController>();
             playerMove = GetComponent<PlayerMove>();
             rb = GetComponent<Rigidbody2D>();
+            powerUp = GetComponentInChildren<PowerUp>();
+            if (virtualCamera == null)
+            {
+                Camera mainCamera = Camera.main;
+                if (mainCamera != null) virtualCamera = mainCamera.GetComponent<CinemachineCamera>();
+            }
+
             noise = virtualCamera != null
                 ? virtualCamera.GetComponent<CinemachineBasicMultiChannelPerlin>()
                 : null;
 
             if (trail != null) trail.enabled = false;
-            dashCharges = Mathf.Max(1, maxDashCharges);
+            maxDashCharges = Mathf.Clamp(maxDashCharges + GameLoadout.DashChargeBonus, 1, 6);
+            dashRechargeTime = Mathf.Max(0.1f,
+                dashRechargeTime * GameLoadout.DashRechargeMultiplier);
+            dashDamage = Mathf.Max(0f, dashDamage * GameLoadout.DashDamageMultiplier);
+            dashCharges = maxDashCharges;
             NotifyStaminaChanged();
         }
 
@@ -71,11 +91,16 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private void TryDodge()
         {
             if (isDashing || playerMove == null || playerMove.IsStunned ||
-                playerMove.MoveInput.sqrMagnitude < 0.01f || dashCharges <= 0) return;
+                dashCharges <= 0) return;
+
+            Vector2 direction = playerMove.MoveInput.sqrMagnitude >= 0.01f
+                ? playerMove.MoveInput.normalized
+                : playerMove.LastMove.normalized;
+            if (direction.sqrMagnitude < 0.01f) return;
 
             dashCharges--;
             NotifyStaminaChanged();
-            StartCoroutine(Dash(playerMove.MoveInput.normalized));
+            StartCoroutine(Dash(direction));
 
             if (playerSoundController != null) playerSoundController.PlayDodge(volume);
         }
@@ -84,6 +109,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         {
             isInvulnerable = true;
             isDashing = true;
+            dashHitTargets.Clear();
 
             if (trail != null) trail.enabled = true;
             if (noise != null)
@@ -93,8 +119,40 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             }
 
             if (rb != null) rb.linearVelocity = direction * dashForce;
-            yield return new WaitForSeconds(Mathf.Max(0.01f, dashTime));
+
+            float elapsed = 0f;
+            float duration = Mathf.Max(0.01f, dashTime);
+            while (elapsed < duration)
+            {
+                DetectDashHits();
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            DetectDashHits();
             EndDash();
+        }
+
+        private void DetectDashHits()
+        {
+            if (dashDamage <= 0f) return;
+
+            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position,
+                Mathf.Max(0.1f, dashHitRadius));
+            foreach (Collider2D hit in hits)
+            {
+                if (hit == null) continue;
+                Health targetHealth = hit.GetComponentInParent<Health>();
+                if (targetHealth == null || !targetHealth.IsAlive || targetHealth.CompareTag("Player") ||
+                    dashHitTargets.Contains(targetHealth)) continue;
+
+                dashHitTargets.Add(targetHealth);
+                float before = targetHealth.CurrentHealth;
+                targetHealth.TakeDamage(dashDamage);
+                float dealtDamage = Mathf.Max(0f, before - targetHealth.CurrentHealth);
+                if (dealtDamage > 0f && targetHealth.CompareTag("Enemy"))
+                    powerUp?.RegisterEnemyHit(dealtDamage);
+            }
         }
 
         private void RechargeDash()
@@ -131,6 +189,13 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             isInvulnerable = false;
         }
 
+        private void OnDisable()
+        {
+            StopAllCoroutines();
+            dashHitTargets.Clear();
+            EndDash();
+        }
+
         public void RestoreStamina(float value)
         {
             StopAllCoroutines();
@@ -157,6 +222,14 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             dashTime = Mathf.Max(0.01f, dashTime);
             maxDashCharges = Mathf.Clamp(maxDashCharges, 1, 6);
             dashRechargeTime = Mathf.Max(0.1f, dashRechargeTime);
+            dashDamage = Mathf.Max(0f, dashDamage);
+            dashHitRadius = Mathf.Max(0.1f, dashHitRadius);
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = new Color(1f, 0.25f, 0.08f, 0.65f);
+            Gizmos.DrawWireSphere(transform.position, dashHitRadius);
         }
     }
 }

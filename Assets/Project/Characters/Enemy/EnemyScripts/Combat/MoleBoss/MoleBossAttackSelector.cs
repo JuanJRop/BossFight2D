@@ -33,8 +33,16 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss
                 for (int attempt = 0; attempt < 6 && previous.HasValue && selected == previous.Value; attempt++)
                     selected = choices[Random.Range(0, choices.Length)];
 
-                if (phase == 2 && playerDistance > 7f && Random.value < 0.35f)
+                if (playerDistance < 2.25f && previous != MoleBossAttack.RadialBurst &&
+                    Random.value < (phase == 2 ? 0.55f : 0.4f))
+                {
+                    selected = MoleBossAttack.RadialBurst;
+                }
+                else if (playerDistance > 7f && previous != MoleBossAttack.ChargeDash &&
+                         Random.value < (phase == 2 ? 0.35f : 0.2f))
+                {
                     selected = MoleBossAttack.ChargeDash;
+                }
             }
 
             previous = selected;
