@@ -31,12 +31,25 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private float knockbackTimer;
         private float stunTimer;
         private bool isMoving = true;
+        private bool roomTransitionLocked;
         private PlayerElectricStunFeedback stunFeedback;
 
         public Vector2 MoveInput => moveInput;
         public Vector2 LastMove => lastMove;
         public bool IsBeingKnockedBack => knockbackTimer > 0f;
         public bool IsStunned => stunTimer > 0f;
+
+        public void SetRoomTransitionLock(bool locked)
+        {
+            roomTransitionLocked = locked;
+            if (!locked) return;
+
+            moveInput = Vector2.zero;
+            currentSpeed = 0f;
+            knockbackTimer = 0f;
+            knockbackVelocity = Vector2.zero;
+            if (rb != null) rb.linearVelocity = Vector2.zero;
+        }
 
         private void Awake()
         {
@@ -53,7 +66,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
 
         private void Update()
         {
-            if (!isMoving)
+            if (!isMoving || roomTransitionLocked)
             {
                 moveInput = Vector2.zero;
                 currentSpeed = 0f;
@@ -80,6 +93,11 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private void FixedUpdate()
         {
             if (rb == null) return;
+            if (roomTransitionLocked)
+            {
+                rb.linearVelocity = Vector2.zero;
+                return;
+            }
             if (IsStunned)
             {
                 rb.linearVelocity = Vector2.zero;
@@ -178,6 +196,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             knockbackTimer = 0f;
             stunTimer = 0f;
             knockbackVelocity = Vector2.zero;
+            roomTransitionLocked = false;
             if (rb != null) rb.linearVelocity = Vector2.zero;
         }
 

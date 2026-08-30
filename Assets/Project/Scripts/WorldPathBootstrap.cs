@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Project.Characters.Player.PlayerScripts.Combat;
 using Project.Characters.Player.PlayerScripts.Core;
+using Project.Characters.Player.PlayerScripts.Movement;
 using Project.Scripts.Controller;
 using TMPro;
 using UnityEngine;
@@ -22,6 +23,7 @@ namespace Project.Scripts.World
         private const int MinimumRoomY = 0;
         private const int MaximumRoomY = 3;
         private const float DoorInset = 1.35f;
+        private const float RoomDoorGracePeriod = 0.75f;
 
         [Header("Shared project assets")]
         [SerializeField] private GameObject playerPrefab;
@@ -53,7 +55,9 @@ namespace Project.Scripts.World
         private Tilemap walls;
         private Tilemap details;
         private TileBase collisionWall;
+        private GameObject playerActor;
         private Rigidbody2D playerBody;
+        private PlayerMove playerMove;
         private WorldPathCamera worldCamera;
         private CanvasGroup transitionFade;
         private TextMeshProUGUI transitionLabel;
@@ -66,6 +70,8 @@ namespace Project.Scripts.World
         private bool transitioning;
         private bool mapExpanded;
         private Vector2Int currentRoom;
+        private RoomDirection lockedDoorDirection;
+        private float doorLockUntil;
 
         private static readonly Vector2Int StartRoom = Vector2Int.zero;
         private static readonly Vector2Int BossGatewayRoom = new(0, MaximumRoomY);
@@ -76,7 +82,9 @@ namespace Project.Scripts.World
             Time.timeScale = 1f;
             BuildReusableRoom();
             GameObject player = SpawnPlayer();
+            playerActor = player;
             playerBody = ResolvePlayerBody(player);
+            playerMove = player != null ? player.GetComponentInChildren<PlayerMove>(true) : null;
             worldCamera = BuildCamera(playerBody != null
                 ? playerBody.transform
                 : player != null ? player.transform : null);
@@ -114,7 +122,7 @@ namespace Project.Scripts.World
 
         internal void RequestRoomChange(RoomDirection direction)
         {
-            if (transitioning || tutorialOpen || direction == RoomDirection.None) return;
+            if (transitioning || tutorialOpen || direction == RoomDirection.None || IsDoorLocked(direction)) return;
             Vector2Int destination = currentRoom + DirectionOffset(direction);
             if (destination == BossRoom)
             {
@@ -131,11 +139,7 @@ namespace Project.Scripts.World
             transitioning = true;
             Time.timeScale = 1f;
             SetTransitionLabel(destination);
-            if (playerBody != null)
-            {
-                playerBody.linearVelocity = Vector2.zero;
-                playerBody.simulated = false;
-            }
+            SetPlayerTransitionLock(true);
 
             yield return FadeTo(1f, 0.22f);
             LoadRoom(destination, entrySide);
@@ -143,6 +147,7 @@ namespace Project.Scripts.World
 
             if (playerBody != null) playerBody.simulated = true;
             yield return FadeTo(0f, 0.3f);
+            SetPlayerTransitionLock(false);
             transitioning = false;
         }
 
@@ -151,18 +156,14 @@ namespace Project.Scripts.World
             transitioning = true;
             Time.timeScale = 1f;
             SetTransitionLabel(BossRoom);
-            if (playerBody != null)
-            {
-                playerBody.linearVelocity = Vector2.zero;
-                playerBody.simulated = false;
-            }
+            SetPlayerTransitionLock(true);
 
             yield return FadeTo(1f, 0.34f);
             if (string.IsNullOrWhiteSpace(bossSceneName) ||
                 !Application.CanStreamedLevelBeLoaded(bossSceneName))
             {
                 Debug.LogError($"WorldPath cannot load the boss scene '{bossSceneName}'.", this);
-                if (playerBody != null) playerBody.simulated = true;
+                SetPlayerTransitionLock(false);
                 transitioning = false;
                 yield return FadeTo(0f, 0.3f);
                 yield break;
@@ -176,7 +177,7 @@ namespace Project.Scripts.World
             }
 
             Debug.LogError($"WorldPath failed to start loading the boss scene '{bossSceneName}'.", this);
-            if (playerBody != null) playerBody.simulated = true;
+            SetPlayerTransitionLock(false);
             transitioning = false;
             yield return FadeTo(0f, 0.3f);
         }
@@ -216,15 +217,48 @@ namespace Project.Scripts.World
                 worldCamera.SetBounds(roomMinimum, roomMaximum);
             }
 
-            Vector2 entry = GetEntryPosition(entrySide);
-            if (playerBody != null)
-            {
-                playerBody.position = entry;
-                playerBody.linearVelocity = Vector2.zero;
-            }
+            lockedDoorDirection = entrySide;
+            doorLockUntil = entrySide == RoomDirection.None
+                ? 0f
+                : Time.unscaledTime + RoomDoorGracePeriod;
+            PlacePlayerAtEntry(GetEntryPosition(entrySide));
 
             if (worldCamera != null) worldCamera.SnapToTarget();
             UpdateRoomHud();
+        }
+
+        private void SetPlayerTransitionLock(bool locked)
+        {
+            playerMove?.SetRoomTransitionLock(locked);
+            if (playerBody == null) return;
+
+            playerBody.linearVelocity = Vector2.zero;
+            playerBody.simulated = !locked;
+        }
+
+        private void PlacePlayerAtEntry(Vector2 entry)
+        {
+            if (playerActor != null && playerBody != null)
+            {
+                Vector2 bodyOffset = playerBody.transform.position - playerActor.transform.position;
+                Vector3 actorPosition = playerActor.transform.position;
+                actorPosition.x = entry.x - bodyOffset.x;
+                actorPosition.y = entry.y - bodyOffset.y;
+                playerActor.transform.position = actorPosition;
+            }
+            else if (playerActor != null)
+            {
+                Vector3 actorPosition = playerActor.transform.position;
+                actorPosition.x = entry.x;
+                actorPosition.y = entry.y;
+                playerActor.transform.position = actorPosition;
+            }
+
+            if (playerBody == null) return;
+            playerBody.position = entry;
+            playerBody.transform.position = new Vector3(entry.x, entry.y, playerBody.transform.position.z);
+            playerBody.linearVelocity = Vector2.zero;
+            playerBody.Sleep();
         }
 
         private void ClearRoom()
@@ -273,6 +307,7 @@ namespace Project.Scripts.World
             PaintVerticalWall(RoomHalfWidth, openings.Right);
             PaintRoomFeatures(room);
             PaintDecorations(room);
+            BuildRoomPresentation(room);
 
             background.CompressBounds();
             floor.CompressBounds();
@@ -391,7 +426,9 @@ namespace Project.Scripts.World
             Vector3Int[] positions =
             {
                 new(-13, 8, 0), new(13, 8, 0), new(-13, -8, 0), new(13, -8, 0),
-                new(-5, 8, 0), new(5, -8, 0)
+                new(-5, 8, 0), new(5, -8, 0),
+                new(-9, 10, 0), new(9, 10, 0), new(-9, -10, 0), new(9, -10, 0),
+                new(-15, 0, 0), new(15, 0, 0)
             };
 
             for (int index = 0; index < positions.Length; index++)
@@ -400,6 +437,144 @@ namespace Project.Scripts.World
                                                      decorationTiles.Length];
                 if (decoration != null) details.SetTile(positions[index], decoration);
             }
+        }
+
+        private void BuildRoomPresentation(Vector2Int room)
+        {
+            RoomVisualPalette palette = GetRoomVisualPalette(room);
+            RoomOpenings openings = GetOpenings(room);
+            Color shadow = WithAlpha(palette.Shadow, 0.36f);
+            Color softAccent = WithAlpha(palette.Accent, 0.42f);
+            Color softWarm = WithAlpha(palette.Warm, 0.48f);
+
+            // The boss arena reads as a framed combat space. Reuse that visual grammar here
+            // without adding colliders or affecting the procedural room layout.
+            CreateRoomVisual("Room North Lintel", new Vector2(0f, 11.22f),
+                new Vector2(32f, 0.55f), shadow, 1);
+            CreateRoomVisual("Room South Lintel", new Vector2(0f, -11.22f),
+                new Vector2(32f, 0.55f), shadow, 1);
+            CreateRoomVisual("Room West Lintel", new Vector2(-17.22f, 0f),
+                new Vector2(0.55f, 20f), shadow, 1);
+            CreateRoomVisual("Room East Lintel", new Vector2(17.22f, 0f),
+                new Vector2(0.55f, 20f), shadow, 1);
+
+            CreateRoomVisual("Room North Energy Rail", new Vector2(0f, 10.72f),
+                new Vector2(29f, 0.12f), softAccent, 2);
+            CreateRoomVisual("Room South Energy Rail", new Vector2(0f, -10.72f),
+                new Vector2(29f, 0.12f), softWarm, 2);
+            CreateRoomVisual("Room West Energy Rail", new Vector2(-16.72f, 0f),
+                new Vector2(0.12f, 19f), softWarm, 2);
+            CreateRoomVisual("Room East Energy Rail", new Vector2(16.72f, 0f),
+                new Vector2(0.12f, 19f), softAccent, 2);
+
+            BuildCornerDressing(new Vector2(-16.35f, -10.35f), palette, 0);
+            BuildCornerDressing(new Vector2(16.35f, -10.35f), palette, 1);
+            BuildCornerDressing(new Vector2(-16.35f, 10.35f), palette, 2);
+            BuildCornerDressing(new Vector2(16.35f, 10.35f), palette, 3);
+
+            int pattern = Mathf.Abs(room.x * 31 + room.y * 17) % 4;
+            Color coreColor = pattern % 2 == 0 ? palette.Accent : palette.Warm;
+            CreateRoomVisual("Room Core Shadow", Vector2.zero, new Vector2(4.8f, 4.8f),
+                WithAlpha(palette.Shadow, 0.18f), 1);
+            CreateRoomVisual("Room Core Horizontal", Vector2.zero, new Vector2(5.8f, 0.1f),
+                WithAlpha(coreColor, 0.34f), 2);
+            CreateRoomVisual("Room Core Vertical", Vector2.zero, new Vector2(0.1f, 5.8f),
+                WithAlpha(coreColor, 0.34f), 2);
+            CreateRoomVisual("Room Core Beacon", Vector2.zero, new Vector2(0.46f, 0.46f),
+                WithAlpha(palette.Warm, 0.82f), 2);
+
+            if (openings.Up) BuildDoorGuide(RoomDirection.Up, palette);
+            if (openings.Down) BuildDoorGuide(RoomDirection.Down, palette);
+            if (openings.Left) BuildDoorGuide(RoomDirection.Left, palette);
+            if (openings.Right) BuildDoorGuide(RoomDirection.Right, palette);
+        }
+
+        private void BuildCornerDressing(Vector2 corner, RoomVisualPalette palette, int index)
+        {
+            float inwardX = -Mathf.Sign(corner.x);
+            float inwardY = -Mathf.Sign(corner.y);
+            Color accent = WithAlpha(palette.Warm, 0.82f);
+            Color glow = WithAlpha(palette.Accent, 0.18f);
+
+            CreateRoomVisual($"Room Corner Glow {index}", corner, new Vector2(1.25f, 1.25f), glow, 1);
+            CreateRoomVisual($"Room Corner Horizontal {index}",
+                corner + new Vector2(inwardX * 0.42f, 0f), new Vector2(0.9f, 0.12f), accent, 2);
+            CreateRoomVisual($"Room Corner Vertical {index}",
+                corner + new Vector2(0f, inwardY * 0.42f), new Vector2(0.12f, 0.9f), accent, 2);
+            CreateRoomVisual($"Room Corner Lamp {index}", corner, new Vector2(0.24f, 0.24f),
+                Color.white, 2);
+        }
+
+        private void BuildDoorGuide(RoomDirection direction, RoomVisualPalette palette)
+        {
+            Vector2 position;
+            Vector2 size;
+            switch (direction)
+            {
+                case RoomDirection.Up:
+                    position = new Vector2(0f, 9.25f);
+                    size = new Vector2(0.14f, 2.3f);
+                    break;
+                case RoomDirection.Down:
+                    position = new Vector2(0f, -9.25f);
+                    size = new Vector2(0.14f, 2.3f);
+                    break;
+                case RoomDirection.Left:
+                    position = new Vector2(-13.85f, 0f);
+                    size = new Vector2(2.3f, 0.14f);
+                    break;
+                case RoomDirection.Right:
+                    position = new Vector2(13.85f, 0f);
+                    size = new Vector2(2.3f, 0.14f);
+                    break;
+                default:
+                    return;
+            }
+
+            CreateRoomVisual($"Room Door Guide {direction}", position, size,
+                WithAlpha(palette.Accent, 0.2f), 2);
+        }
+
+        private GameObject CreateRoomVisual(string objectName, Vector2 position, Vector2 size,
+            Color color, int sortingOrder)
+        {
+            GameObject visual = new(objectName);
+            visual.transform.SetParent(transform, false);
+            visual.transform.position = new Vector3(position.x, position.y, 0f);
+            visual.transform.localScale = new Vector3(size.x, size.y, 1f);
+
+            SpriteRenderer renderer = visual.AddComponent<SpriteRenderer>();
+            renderer.sprite = RuntimeWhiteSprite.Instance;
+            renderer.color = color;
+            renderer.sortingOrder = sortingOrder;
+            roomObjects.Add(visual);
+            return visual;
+        }
+
+        private static RoomVisualPalette GetRoomVisualPalette(Vector2Int room)
+        {
+            int theme = Mathf.Abs(room.x * 7 + room.y * 13) % 3;
+            return theme switch
+            {
+                0 => new RoomVisualPalette(
+                    new Color(0.08f, 0.78f, 0.88f, 1f),
+                    new Color(1f, 0.36f, 0.1f, 1f),
+                    new Color(0.02f, 0.06f, 0.09f, 1f)),
+                1 => new RoomVisualPalette(
+                    new Color(0.24f, 0.62f, 1f, 1f),
+                    new Color(1f, 0.68f, 0.16f, 1f),
+                    new Color(0.04f, 0.05f, 0.14f, 1f)),
+                _ => new RoomVisualPalette(
+                    new Color(0.22f, 0.86f, 0.66f, 1f),
+                    new Color(1f, 0.23f, 0.18f, 1f),
+                    new Color(0.1f, 0.03f, 0.05f, 1f))
+            };
+        }
+
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
         }
 
         private void BuildDoors(Vector2Int room)
@@ -461,7 +636,13 @@ namespace Project.Scripts.World
                 room.y < MaximumRoomY || room == BossGatewayRoom,
                 room.y > MinimumRoomY,
                 room.x > MinimumRoomX,
-                room.x < MaximumRoomX);
+                   room.x < MaximumRoomX);
+        }
+
+        internal bool IsDoorLocked(RoomDirection direction)
+        {
+            return direction != RoomDirection.None && direction == lockedDoorDirection &&
+                   Time.unscaledTime < doorLockUntil;
         }
 
         private static bool IsValidRoom(Vector2Int room)
@@ -585,7 +766,7 @@ namespace Project.Scripts.World
             camera.orthographic = true;
             camera.orthographicSize = 8f;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.24f, 0.12f, 0.055f, 1f);
+            camera.backgroundColor = new Color(0.025f, 0.008f, 0.012f, 1f);
             camera.transform.position = new Vector3(0f, -5f, -10f);
             cameraObject.AddComponent<AudioListener>();
 
@@ -983,6 +1164,20 @@ namespace Project.Scripts.World
             public bool Left { get; }
             public bool Right { get; }
         }
+
+        private readonly struct RoomVisualPalette
+        {
+            public RoomVisualPalette(Color accent, Color warm, Color shadow)
+            {
+                Accent = accent;
+                Warm = warm;
+                Shadow = shadow;
+            }
+
+            public Color Accent { get; }
+            public Color Warm { get; }
+            public Color Shadow { get; }
+        }
     }
 
     public enum RoomDirection
@@ -1008,7 +1203,7 @@ namespace Project.Scripts.World
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (entered || !IsPlayer(other)) return;
+            if (entered || !IsPlayer(other) || world == null || world.IsDoorLocked(direction)) return;
             entered = true;
             world?.RequestRoomChange(direction);
         }
