@@ -25,7 +25,7 @@ namespace Project.Scripts.Controller
 
         public static void Toggle()
         {
-            if (RunSession.HasPendingLevelUp) return;
+            if (RunSession.HasPendingAbilityChoice) return;
 
             if (instance == null)
             {

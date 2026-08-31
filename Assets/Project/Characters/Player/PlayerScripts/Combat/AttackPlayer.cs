@@ -261,6 +261,28 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             return true;
         }
 
+        public bool TryShootAutomatic(Vector2 direction, float damageMultiplier,
+            float visualScale = 1.2f, Color? visualColor = null)
+        {
+            if (!CanShoot() || isReloading || direction.sqrMagnitude < 0.01f) return false;
+
+            Quaternion rotation = Quaternion.Euler(0f, 0f,
+                Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+            GameObject bulletObject = objectPool.GetObject(
+                currentAttack.BulletPrefab, firePoint.position, rotation);
+            if (bulletObject == null) return false;
+
+            if (!ConfigureProjectile(bulletObject, rotation, false, damageMultiplier,
+                    visualScale, visualColor ?? GameLoadout.AbilityColor))
+            {
+                objectPool.ReturnObject(bulletObject, currentAttack.BulletPrefab);
+                return false;
+            }
+
+            if (playerSoundController != null) playerSoundController.PlayFire(volumeShoot * 0.55f);
+            return true;
+        }
+
         private bool ConfigureProjectile(GameObject bulletObject, Quaternion rotation, bool homing,
             float abilityDamageMultiplier, float visualScale, Color visualColor)
         {

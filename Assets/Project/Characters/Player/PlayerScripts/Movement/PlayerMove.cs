@@ -70,7 +70,8 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         public void RefreshProgressionStats()
         {
             if (baseSpeed <= 0f) baseSpeed = speed;
-            speed = Mathf.Max(0f, baseSpeed * GameLoadout.MoveSpeedMultiplier * RunSession.MoveSpeedMultiplier);
+            speed = Mathf.Max(0f, baseSpeed * GameLoadout.MoveSpeedMultiplier *
+                RunSession.MoveSpeedMultiplier);
         }
 
         private void Update()

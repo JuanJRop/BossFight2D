@@ -95,6 +95,7 @@ namespace Project.Scripts.World
         private bool transitioning;
         private bool mapExpanded;
         private bool roomChallengeLocked;
+        private bool puzzleChestClaimed;
         private int activeRoomThreats;
         private Vector2Int currentRoom;
         private RoomDirection lockedDoorDirection;
@@ -261,6 +262,7 @@ namespace Project.Scripts.World
             currentRoom = room;
             visitedRooms.Add(room);
             ClearRoom();
+            RunAbilityController.ResetRoomEffects();
             PaintRoom(room);
             BuildDoors(room);
 
@@ -416,6 +418,7 @@ namespace Project.Scripts.World
             BuildDestructibles(room);
             BuildRoomPuzzle(room);
             BuildRoomEncounter(room);
+            BuildPuzzleChest(room);
         }
 
         private void BuildDestructibles(Vector2Int room)
@@ -514,6 +517,26 @@ namespace Project.Scripts.World
             solvedPuzzleRooms.Add(room);
             roomChallengeLocked = false;
             SpawnPuzzleReward(room);
+            UpdateRoomHud();
+        }
+
+        private void BuildPuzzleChest(Vector2Int room)
+        {
+            if (room != BossGatewayRoom || puzzleChestClaimed || solvedPuzzleRooms.Count < 2) return;
+
+            Transform target = playerBody != null
+                ? playerBody.transform
+                : playerActor != null ? playerActor.transform : null;
+            WorldPuzzleChest chest = WorldPuzzleChest.CreateRuntime(new Vector2(0f, -1.8f),
+                target, transform, OpenPuzzleChest);
+            if (chest != null) roomObjects.Add(chest.gameObject);
+        }
+
+        private void OpenPuzzleChest()
+        {
+            if (puzzleChestClaimed) return;
+            puzzleChestClaimed = true;
+            RunSession.GrantPuzzleChestReward();
             UpdateRoomHud();
         }
 

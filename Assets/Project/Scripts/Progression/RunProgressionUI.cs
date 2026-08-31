@@ -23,12 +23,10 @@ namespace Project.Scripts.Progression
         private Image experienceFill;
         private TMP_Text levelText;
         private TMP_Text experienceText;
-        private TMP_Text statsText;
+        private TMP_Text abilitiesText;
         private TMP_Text overlayTitle;
         private TMP_Text overlaySubtitle;
-        private TMP_Text rerollLabel;
         private Button[] choiceButtons;
-        private Button rerollButton;
 
         public static RunProgressionUI Ensure()
         {
@@ -96,7 +94,7 @@ namespace Project.Scripts.Progression
                 Vector2.zero, new Vector2(0f, 1f), AccentColor, false);
             experienceFill = fillObject.GetComponent<Image>();
 
-            statsText = CreateText("Stats", hudRect, new Vector2(0.235f, 0.04f),
+            abilitiesText = CreateText("Abilities", hudRect, new Vector2(0.235f, 0.04f),
                 new Vector2(0.97f, 0.25f), string.Empty, 13f, MutedColor,
                 TextAlignmentOptions.Left);
 
@@ -115,20 +113,26 @@ namespace Project.Scripts.Progression
                 new Vector2(0.9f, 0.83f), string.Empty, 17f, MutedColor,
                 TextAlignmentOptions.Center);
 
-            choiceButtons = new Button[3];
-            float[] bottoms = { 0.56f, 0.38f, 0.2f };
+            choiceButtons = new Button[5];
+            Vector2[] choiceMins =
+            {
+                new Vector2(0.08f, 0.54f), new Vector2(0.52f, 0.54f),
+                new Vector2(0.08f, 0.35f), new Vector2(0.52f, 0.35f),
+                new Vector2(0.3f, 0.16f)
+            };
+            Vector2[] choiceMaxs =
+            {
+                new Vector2(0.48f, 0.69f), new Vector2(0.92f, 0.69f),
+                new Vector2(0.48f, 0.50f), new Vector2(0.92f, 0.50f),
+                new Vector2(0.7f, 0.31f)
+            };
             for (int index = 0; index < choiceButtons.Length; index++)
             {
                 int capturedIndex = index;
                 choiceButtons[index] = CreateButton($"Upgrade Choice {index + 1}", cardRect,
-                    new Vector2(0.18f, bottoms[index]), new Vector2(0.82f, bottoms[index] + 0.14f),
+                    choiceMins[index], choiceMaxs[index],
                     string.Empty, () => SelectChoice(capturedIndex), true);
             }
-
-            rerollButton = CreateButton("Reroll Choices", cardRect,
-                new Vector2(0.29f, 0.055f), new Vector2(0.71f, 0.145f), string.Empty,
-                RerollChoices, false);
-            rerollLabel = rerollButton.GetComponentInChildren<TMP_Text>(true);
             overlayRoot.SetActive(false);
         }
 
@@ -141,11 +145,7 @@ namespace Project.Scripts.Progression
             experienceText.text = spanish
                 ? $"EXP  {RunSession.Experience} / {RunSession.ExperienceToNextLevel}"
                 : $"XP  {RunSession.Experience} / {RunSession.ExperienceToNextLevel}";
-            statsText.text = string.Format(
-                spanish ? "VEL {0}   FUE {1}   CAD {2}   DES {3}   STA {4}" :
-                    "SPD {0}   STR {1}   CAD {2}   DEX {3}   STA {4}",
-                RunSession.Speed, RunSession.Strength, RunSession.Cadence,
-                RunSession.Dexterity, RunSession.Stamina);
+            abilitiesText.text = RunSession.GetAbilitySummary(spanish);
 
             float normalized = RunSession.ExperienceToNextLevel > 0
                 ? (float)RunSession.Experience / RunSession.ExperienceToNextLevel
@@ -172,44 +172,38 @@ namespace Project.Scripts.Progression
 
         private void UpdateLevelUpChoices(bool spanish)
         {
-            overlayTitle.text = spanish ? $"NIVEL {RunSession.Level}" : $"LEVEL {RunSession.Level}";
-            overlaySubtitle.text = spanish ? "ELIGE UNA MEJORA" : "CHOOSE AN UPGRADE";
+            overlayTitle.text = spanish ? "NUEVA HABILIDAD" : "NEW ABILITY";
+            overlaySubtitle.text = spanish
+                ? $"NIVEL {RunSession.Level}  |  ELIGE LIBREMENTE"
+                : $"LEVEL {RunSession.Level}  |  CHOOSE FREELY";
 
             for (int index = 0; index < choiceButtons.Length; index++)
             {
-                bool available = index < RunSession.CurrentChoices.Count;
+                bool available = index < RunSession.CurrentAbilityChoices.Count;
                 choiceButtons[index].gameObject.SetActive(available);
                 if (!available) continue;
 
-                PlayerStatType stat = RunSession.CurrentChoices[index];
+                RunAbilityType ability = RunSession.CurrentAbilityChoices[index];
                 TMP_Text label = choiceButtons[index].GetComponentInChildren<TMP_Text>(true);
                 if (label != null)
                 {
-                    label.text = $"{RunSession.GetStatName(stat, spanish)}  +1\n" +
-                        $"{RunSession.GetStatDescription(stat, spanish)}   " +
-                        (spanish ? "ACTUAL" : "CURRENT") + $" {RunSession.GetStatValue(stat)}";
+                    int currentRank = RunSession.GetAbilityRank(ability);
+                    string rankText = currentRank >= RunSession.MaximumAbilityRank
+                        ? (spanish ? $"NIVEL MAXIMO {currentRank}" : $"MAX RANK {currentRank}")
+                        : currentRank > 0
+                        ? (spanish ? $"NIVEL ACTUAL {currentRank}  >  {currentRank + 1}" :
+                            $"CURRENT RANK {currentRank}  >  {currentRank + 1}")
+                        : (spanish ? "NUEVA HABILIDAD  >  NIVEL 1" : "NEW ABILITY  >  RANK 1");
+                    label.text = $"{RunSession.GetAbilityName(ability, spanish)}\n" +
+                        $"{RunSession.GetAbilityDescription(ability, spanish)}\n{rankText}";
                 }
             }
-
-            if (rerollLabel != null)
-            {
-                rerollLabel.text = RunSession.RerollsRemaining > 0
-                    ? (spanish ? $"CAMBIAR OPCIONES  ({RunSession.RerollsRemaining})" :
-                        $"REROLL OPTIONS  ({RunSession.RerollsRemaining})")
-                    : (spanish ? "CAMBIO USADO" : "REROLL USED");
-            }
-            rerollButton.interactable = RunSession.RerollsRemaining > 0;
         }
 
         private void SelectChoice(int index)
         {
-            if (index < 0 || index >= RunSession.CurrentChoices.Count) return;
-            RunSession.SelectUpgrade(RunSession.CurrentChoices[index]);
-        }
-
-        private void RerollChoices()
-        {
-            RunSession.RerollLevelUpChoices();
+            if (index < 0 || index >= RunSession.CurrentAbilityChoices.Count) return;
+            RunSession.SelectAbility(RunSession.CurrentAbilityChoices[index]);
         }
 
         private void OpenLevelUp()

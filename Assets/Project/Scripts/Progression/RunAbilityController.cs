@@ -1,0 +1,450 @@
+using System.Collections;
+using System.Collections.Generic;
+using Project.Characters.Enemy.EnemyScripts.Core;
+using Project.Characters.Player.PlayerScripts.Combat;
+using Project.Scripts.Controller;
+using Project.Scripts.World;
+using UnityEngine;
+
+namespace Project.Scripts.Progression
+{
+    public sealed class RunAbilityController : MonoBehaviour
+    {
+        private const float AutoBulletRange = 15f;
+        private const float AbilityRange = 16f;
+        private static readonly Vector2 RoomMinimum = new(-16.1f, -10.1f);
+        private static readonly Vector2 RoomMaximum = new(16.1f, 10.1f);
+        private static readonly HashSet<RunAbilityController> ActiveControllers = new();
+
+        private readonly List<RunAbilityOrb> orbs = new();
+        private readonly List<Health> targets = new();
+        private readonly HashSet<Health> selectedTargets = new();
+        private readonly List<GameObject> activeEffects = new();
+
+        private Health playerHealth;
+        private Transform player;
+        private AttackPlayer attack;
+        private PowerUp powerUp;
+        private Material effectMaterial;
+        private float autoBulletTimer;
+        private float chainLaserTimer;
+        private float voidNovaTimer;
+        private bool configured;
+
+        public static RunAbilityController Ensure(Health health)
+        {
+            if (health == null) return null;
+            RunAbilityController controller = health.GetComponent<RunAbilityController>();
+            if (controller == null) controller = health.gameObject.AddComponent<RunAbilityController>();
+            controller.Configure(health);
+            return controller;
+        }
+
+        public static void ResetRoomEffects()
+        {
+            List<RunAbilityController> snapshot = new(ActiveControllers);
+            foreach (RunAbilityController controller in snapshot)
+                controller?.ResetRoomEffectsInternal();
+        }
+
+        private void Awake()
+        {
+            ActiveControllers.Add(this);
+            if (playerHealth == null) playerHealth = GetComponent<Health>();
+            if (playerHealth != null) Configure(playerHealth);
+        }
+
+        private void OnDestroy()
+        {
+            ActiveControllers.Remove(this);
+            ClearOrbs();
+            ClearEffects();
+            if (effectMaterial != null) Destroy(effectMaterial);
+        }
+
+        private void Configure(Health health)
+        {
+            playerHealth = health;
+            player = health.transform.root != null && health.transform.root.CompareTag("Player")
+                ? health.transform.root
+                : health.transform;
+            attack = FindPlayerComponent<AttackPlayer>();
+            powerUp = FindPlayerComponent<PowerUp>();
+            configured = true;
+            ActiveControllers.Add(this);
+        }
+
+        private void Update()
+        {
+            if (!configured || playerHealth == null || player == null) return;
+            if (!playerHealth.IsAlive)
+            {
+                ClearOrbs();
+                return;
+            }
+            if (UIManager.instance != null && UIManager.instance.IsPaused) return;
+
+            SyncOrbs();
+            float deltaTime = Time.deltaTime;
+
+            int autoBulletRank = RunSession.GetAbilityRank(RunAbilityType.AutoBullets);
+            if (autoBulletRank > 0)
+            {
+                autoBulletTimer -= deltaTime;
+                if (autoBulletTimer <= 0f)
+                {
+                    bool fired = FireAutomaticBullet(autoBulletRank);
+                    autoBulletTimer = fired
+                        ? Mathf.Max(0.3f, 1.02f - autoBulletRank * 0.14f)
+                        : 0.2f;
+                }
+            }
+
+            int chainLaserRank = RunSession.GetAbilityRank(RunAbilityType.ChainLaser);
+            if (chainLaserRank > 0)
+            {
+                chainLaserTimer -= deltaTime;
+                if (chainLaserTimer <= 0f)
+                {
+                    FireChainLaser(chainLaserRank);
+                    chainLaserTimer = Mathf.Max(2.2f, 4.8f - chainLaserRank * 0.52f);
+                }
+            }
+
+            int voidNovaRank = RunSession.GetAbilityRank(RunAbilityType.VoidNova);
+            if (voidNovaRank > 0)
+            {
+                voidNovaTimer -= deltaTime;
+                if (voidNovaTimer <= 0f)
+                {
+                    FireVoidNova(voidNovaRank);
+                    voidNovaTimer = Mathf.Max(2.7f, 5.6f - voidNovaRank * 0.58f);
+                }
+            }
+        }
+
+        private void SyncOrbs()
+        {
+            int rank = RunSession.GetAbilityRank(RunAbilityType.BouncingOrb);
+            int desiredCount = Mathf.Min(3, rank);
+
+            for (int index = orbs.Count - 1; index >= 0; index--)
+            {
+                if (orbs[index] != null) continue;
+                orbs.RemoveAt(index);
+            }
+
+            while (orbs.Count < desiredCount)
+            {
+                RunAbilityOrb orb = RunAbilityOrb.CreateRuntime(player, orbs.Count);
+                if (orb == null) break;
+                orbs.Add(orb);
+            }
+        }
+
+        private bool FireAutomaticBullet(int rank)
+        {
+            if (attack == null) attack = FindPlayerComponent<AttackPlayer>();
+            if (attack == null) return false;
+
+            Health target = FindClosestEnemy(player.position, AutoBulletRange);
+            if (target == null) return false;
+
+            Vector2 direction = ((Vector2)target.transform.position - (Vector2)player.position).normalized;
+            return attack.TryShootAutomatic(direction, 0.68f + rank * 0.18f,
+                1.08f + rank * 0.05f, new Color(0.24f, 1f, 0.9f, 1f));
+        }
+
+        private void FireChainLaser(int rank)
+        {
+            CollectEnemies(player.position, AbilityRange);
+            if (targets.Count == 0) return;
+
+            int targetCount = Mathf.Min(targets.Count, 1 + rank);
+            selectedTargets.Clear();
+            List<Vector3> points = new(targetCount + 1) { player.position };
+            Vector2 previousPosition = player.position;
+
+            for (int index = 0; index < targetCount; index++)
+            {
+                Health target = FindClosestUnusedEnemy(previousPosition);
+                if (target == null) break;
+                selectedTargets.Add(target);
+                previousPosition = target.transform.position;
+                points.Add(target.transform.position);
+                ApplyAbilityDamage(target, 22f + rank * 12f);
+            }
+
+            if (points.Count > 1) SpawnLineEffect("Chain Laser", points,
+                new Color(0.22f, 0.92f, 1f, 1f), 0.2f, 0.24f);
+        }
+
+        private void FireVoidNova(int rank)
+        {
+            float radius = 2.4f + rank * 0.38f;
+            CollectEnemies(player.position, radius);
+            foreach (Health target in targets)
+                ApplyAbilityDamage(target, 26f + rank * 13f);
+
+            SpawnRingEffect(player.position, radius, new Color(1f, 0.18f, 0.65f, 1f),
+                0.3f, 0.16f);
+        }
+
+        private void ApplyAbilityDamage(Health target, float damage)
+        {
+            if (target == null || !target.IsAlive || !target.CompareTag("Enemy")) return;
+
+            float before = target.CurrentHealth;
+            target.TakeDamage(damage * RunSession.DamageMultiplier);
+            float dealtDamage = Mathf.Max(0f, before - target.CurrentHealth);
+            if (dealtDamage > 0f) powerUp?.RegisterEnemyHit(dealtDamage);
+        }
+
+        private void CollectEnemies(Vector2 origin, float range)
+        {
+            targets.Clear();
+            HashSet<Health> seen = new();
+            foreach (GameObject enemyObject in GameObject.FindGameObjectsWithTag("Enemy"))
+            {
+                if (enemyObject == null) continue;
+                Health enemyHealth = enemyObject.GetComponent<Health>();
+                if (enemyHealth == null) enemyHealth = enemyObject.GetComponentInChildren<Health>(true);
+                if (enemyHealth == null || !enemyHealth.IsAlive || !seen.Add(enemyHealth)) continue;
+                if (Vector2.Distance(origin, enemyHealth.transform.position) <= range)
+                    targets.Add(enemyHealth);
+            }
+        }
+
+        private Health FindClosestEnemy(Vector2 origin, float range)
+        {
+            CollectEnemies(origin, range);
+            Health closest = null;
+            float closestDistance = float.MaxValue;
+            foreach (Health target in targets)
+            {
+                float distance = Vector2.Distance(origin, target.transform.position);
+                if (distance >= closestDistance) continue;
+                closestDistance = distance;
+                closest = target;
+            }
+
+            return closest;
+        }
+
+        private Health FindClosestUnusedEnemy(Vector2 origin)
+        {
+            Health closest = null;
+            float closestDistance = float.MaxValue;
+            foreach (Health target in targets)
+            {
+                if (target == null || selectedTargets.Contains(target)) continue;
+                float distance = Vector2.Distance(origin, target.transform.position);
+                if (distance >= closestDistance) continue;
+                closestDistance = distance;
+                closest = target;
+            }
+
+            return closest;
+        }
+
+        private void SpawnLineEffect(string objectName, List<Vector3> points, Color color,
+            float duration, float width)
+        {
+            GameObject effect = new(objectName);
+            LineRenderer line = effect.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.positionCount = points.Count;
+            line.numCornerVertices = 3;
+            line.numCapVertices = 3;
+            line.startWidth = width;
+            line.endWidth = width * 0.72f;
+            line.startColor = color;
+            line.endColor = new Color(color.r, color.g, color.b, 0.1f);
+            line.sortingOrder = 48;
+            line.material = GetEffectMaterial();
+            line.textureMode = LineTextureMode.Stretch;
+            line.SetPositions(points.ToArray());
+            activeEffects.Add(effect);
+            StartCoroutine(FadeLine(effect, line, color, duration));
+        }
+
+        private void SpawnRingEffect(Vector2 center, float radius, Color color,
+            float duration, float width)
+        {
+            const int pointCount = 42;
+            List<Vector3> points = new(pointCount);
+            for (int index = 0; index < pointCount; index++)
+            {
+                float angle = index / (float)pointCount * Mathf.PI * 2f;
+                points.Add(new Vector3(center.x + Mathf.Cos(angle) * radius,
+                    center.y + Mathf.Sin(angle) * radius, -0.35f));
+            }
+
+            GameObject effect = new("Void Nova Ring");
+            LineRenderer line = effect.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.loop = true;
+            line.positionCount = pointCount;
+            line.numCornerVertices = 3;
+            line.startWidth = width;
+            line.endWidth = width;
+            line.startColor = color;
+            line.endColor = new Color(color.r, color.g, color.b, 0.1f);
+            line.sortingOrder = 48;
+            line.material = GetEffectMaterial();
+            line.SetPositions(points.ToArray());
+            activeEffects.Add(effect);
+            StartCoroutine(FadeLine(effect, line, color, duration));
+        }
+
+        private IEnumerator FadeLine(GameObject effect, LineRenderer line, Color color,
+            float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration && effect != null)
+            {
+                elapsed += Time.deltaTime;
+                float alpha = 1f - Mathf.Clamp01(elapsed / duration);
+                Color start = new(color.r, color.g, color.b, alpha);
+                Color end = new(color.r, color.g, color.b, alpha * 0.12f);
+                line.startColor = start;
+                line.endColor = end;
+                yield return null;
+            }
+
+            if (effect != null)
+            {
+                activeEffects.Remove(effect);
+                Destroy(effect);
+            }
+        }
+
+        private Material GetEffectMaterial()
+        {
+            if (effectMaterial != null) return effectMaterial;
+            Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+            effectMaterial = shader != null ? new Material(shader) : null;
+            return effectMaterial;
+        }
+
+        private void ResetRoomEffectsInternal()
+        {
+            ClearOrbs();
+            ClearEffects();
+            StopAllCoroutines();
+            autoBulletTimer = 0f;
+            chainLaserTimer = 0f;
+            voidNovaTimer = 0f;
+        }
+
+        private void ClearOrbs()
+        {
+            foreach (RunAbilityOrb orb in orbs)
+            {
+                if (orb != null) Destroy(orb.gameObject);
+            }
+            orbs.Clear();
+        }
+
+        private void ClearEffects()
+        {
+            foreach (GameObject effect in activeEffects)
+            {
+                if (effect != null) Destroy(effect);
+            }
+            activeEffects.Clear();
+        }
+
+        private T FindPlayerComponent<T>() where T : Component
+        {
+            T component = playerHealth != null ? playerHealth.GetComponent<T>() : null;
+            if (component == null && playerHealth != null)
+                component = playerHealth.GetComponentInParent<T>();
+            if (component == null && playerHealth != null)
+                component = playerHealth.GetComponentInChildren<T>(true);
+            return component;
+        }
+    }
+
+    public sealed class RunAbilityOrb : MonoBehaviour
+    {
+        private static readonly Vector2 RoomMinimum = new(-16.1f, -10.1f);
+        private static readonly Vector2 RoomMaximum = new(16.1f, 10.1f);
+        private readonly Dictionary<Health, float> hitCooldowns = new();
+
+        private Transform owner;
+        private Vector2 velocity;
+        private SpriteRenderer orbRenderer;
+        private float nextHitTime;
+        private int index;
+
+        public static RunAbilityOrb CreateRuntime(Transform ownerTransform, int orbIndex)
+        {
+            if (ownerTransform == null) return null;
+            GameObject orbObject = new($"Bouncing Orb {orbIndex + 1}");
+            orbObject.transform.position = ownerTransform.position;
+            RunAbilityOrb orb = orbObject.AddComponent<RunAbilityOrb>();
+            orb.Configure(ownerTransform, orbIndex);
+            return orb;
+        }
+
+        private void Configure(Transform ownerTransform, int orbIndex)
+        {
+            owner = ownerTransform;
+            index = orbIndex;
+            float angle = (42f + index * 137f) * Mathf.Deg2Rad;
+            velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 4.4f;
+
+            orbRenderer = gameObject.AddComponent<SpriteRenderer>();
+            orbRenderer.sprite = RuntimeWhiteSprite.Instance;
+            orbRenderer.color = new Color(0.28f, 0.96f, 1f, 1f);
+            orbRenderer.sortingOrder = 47;
+            transform.localScale = Vector3.one * 0.62f;
+            nextHitTime = Time.time + 0.25f;
+        }
+
+        private void Update()
+        {
+            int rank = RunSession.GetAbilityRank(RunAbilityType.BouncingOrb);
+            if (owner == null || rank <= 0)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            velocity = velocity.normalized * (4.4f + rank * 0.38f);
+            Vector2 position = transform.position;
+            position += velocity * Time.deltaTime;
+            if (position.x <= RoomMinimum.x || position.x >= RoomMaximum.x)
+            {
+                position.x = Mathf.Clamp(position.x, RoomMinimum.x, RoomMaximum.x);
+                velocity.x = -velocity.x;
+            }
+            if (position.y <= RoomMinimum.y || position.y >= RoomMaximum.y)
+            {
+                position.y = Mathf.Clamp(position.y, RoomMinimum.y, RoomMaximum.y);
+                velocity.y = -velocity.y;
+            }
+
+            transform.position = new Vector3(position.x, position.y, -0.3f);
+            transform.Rotate(0f, 0f, 260f * Time.deltaTime);
+            float pulse = 1f + Mathf.Sin(Time.time * 14f + index) * 0.12f;
+            transform.localScale = Vector3.one * (0.62f + rank * 0.035f) * pulse;
+
+            if (Time.time < nextHitTime) return;
+            nextHitTime = Time.time + 0.12f;
+            foreach (Collider2D hit in Physics2D.OverlapCircleAll(position, 0.58f))
+            {
+                if (hit == null) continue;
+                Health target = hit.GetComponentInParent<Health>();
+                if (target == null || !target.IsAlive || !target.CompareTag("Enemy")) continue;
+                if (hitCooldowns.TryGetValue(target, out float cooldown) && Time.time < cooldown) continue;
+
+                float before = target.CurrentHealth;
+                target.TakeDamage((19f + rank * 11f) * RunSession.DamageMultiplier);
+                if (target.CurrentHealth < before) hitCooldowns[target] = Time.time + 0.38f;
+            }
+        }
+    }
+}

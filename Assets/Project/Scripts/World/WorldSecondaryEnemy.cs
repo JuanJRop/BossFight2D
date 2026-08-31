@@ -68,6 +68,7 @@ namespace Project.Scripts.World
         private bool returningHome;
         private bool deathReported;
         private bool dying;
+        private bool facingLeft;
 
         public static WorldSecondaryEnemy CreateRuntime(string objectName, Vector2 position,
             WorldEnemyPattern enemyPattern, float maxHealth, float speed, float damage,
@@ -175,6 +176,7 @@ namespace Project.Scripts.World
             shadowTransform = transform.Find("Goblin Shadow");
             visualBaseScale = visualTransform != null ? visualTransform.localScale : Vector3.one;
             visualPulse = Mathf.Abs(GetInstanceID() % 10) * 0.08f;
+            facingLeft = player != null && player.position.x < body.position.x;
             alerted = false;
             returningHome = false;
             state = EnemyState.Patrol;
@@ -234,6 +236,25 @@ namespace Project.Scripts.World
 
             ClampToRoom();
             UpdatePresentation();
+        }
+
+        private void LateUpdate()
+        {
+            if (dying) return;
+            KeepUpright();
+        }
+
+        private void KeepUpright()
+        {
+            if (body != null)
+            {
+                body.rotation = 0f;
+                body.angularVelocity = 0f;
+            }
+
+            transform.rotation = Quaternion.identity;
+            if (visualTransform != null) visualTransform.localRotation = Quaternion.identity;
+            if (shadowTransform != null) shadowTransform.localRotation = Quaternion.identity;
         }
 
         private void BeginAlert()
@@ -568,7 +589,10 @@ namespace Project.Scripts.World
                     ConfigurePixelSprite(bodyRenderer.sprite);
                     lastConfiguredSprite = bodyRenderer.sprite;
                 }
-                bodyRenderer.flipX = player != null && player.position.x < transform.position.x;
+                bodyRenderer.transform.localRotation = Quaternion.identity;
+                if (body != null && Mathf.Abs(body.linearVelocity.x) > 0.08f)
+                    facingLeft = body.linearVelocity.x < 0f;
+                bodyRenderer.flipX = facingLeft;
 
                 float bob = walking
                     ? Mathf.Sin((Time.time + visualPulse) * 12f) * 0.045f

@@ -16,6 +16,15 @@ namespace Project.Scripts.Progression
         Stamina
     }
 
+    public enum RunAbilityType
+    {
+        BouncingOrb,
+        AutoBullets,
+        ChainLaser,
+        VoidNova,
+        Overclock
+    }
+
     public static class RunSession
     {
         private const int BaseExperienceToNextLevel = 100;
@@ -27,20 +36,20 @@ namespace Project.Scripts.Progression
         private const float DexterityDashBonusPerPoint = 0.12f;
         private const float StaminaHealthBonusPerPoint = 0.1f;
 
-        private static readonly PlayerStatType[] StatPool =
+        private static readonly RunAbilityType[] AbilityPool =
         {
-            PlayerStatType.Speed,
-            PlayerStatType.Strength,
-            PlayerStatType.Cadence,
-            PlayerStatType.Dexterity,
-            PlayerStatType.Stamina
+            RunAbilityType.BouncingOrb,
+            RunAbilityType.AutoBullets,
+            RunAbilityType.ChainLaser,
+            RunAbilityType.VoidNova,
+            RunAbilityType.Overclock
         };
 
-        private static readonly List<PlayerStatType> currentChoices = new();
+        private static readonly List<RunAbilityType> currentAbilityChoices = new();
+        private static readonly int[] abilityRanks = new int[5];
         private static Health trackedPlayerHealth;
         private static bool runStarted;
-        private static int pendingLevelUps;
-        private static int rerollsRemaining;
+        private static int pendingAbilityRewards;
 
         public static event Action<int> OnPlayerDeathsChanged;
         public static event Action OnProgressionChanged;
@@ -56,15 +65,22 @@ namespace Project.Scripts.Progression
         public static int Cadence { get; private set; }
         public static int Dexterity { get; private set; }
         public static int Stamina { get; private set; }
+        public static int AbilityLevelInterval => 5;
+        public static int MaximumAbilityRank => 5;
         public static int ExperienceToNextLevel => RequiredExperience(Level);
-        public static bool HasPendingLevelUp => pendingLevelUps > 0 && currentChoices.Count > 0;
-        public static int RerollsRemaining => rerollsRemaining;
-        public static IReadOnlyList<PlayerStatType> CurrentChoices => currentChoices;
+        public static bool HasPendingAbilityChoice =>
+            pendingAbilityRewards > 0 && currentAbilityChoices.Count > 0;
+        public static bool HasPendingLevelUp => HasPendingAbilityChoice;
+        public static int PendingAbilityRewards => pendingAbilityRewards;
+        public static IReadOnlyList<RunAbilityType> CurrentAbilityChoices => currentAbilityChoices;
 
-        public static float MoveSpeedMultiplier => 1f + Speed * SpeedBonusPerPoint;
-        public static float DamageMultiplier => 1f + Strength * StrengthBonusPerPoint;
+        public static float MoveSpeedMultiplier =>
+            1f + Speed * SpeedBonusPerPoint + GetAbilityRank(RunAbilityType.Overclock) * 0.08f;
+        public static float DamageMultiplier =>
+            1f + Strength * StrengthBonusPerPoint + GetAbilityRank(RunAbilityType.Overclock) * 0.1f;
         public static float AttackCooldownMultiplier =>
-            1f / (1f + Cadence * CadenceBonusPerPoint);
+            1f / (1f + Cadence * CadenceBonusPerPoint +
+                GetAbilityRank(RunAbilityType.Overclock) * 0.12f);
         public static float ProjectileSpeedMultiplier =>
             1f + Dexterity * DexterityProjectileBonusPerPoint;
         public static float DashRechargeMultiplier =>
@@ -88,9 +104,9 @@ namespace Project.Scripts.Progression
             Cadence = 0;
             Dexterity = 0;
             Stamina = 0;
-            pendingLevelUps = 0;
-            rerollsRemaining = 0;
-            currentChoices.Clear();
+            pendingAbilityRewards = 0;
+            currentAbilityChoices.Clear();
+            for (int index = 0; index < abilityRanks.Length; index++) abilityRanks[index] = 0;
             OnPlayerDeathsChanged?.Invoke(PlayerDeaths);
             OnProgressionChanged?.Invoke();
             OnLevelUpChoicesChanged?.Invoke();
@@ -114,6 +130,7 @@ namespace Project.Scripts.Progression
 
             if (ReferenceEquals(trackedPlayerHealth, playerHealth))
             {
+                RunAbilityController.Ensure(playerHealth);
                 RunProgressionUI.Ensure();
                 return;
             }
@@ -122,6 +139,7 @@ namespace Project.Scripts.Progression
 
             trackedPlayerHealth = playerHealth;
             trackedPlayerHealth.OnDied += HandlePlayerDied;
+            RunAbilityController.Ensure(playerHealth);
             RunProgressionUI.Ensure();
         }
 
@@ -154,61 +172,115 @@ namespace Project.Scripts.Progression
             {
                 Experience -= RequiredExperience(Level);
                 Level++;
-                pendingLevelUps++;
+                if (Level % AbilityLevelInterval == 0) pendingAbilityRewards++;
             }
 
-            if (pendingLevelUps > 0 && currentChoices.Count == 0)
-                PrepareLevelUpChoices(3);
+            if (pendingAbilityRewards > 0 && currentAbilityChoices.Count == 0)
+                PrepareAbilityChoices();
 
             OnProgressionChanged?.Invoke();
             OnLevelUpChoicesChanged?.Invoke();
         }
 
-        public static bool SelectUpgrade(PlayerStatType stat)
+        public static bool SelectAbility(RunAbilityType ability)
         {
-            if (!HasPendingLevelUp || !currentChoices.Contains(stat)) return false;
+            if (!HasPendingAbilityChoice || !currentAbilityChoices.Contains(ability)) return false;
 
-            switch (stat)
-            {
-                case PlayerStatType.Speed:
-                    Speed++;
-                    break;
-                case PlayerStatType.Strength:
-                    Strength++;
-                    break;
-                case PlayerStatType.Cadence:
-                    Cadence++;
-                    break;
-                case PlayerStatType.Dexterity:
-                    Dexterity++;
-                    break;
-                case PlayerStatType.Stamina:
-                    Stamina++;
-                    trackedPlayerHealth?.AddMaxHealthPercent(StaminaHealthBonusPerPoint);
-                    break;
-            }
+            int abilityIndex = (int)ability;
+            if (abilityIndex < 0 || abilityIndex >= abilityRanks.Length) return false;
+            abilityRanks[abilityIndex] = Mathf.Min(MaximumAbilityRank, abilityRanks[abilityIndex] + 1);
+            pendingAbilityRewards = Mathf.Max(0, pendingAbilityRewards - 1);
+            currentAbilityChoices.Clear();
 
-            pendingLevelUps--;
-            currentChoices.Clear();
-            rerollsRemaining = 0;
+            if (pendingAbilityRewards > 0) PrepareAbilityChoices();
             RefreshPlayerStats();
-
-            if (pendingLevelUps > 0)
-                PrepareLevelUpChoices(3);
-
             OnProgressionChanged?.Invoke();
             OnLevelUpChoicesChanged?.Invoke();
             return true;
         }
 
-        public static bool RerollLevelUpChoices()
+        public static void GrantAbility(RunAbilityType ability, int ranks = 1)
         {
-            if (!HasPendingLevelUp || rerollsRemaining <= 0) return false;
-            rerollsRemaining--;
-            PrepareLevelUpChoices(2, false);
+            EnsureRunStarted();
+            int abilityIndex = (int)ability;
+            if (abilityIndex < 0 || abilityIndex >= abilityRanks.Length || ranks <= 0) return;
+
+            abilityRanks[abilityIndex] = Mathf.Min(MaximumAbilityRank, abilityRanks[abilityIndex] + ranks);
+            RefreshPlayerStats();
             OnProgressionChanged?.Invoke();
-            OnLevelUpChoicesChanged?.Invoke();
-            return true;
+        }
+
+        public static void GrantPuzzleChestReward()
+        {
+            EnsureRunStarted();
+            abilityRanks[(int)RunAbilityType.BouncingOrb] = Mathf.Min(MaximumAbilityRank,
+                abilityRanks[(int)RunAbilityType.BouncingOrb] + 1);
+            abilityRanks[(int)RunAbilityType.ChainLaser] = Mathf.Min(MaximumAbilityRank,
+                abilityRanks[(int)RunAbilityType.ChainLaser] + 1);
+            trackedPlayerHealth?.Heal(trackedPlayerHealth.MaxHealth * 0.35f);
+            RefreshPlayerStats();
+            OnProgressionChanged?.Invoke();
+        }
+
+        public static bool HasAbility(RunAbilityType ability)
+        {
+            return GetAbilityRank(ability) > 0;
+        }
+
+        public static int GetAbilityRank(RunAbilityType ability)
+        {
+            int index = (int)ability;
+            return index >= 0 && index < abilityRanks.Length ? abilityRanks[index] : 0;
+        }
+
+        public static string GetAbilityName(RunAbilityType ability, bool spanish)
+        {
+            return ability switch
+            {
+                RunAbilityType.BouncingOrb => spanish ? "ORBE REBOTADOR" : "BOUNCING ORB",
+                RunAbilityType.AutoBullets => spanish ? "BALAS AUTOMATICAS" : "AUTO BULLETS",
+                RunAbilityType.ChainLaser => spanish ? "RAYO ENCADENADO" : "CHAIN LASER",
+                RunAbilityType.VoidNova => spanish ? "NOVA DEL VACIO" : "VOID NOVA",
+                RunAbilityType.Overclock => spanish ? "SOBRECARGA" : "OVERCLOCK",
+                _ => string.Empty
+            };
+        }
+
+        public static string GetAbilityDescription(RunAbilityType ability, bool spanish)
+        {
+            return ability switch
+            {
+                RunAbilityType.BouncingOrb => spanish
+                    ? "Una esfera rebota por la sala y golpea enemigos"
+                    : "A sphere ricochets around the room and hits enemies",
+                RunAbilityType.AutoBullets => spanish
+                    ? "Dispara automaticamente al enemigo mas cercano"
+                    : "Automatically fires at the nearest enemy",
+                RunAbilityType.ChainLaser => spanish
+                    ? "Un rayo salta entre varios enemigos"
+                    : "A laser jumps between multiple enemies",
+                RunAbilityType.VoidNova => spanish
+                    ? "Explosiones periodicas alrededor del jugador"
+                    : "Periodic explosions around the player",
+                RunAbilityType.Overclock => spanish
+                    ? "+8% velocidad, +10% dano y +12% cadencia por rango"
+                    : "+8% speed, +10% damage and +12% fire rate per rank",
+                _ => string.Empty
+            };
+        }
+
+        public static string GetAbilitySummary(bool spanish)
+        {
+            List<string> equipped = new();
+            foreach (RunAbilityType ability in AbilityPool)
+            {
+                int rank = GetAbilityRank(ability);
+                if (rank <= 0) continue;
+                equipped.Add($"{GetAbilityName(ability, spanish)} {rank}");
+            }
+
+            if (equipped.Count == 0) return spanish ? "HABILIDADES: NINGUNA" : "ABILITIES: NONE";
+            return (spanish ? "HABILIDADES: " : "ABILITIES: ") + string.Join("  |  ", equipped);
         }
 
         public static int RequiredExperience(int level)
@@ -255,18 +327,10 @@ namespace Project.Scripts.Progression
             };
         }
 
-        private static void PrepareLevelUpChoices(int count, bool resetRerolls = true)
+        private static void PrepareAbilityChoices()
         {
-            currentChoices.Clear();
-            int targetCount = Mathf.Clamp(count, 1, StatPool.Length);
-            int guard = 0;
-            while (currentChoices.Count < targetCount && guard++ < 100)
-            {
-                PlayerStatType candidate = StatPool[UnityEngine.Random.Range(0, StatPool.Length)];
-                if (!currentChoices.Contains(candidate)) currentChoices.Add(candidate);
-            }
-
-            if (resetRerolls) rerollsRemaining = 1;
+            currentAbilityChoices.Clear();
+            foreach (RunAbilityType ability in AbilityPool) currentAbilityChoices.Add(ability);
         }
 
         private static void RefreshPlayerStats()
