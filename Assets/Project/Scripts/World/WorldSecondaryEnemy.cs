@@ -112,7 +112,7 @@ namespace Project.Scripts.World
             indicator.sortingOrder = 10;
 
             CircleCollider2D collider = enemyObject.AddComponent<CircleCollider2D>();
-            collider.isTrigger = true;
+            collider.isTrigger = false;
             collider.radius = 0.45f;
 
             Rigidbody2D rigidbody = enemyObject.AddComponent<Rigidbody2D>();
@@ -322,7 +322,7 @@ namespace Project.Scripts.World
                 return true;
             }
 
-            body.linearVelocity = toTarget.normalized * speed;
+            SetCardinalVelocity(toTarget, speed);
             return false;
         }
 
@@ -337,12 +337,13 @@ namespace Project.Scripts.World
                     {
                         dashDirection = ((Vector2)player.position - body.position).normalized;
                         if (dashDirection.sqrMagnitude < 0.01f) dashDirection = Vector2.right;
+                        dashDirection = ToCardinalDirection(dashDirection);
                         state = EnemyState.Dash;
                         stateTime = 0.38f;
                     }
                     break;
                 case EnemyState.Dash:
-                    body.linearVelocity = dashDirection * moveSpeed * 3.2f;
+                    SetCardinalVelocity(dashDirection, moveSpeed * 3.2f);
                     stateTime -= Time.deltaTime;
                     if (stateTime <= 0f)
                     {
@@ -455,13 +456,13 @@ namespace Project.Scripts.World
                 movement = strafe * side * 0.72f;
             }
 
-            body.linearVelocity = movement.normalized * moveSpeed;
+            SetCardinalVelocity(movement, moveSpeed);
         }
 
         private void MoveTowardsPlayer(float speed)
         {
             Vector2 direction = ((Vector2)player.position - body.position).normalized;
-            body.linearVelocity = direction * speed;
+            SetCardinalVelocity(direction, speed);
         }
 
         private void FireProjectile()
@@ -489,8 +490,9 @@ namespace Project.Scripts.World
             }
         }
 
-        private void OnTriggerStay2D(Collider2D other)
+        private void OnCollisionStay2D(Collision2D collision)
         {
+            Collider2D other = collision != null ? collision.collider : null;
             if (dying || !health.IsAlive || !IsPlayer(other)) return;
             if (!alerted) BeginAlert();
             if (pattern == WorldEnemyPattern.Chaser) return;
@@ -631,6 +633,24 @@ namespace Project.Scripts.World
             if (body != null) body.linearVelocity = Vector2.zero;
         }
 
+        private void SetCardinalVelocity(Vector2 direction, float speed)
+        {
+            if (body == null) return;
+
+            Vector2 cardinalDirection = ToCardinalDirection(direction);
+            body.linearVelocity = cardinalDirection * Mathf.Max(0f, speed);
+            if (Mathf.Abs(cardinalDirection.x) > 0.01f)
+                facingLeft = cardinalDirection.x < 0f;
+        }
+
+        private static Vector2 ToCardinalDirection(Vector2 direction)
+        {
+            if (direction.sqrMagnitude < 0.0001f) return Vector2.zero;
+            return Mathf.Abs(direction.x) >= Mathf.Abs(direction.y)
+                ? new Vector2(Mathf.Sign(direction.x), 0f)
+                : new Vector2(0f, Mathf.Sign(direction.y));
+        }
+
         private void ClampToRoom()
         {
             if (body == null) return;
@@ -726,7 +746,14 @@ namespace Project.Scripts.World
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (spent || other == null || !IsPlayer(other)) return;
+            if (spent || other == null) return;
+            if (IsWall(other))
+            {
+                spent = true;
+                Destroy(gameObject);
+                return;
+            }
+            if (!IsPlayer(other)) return;
 
             PlayerDodge dodge = other.GetComponentInParent<PlayerDodge>();
             if (dodge != null && dodge.IsInvulnerable) return;
@@ -743,6 +770,13 @@ namespace Project.Scripts.World
             if (other.CompareTag("Player")) return true;
             Transform root = other.transform.root;
             return root != null && root.CompareTag("Player");
+        }
+
+        private static bool IsWall(Collider2D other)
+        {
+            if (other.CompareTag("Wall")) return true;
+            Transform root = other.transform.root;
+            return root != null && root.CompareTag("Wall");
         }
     }
 }

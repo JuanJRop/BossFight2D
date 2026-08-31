@@ -143,7 +143,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         {
             if (hasReturned) return;
 
-            if (other.CompareTag("Wall"))
+            if (IsWall(other))
             {
                 ReturnToPool();
                 return;
@@ -230,6 +230,14 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 trail.startWidth = originalTrailStartWidth;
                 trail.endWidth = originalTrailEndWidth;
             }
+        }
+
+        private static bool IsWall(Collider2D other)
+        {
+            if (other == null) return false;
+            if (other.CompareTag("Wall")) return true;
+            Transform root = other.transform.root;
+            return root != null && root.CompareTag("Wall");
         }
     }
 }

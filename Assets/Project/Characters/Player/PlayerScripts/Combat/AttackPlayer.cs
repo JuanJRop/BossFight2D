@@ -297,6 +297,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             bulletObject.transform.SetPositionAndRotation(firePoint.position, rotation);
             Vector2 direction = rotation * Vector3.right;
             float projectileSpeed = currentAttack.Speed * RunSession.ProjectileSpeedMultiplier;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             body.linearVelocity = direction.normalized * projectileSpeed;
             bullet.SetPool(
                 objectPool,

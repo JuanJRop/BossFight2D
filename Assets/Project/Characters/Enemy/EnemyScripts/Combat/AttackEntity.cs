@@ -35,6 +35,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             prefab = sourcePrefab;
             pooledInstance = sourceInstance;
             damage = Mathf.Max(0f, sourceDamage);
+            if (rb != null)
+                rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
             LifeTimer timer = GetComponent<LifeTimer>();
             if (timer != null)
@@ -47,7 +49,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         {
             if (hasReturned) return;
 
-            if (other.CompareTag("Wall"))
+            if (IsWall(other))
             {
                 ReturnToPool();
                 return;
@@ -95,6 +97,14 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
             {
                 Destroy(gameObject);
             }
+        }
+
+        private static bool IsWall(Collider2D other)
+        {
+            if (other == null) return false;
+            if (other.CompareTag("Wall")) return true;
+            Transform root = other.transform.root;
+            return root != null && root.CompareTag("Wall");
         }
     }
 }

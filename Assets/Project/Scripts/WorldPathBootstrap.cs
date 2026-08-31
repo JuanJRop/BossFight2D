@@ -1087,6 +1087,7 @@ namespace Project.Scripts.World
 
         private static void ConfigureWallCollision(Tilemap wallMap)
         {
+            wallMap.gameObject.tag = "Wall";
             Rigidbody2D body = wallMap.gameObject.AddComponent<Rigidbody2D>();
             body.bodyType = RigidbodyType2D.Static;
             CompositeCollider2D composite = wallMap.gameObject.AddComponent<CompositeCollider2D>();
