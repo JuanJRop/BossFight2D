@@ -1,5 +1,6 @@
 using System;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using UnityEngine;
 
 namespace Project.Characters.Player.PlayerScripts.Combat
@@ -196,7 +197,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             rightShard.localPosition = new Vector2(0.48f + readyBurst * 0.12f,
                 -0.08f + Mathf.Sin(time * 4.2f + 3.6f) * 0.04f);
 
-            Color color = isActive ? activeColor : Color.Lerp(readyColor, GameLoadout.AbilityColor, 0.38f);
+            Color color = isActive ? activeColor : Color.Lerp(readyColor, RunSession.BasicProjectileColor, 0.38f);
             centerRenderer.color = color;
             leftRenderer.color = Color.Lerp(color, Color.white, 0.18f);
             rightRenderer.color = Color.Lerp(color, Color.white, 0.18f);

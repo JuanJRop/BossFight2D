@@ -9,14 +9,14 @@ namespace Project.Scripts.Controller
         {
             if (Input.GetKeyDown(KeyCode.P))
             {
-                CharacterStatusMenu.Toggle();
+                SkillTreeMenu.Toggle();
                 return;
             }
 
             if (!Input.GetKeyDown(KeyCode.Escape)) return;
-            if (CharacterStatusMenu.IsOpen)
+            if (SkillTreeMenu.IsOpen)
             {
-                CharacterStatusMenu.Close();
+                SkillTreeMenu.Close();
                 return;
             }
 

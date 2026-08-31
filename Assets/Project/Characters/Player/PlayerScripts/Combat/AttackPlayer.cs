@@ -201,24 +201,48 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void ShootSingleProjectile()
         {
-            GameObject bulletObject = objectPool.GetObject(
-                currentAttack.BulletPrefab,
-                firePoint.position,
-                firePoint.rotation);
-
-            if (bulletObject == null) return;
-            if (!ConfigureProjectile(bulletObject, firePoint.rotation, false, 1f, 1f, Color.white))
+            int projectileCount = Mathf.Clamp(RunSession.BasicProjectileCount, 1, 3);
+            if (!objectPool.GetObjects(currentAttack.BulletPrefab, projectileCount, reservedProjectiles))
             {
-                objectPool.ReturnObject(bulletObject, currentAttack.BulletPrefab);
                 return;
             }
 
+            for (int index = 0; index < reservedProjectiles.Count; index++)
+            {
+                GameObject projectile = reservedProjectiles[index];
+                if (projectile == null ||
+                    projectile.GetComponentInChildren<Rigidbody2D>(true) == null ||
+                    projectile.GetComponentInChildren<Bullet>(true) == null)
+                {
+                    ReturnReservedVolley();
+                    return;
+                }
+            }
+
+            for (int index = 0; index < reservedProjectiles.Count; index++)
+            {
+                float normalized = reservedProjectiles.Count == 1
+                    ? 0.5f
+                    : index / (reservedProjectiles.Count - 1f);
+                float angleOffset = Mathf.Lerp(-RunSession.BasicProjectileSpread * 0.5f,
+                    RunSession.BasicProjectileSpread * 0.5f, normalized);
+                Quaternion rotation = Quaternion.Euler(0f, 0f, firePoint.eulerAngles.z + angleOffset);
+                if (!ConfigureProjectile(reservedProjectiles[index], rotation,
+                        RunSession.BasicProjectileHoming, RunSession.BasicProjectileDamageMultiplier,
+                        RunSession.BasicProjectileVisualScale, RunSession.BasicProjectileColor))
+                {
+                    ReturnReservedVolley();
+                    return;
+                }
+            }
+
             RegisterVolley();
+            reservedProjectiles.Clear();
         }
 
         private bool ShootAbilityVolley()
         {
-            int projectileCount = Mathf.Clamp(GameLoadout.AbilityProjectileCount, 1, 3);
+            int projectileCount = Mathf.Clamp(RunSession.PowerProjectileCount, 1, 5);
             if (!objectPool.GetObjects(currentAttack.BulletPrefab, projectileCount, reservedProjectiles))
             {
                 Debug.LogError($"Power ability could not reserve its complete {projectileCount}-projectile volley.", this);
@@ -243,12 +267,12 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 float normalized = reservedProjectiles.Count == 1
                     ? 0.5f
                     : index / (reservedProjectiles.Count - 1f);
-                float angleOffset = Mathf.Lerp(-GameLoadout.AbilitySpread * 0.5f,
-                    GameLoadout.AbilitySpread * 0.5f, normalized);
+                float angleOffset = Mathf.Lerp(-RunSession.PowerProjectileSpread * 0.5f,
+                    RunSession.PowerProjectileSpread * 0.5f, normalized);
                 Quaternion rotation = Quaternion.Euler(0f, 0f, firePoint.eulerAngles.z + angleOffset);
-                if (!ConfigureProjectile(reservedProjectiles[index], rotation, GameLoadout.AbilityHoming,
-                        GameLoadout.AbilityDamageMultiplier, GameLoadout.AbilityVisualScale,
-                        GameLoadout.AbilityColor))
+                if (!ConfigureProjectile(reservedProjectiles[index], rotation, RunSession.PowerProjectileHoming,
+                        RunSession.PowerProjectileDamageMultiplier, RunSession.PowerProjectileVisualScale,
+                        RunSession.PowerProjectileColor))
                 {
                     ReturnReservedVolley();
                     return false;
@@ -273,7 +297,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             if (bulletObject == null) return false;
 
             if (!ConfigureProjectile(bulletObject, rotation, false, damageMultiplier,
-                    visualScale, visualColor ?? GameLoadout.AbilityColor))
+                    visualScale, visualColor ?? RunSession.BasicProjectileColor))
             {
                 objectPool.ReturnObject(bulletObject, currentAttack.BulletPrefab);
                 return false;
@@ -309,7 +333,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             bullet.SetTarget(enemyTarget, homing, projectileSpeed);
             bullet.SetHitCallback(powerUpHoming != null ? powerUpHoming.RegisterEnemyHit : null);
             bullet.SetEmpoweredVisual(visualScale > 1f, visualScale, visualColor);
-            bullet.SetWeaponVisual(GameLoadout.WeaponColor);
+            bullet.SetWeaponVisual(RunSession.BasicProjectileColor);
             return true;
         }
 
@@ -392,7 +416,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
             if (firePoint == null) return;
             SpriteRenderer weaponRenderer = firePoint.GetComponentInParent<SpriteRenderer>();
-            if (weaponRenderer != null) weaponRenderer.color = GameLoadout.WeaponColor;
+            if (weaponRenderer != null) weaponRenderer.color = RunSession.GetClassColor(RunSession.GetCombatClass());
         }
 
         public void RefreshProgressionStats()
@@ -406,13 +430,15 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 baseStatsCaptured = true;
             }
 
-            weaponDamageMultiplier = GameLoadout.WeaponDamageMultiplier * RunSession.DamageMultiplier;
+            weaponDamageMultiplier = RunSession.DamageMultiplier;
             chargerCapacity = Mathf.Max(1f,
-                Mathf.Round(baseChargerCapacity * GameLoadout.MagazineMultiplier));
+                Mathf.Round(baseChargerCapacity *
+                    (1f + RunSession.GetSkillRank(RunSkillType.QuickDraw) * 0.16f)));
             chargerTime = Mathf.Max(0.25f,
-                baseChargerTime * GameLoadout.ReloadMultiplier);
+                baseChargerTime /
+                (1f + RunSession.GetSkillRank(RunSkillType.QuickDraw) * 0.08f));
             fireRate = Mathf.Max(0.04f,
-                baseFireRate * GameLoadout.FireRateMultiplier * RunSession.AttackCooldownMultiplier);
+                baseFireRate * RunSession.AttackCooldownMultiplier);
             autoShootRate = Mathf.Max(0.04f,
                 baseAutoShootRate * RunSession.AttackCooldownMultiplier);
         }

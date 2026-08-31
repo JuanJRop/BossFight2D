@@ -83,6 +83,8 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         {
             if (!isAlive || damage <= 0f || IsInvulnerable) return;
 
+            if (CompareTag("Player"))
+                damage *= RunSession.PlayerDamageTakenMultiplier;
             currentHealth = Mathf.Clamp(currentHealth - damage, 0f, maxHealth);
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
             OnDamaged?.Invoke(damage);

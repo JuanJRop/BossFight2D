@@ -92,8 +92,8 @@ namespace Project.Scripts.Controller
                 16f, mutedColor, TextAlignmentOptions.Center);
 
             CreateButton("Character Status", content, new Vector2(0.16f, 0.50f),
-                new Vector2(0.84f, 0.61f), GameLoadout.IsSpanish ? "PERSONAJE (P)" : "CHARACTER (P)",
-                CharacterStatusMenu.Toggle);
+                new Vector2(0.84f, 0.61f), GameLoadout.IsSpanish ? "ARBOL DE HABILIDADES (P)" : "SKILL TREE (P)",
+                SkillTreeMenu.Toggle);
             firstButton = CreateButton("Continue", content, new Vector2(0.16f, 0.35f),
                 new Vector2(0.84f, 0.46f), GameLoadout.IsSpanish ? "CONTINUAR" : "RESUME", Resume);
             CreateButton("Restart Run", content, new Vector2(0.16f, 0.20f),
@@ -102,7 +102,7 @@ namespace Project.Scripts.Controller
                 new Vector2(0.84f, 0.16f), GameLoadout.IsSpanish ? "SALIR AL MENU" : "BACK TO MENU", BackToMenu);
 
             CreateText("Pause Hint", content, new Vector2(0.12f, 0.005f), new Vector2(0.88f, 0.045f),
-                GameLoadout.IsSpanish ? "P  PERSONAJE  |  ESC  CERRAR" : "P  CHARACTER  |  ESC  CLOSE",
+                GameLoadout.IsSpanish ? "P  ARBOL  |  ESC  CERRAR" : "P  TREE  |  ESC  CLOSE",
                 13f, mutedColor, TextAlignmentOptions.Center);
             menuRoot.SetActive(false);
         }

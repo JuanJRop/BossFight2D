@@ -26,8 +26,6 @@ namespace Project.Scripts.Controller
         private GameObject skinCatalogInstance;
         private CharacterSkinSet[] skins;
         private Image characterPreview;
-        private Image[] abilityOrbs;
-        private Sprite radialSprite;
         private Sprite buttonSprite;
         private TMP_FontAsset menuFont;
         private TMP_Text titleText;
@@ -36,11 +34,6 @@ namespace Project.Scripts.Controller
         private TMP_Text characterValue;
         private TMP_Text characterRole;
         private TMP_Text loadoutTitle;
-        private TMP_Text weaponLabel;
-        private TMP_Text weaponValue;
-        private TMP_Text abilityLabel;
-        private TMP_Text abilityValue;
-        private TMP_Text abilityDescription;
         private TMP_Text startLabel;
         private TMP_Text optionsLabel;
         private TMP_Text optionsTitle;
@@ -64,12 +57,6 @@ namespace Project.Scripts.Controller
         {
             if (menuRoot != null) menuRoot.DOKill();
             if (skinCatalogInstance != null) Destroy(skinCatalogInstance);
-            if (radialSprite != null)
-            {
-                Texture2D texture = radialSprite.texture;
-                Destroy(radialSprite);
-                if (texture != null) Destroy(texture);
-            }
         }
 
         public void SettingsMenu()
@@ -190,17 +177,6 @@ namespace Project.Scripts.Controller
                 new Vector2(0.17f, 0.28f), new Vector2(0.83f, 0.84f),
                 new Color(0.035f, 0.012f, 0.01f, 0.86f));
 
-            abilityOrbs = new Image[3];
-            for (int i = 0; i < abilityOrbs.Length; i++)
-            {
-                RectTransform orb = CreateImage("Ability Orb " + (i + 1), previewFrame,
-                    new Vector2(0.68f, 0.56f), new Vector2(0.84f, 0.72f), Color.white);
-                abilityOrbs[i] = orb.GetComponent<Image>();
-                abilityOrbs[i].sprite = GetRadialSprite();
-                abilityOrbs[i].preserveAspect = true;
-                abilityOrbs[i].raycastTarget = false;
-            }
-
             RectTransform preview = CreateImage("Selected Character", previewFrame,
                 new Vector2(0.24f, 0.12f), new Vector2(0.76f, 0.88f), Color.white);
             characterPreview = preview.GetComponent<Image>();
@@ -229,32 +205,42 @@ namespace Project.Scripts.Controller
                 new Vector2(0.92f, 0.95f), string.Empty, 22f, Cream,
                 TextAlignmentOptions.Center, FontStyles.Bold);
 
-            weaponLabel = CreateText("Weapon Label", card, new Vector2(0.1f, 0.72f),
-                new Vector2(0.9f, 0.80f), string.Empty, 15f, Muted, TextAlignmentOptions.Center);
-            weaponValue = CreateSelector(card, 0.56f, () => ChangeWeapon(-1), () => ChangeWeapon(1));
+            CreateText("Growth Label", card, new Vector2(0.1f, 0.71f),
+                new Vector2(0.9f, 0.79f), GameLoadout.IsSpanish ? "CLASES DISPONIBLES" : "AVAILABLE CLASSES",
+                15f, Muted, TextAlignmentOptions.Center);
 
-            RectTransform divider = CreateImage("Divider", card, new Vector2(0.1f, 0.49f),
-                new Vector2(0.9f, 0.495f), new Color(Border.r, Border.g, Border.b, 0.75f));
+            RunClassType[] classes =
+            {
+                RunClassType.Warrior,
+                RunClassType.Archer,
+                RunClassType.Mage,
+                RunClassType.Healer
+            };
+            for (int index = 0; index < classes.Length; index++)
+            {
+                int column = index % 2;
+                int row = index / 2;
+                float left = 0.13f + column * 0.42f;
+                float bottom = 0.52f - row * 0.16f;
+                RectTransform swatch = CreateImage("Class Color " + classes[index], card,
+                    new Vector2(left, bottom + 0.018f), new Vector2(left + 0.055f, bottom + 0.11f),
+                    RunSession.GetClassColor(classes[index]));
+                swatch.GetComponent<Image>().raycastTarget = false;
+                CreateText("Class Name " + classes[index], card,
+                    new Vector2(left + 0.075f, bottom), new Vector2(left + 0.38f, bottom + 0.13f),
+                    RunSession.GetClassName(classes[index], GameLoadout.IsSpanish), 14f, Cream,
+                    TextAlignmentOptions.Left, FontStyles.Bold);
+            }
+
+            RectTransform divider = CreateImage("Growth Divider", card, new Vector2(0.1f, 0.29f),
+                new Vector2(0.9f, 0.295f), new Color(Border.r, Border.g, Border.b, 0.75f));
             divider.GetComponent<Image>().raycastTarget = false;
-
-            abilityLabel = CreateText("Ability Label", card, new Vector2(0.1f, 0.38f),
-                new Vector2(0.9f, 0.46f), string.Empty, 15f, Muted, TextAlignmentOptions.Center);
-            abilityValue = CreateSelector(card, 0.22f, () => ChangeAbility(-1), () => ChangeAbility(1));
-            abilityDescription = CreateText("Ability Description", card, new Vector2(0.12f, 0.065f),
-                new Vector2(0.88f, 0.19f), string.Empty, 14f, Muted, TextAlignmentOptions.Center);
-            abilityDescription.textWrappingMode = TextWrappingModes.Normal;
-        }
-
-        private TMP_Text CreateSelector(RectTransform parent, float y, Action previous, Action next)
-        {
-            CreateButton("Previous", parent, new Vector2(0.1f, y), new Vector2(0.245f, y + 0.12f), "<", previous);
-            RectTransform valueFrame = CreateFramedPanel("Selected Value", parent,
-                new Vector2(0.27f, y), new Vector2(0.73f, y + 0.12f), Ink);
-            TMP_Text value = CreateText("Value", valueFrame, new Vector2(0.045f, 0.08f),
-                new Vector2(0.955f, 0.92f), string.Empty, 19f, Cream,
-                TextAlignmentOptions.Center, FontStyles.Bold);
-            CreateButton("Next", parent, new Vector2(0.755f, y), new Vector2(0.9f, y + 0.12f), ">", next);
-            return value;
+            CreateText("Growth Footer", card, new Vector2(0.1f, 0.13f), new Vector2(0.9f, 0.24f),
+                GameLoadout.IsSpanish ? "CRECIMIENTO LIBRE DURANTE LA RUN" : "FREE GROWTH DURING THE RUN",
+                14f, Muted, TextAlignmentOptions.Center, FontStyles.Bold);
+            CreateText("Growth Hint", card, new Vector2(0.1f, 0.045f), new Vector2(0.9f, 0.12f),
+                GameLoadout.IsSpanish ? "P  ARBOL DE HABILIDADES" : "P  SKILL TREE",
+                13f, new Color(0.2f, 0.92f, 1f, 1f), TextAlignmentOptions.Center);
         }
 
         private void BuildActionBar()
@@ -360,28 +346,11 @@ namespace Project.Scripts.Controller
             RefreshLoadout(true);
         }
 
-        private void ChangeWeapon(int direction)
-        {
-            GameLoadout.CycleWeapon(direction);
-            RefreshLoadout(false);
-            Punch(weaponValue.transform);
-        }
-
-        private void ChangeAbility(int direction)
-        {
-            GameLoadout.CycleAbility(direction);
-            RefreshLoadout(false);
-            Punch(abilityValue.transform);
-        }
-
         private void RefreshLoadout(bool animateCharacter)
         {
             bool es = GameLoadout.IsSpanish;
             if (characterValue != null) characterValue.text = GameLoadout.CharacterName(es);
             if (characterRole != null) characterRole.text = GameLoadout.CharacterRole(es);
-            if (weaponValue != null) weaponValue.text = GameLoadout.WeaponName(es);
-            if (abilityValue != null) abilityValue.text = GameLoadout.AbilityName(es);
-            if (abilityDescription != null) abilityDescription.text = GameLoadout.AbilityDescription(es);
 
             if (characterPreview != null && skins != null && skins.Length > 0)
             {
@@ -408,74 +377,7 @@ namespace Project.Scripts.Controller
                 }
             }
 
-            ApplyAbilityPreview();
             UpdateSettingValues();
-        }
-
-        private void ApplyAbilityPreview()
-        {
-            if (abilityOrbs == null) return;
-            Color color = GameLoadout.AbilityColor;
-            int count = Mathf.Clamp(GameLoadout.AbilityProjectileCount, 1, abilityOrbs.Length);
-            Vector2[] positions = GameLoadout.Ability switch
-            {
-                PlayerAbility.PrismBurst => new[] { new Vector2(0.18f, 0.62f), new Vector2(0.74f, 0.68f), new Vector2(0.71f, 0.24f) },
-                PlayerAbility.SeekerCore => new[] { new Vector2(0.18f, 0.58f), new Vector2(0.73f, 0.56f), new Vector2(0.73f, 0.56f) },
-                _ => new[] { new Vector2(0.72f, 0.58f), new Vector2(0.72f, 0.58f), new Vector2(0.72f, 0.58f) }
-            };
-
-            for (int i = 0; i < abilityOrbs.Length; i++)
-            {
-                Image orb = abilityOrbs[i];
-                orb.rectTransform.DOKill();
-                bool active = i < count;
-                orb.gameObject.SetActive(active);
-                if (!active) continue;
-                orb.color = new Color(color.r, color.g, color.b, i == 0 ? 0.95f : 0.78f);
-                RectTransform rect = orb.rectTransform;
-                Vector2 size = GameLoadout.Ability == PlayerAbility.ChargedRound
-                    ? new Vector2(0.19f, 0.19f)
-                    : new Vector2(0.14f, 0.14f);
-                rect.anchorMin = positions[i];
-                rect.anchorMax = positions[i] + size;
-                rect.offsetMin = Vector2.zero;
-                rect.offsetMax = Vector2.zero;
-                rect.localScale = Vector3.one;
-                rect.DOScale(1.16f, 0.62f + i * 0.08f)
-                    .SetLoops(-1, LoopType.Yoyo)
-                    .SetEase(Ease.InOutSine)
-                    .SetUpdate(true)
-                    .SetLink(orb.gameObject, LinkBehaviour.KillOnDestroy);
-            }
-        }
-
-        private Sprite GetRadialSprite()
-        {
-            if (radialSprite != null) return radialSprite;
-            const int size = 64;
-            Texture2D texture = new(size, size, TextureFormat.RGBA32, false)
-            {
-                filterMode = FilterMode.Bilinear,
-                wrapMode = TextureWrapMode.Clamp,
-                name = "Ability Preview Glow"
-            };
-            Color[] pixels = new Color[size * size];
-            Vector2 center = new((size - 1) * 0.5f, (size - 1) * 0.5f);
-            float radius = size * 0.5f;
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    float distance = Vector2.Distance(new Vector2(x, y), center) / radius;
-                    float alpha = Mathf.Clamp01(1f - distance);
-                    alpha = Mathf.SmoothStep(0f, 1f, alpha);
-                    pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
-                }
-            }
-            texture.SetPixels(pixels);
-            texture.Apply();
-            radialSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), Vector2.one * 0.5f, 100f);
-            return radialSprite;
         }
 
         private void ToggleOptions()
@@ -511,9 +413,7 @@ namespace Project.Scripts.Controller
             bool es = GameLoadout.IsSpanish;
             if (subtitleText != null) subtitleText.text = es ? "ELIGE TU CAZADOR Y PREPARA EL COMBATE" : "CHOOSE YOUR HUNTER AND PREPARE FOR BATTLE";
             if (characterLabel != null) characterLabel.text = es ? "PERSONAJE" : "CHARACTER";
-            if (loadoutTitle != null) loadoutTitle.text = es ? "EQUIPAMIENTO" : "LOADOUT";
-            if (weaponLabel != null) weaponLabel.text = es ? "ARMA" : "WEAPON";
-            if (abilityLabel != null) abilityLabel.text = es ? "HABILIDAD" : "ABILITY";
+            if (loadoutTitle != null) loadoutTitle.text = es ? "CRECIMIENTO" : "PROGRESSION";
             if (startLabel != null) startLabel.text = es ? "JUGAR" : "PLAY";
             if (optionsLabel != null) optionsLabel.text = es ? "OPCIONES" : "OPTIONS";
             if (optionsTitle != null) optionsTitle.text = es ? "OPCIONES" : "OPTIONS";

@@ -27,8 +27,13 @@ namespace Project.Scripts.Progression
         private PowerUp powerUp;
         private Material effectMaterial;
         private float autoBulletTimer;
+        private float radiantBulletTimer;
+        private float bladeWaveTimer;
         private float chainLaserTimer;
-        private float voidNovaTimer;
+        private float firestormTimer;
+        private float whirlwindTimer;
+        private float healingTimer;
+        private float sanctuaryTimer;
         private bool configured;
 
         public static RunAbilityController Ensure(Health health)
@@ -87,7 +92,7 @@ namespace Project.Scripts.Progression
             SyncOrbs();
             float deltaTime = Time.deltaTime;
 
-            int autoBulletRank = RunSession.GetAbilityRank(RunAbilityType.AutoBullets);
+            int autoBulletRank = RunSession.GetSkillRank(RunSkillType.ArrowRain);
             if (autoBulletRank > 0)
             {
                 autoBulletTimer -= deltaTime;
@@ -100,7 +105,31 @@ namespace Project.Scripts.Progression
                 }
             }
 
-            int chainLaserRank = RunSession.GetAbilityRank(RunAbilityType.ChainLaser);
+            int radiantBoltRank = RunSession.GetSkillRank(RunSkillType.RadiantBolts);
+            if (radiantBoltRank > 0)
+            {
+                radiantBulletTimer -= deltaTime;
+                if (radiantBulletTimer <= 0f)
+                {
+                    bool fired = FireRadiantBullet(radiantBoltRank);
+                    radiantBulletTimer = fired
+                        ? Mathf.Max(0.42f, 1.3f - radiantBoltRank * 0.14f)
+                        : 0.2f;
+                }
+            }
+
+            int bladeWaveRank = RunSession.GetSkillRank(RunSkillType.BladeWave);
+            if (bladeWaveRank > 0)
+            {
+                bladeWaveTimer -= deltaTime;
+                if (bladeWaveTimer <= 0f)
+                {
+                    FireBladeWave(bladeWaveRank);
+                    bladeWaveTimer = Mathf.Max(1.55f, 3.4f - bladeWaveRank * 0.38f);
+                }
+            }
+
+            int chainLaserRank = RunSession.GetSkillRank(RunSkillType.ArcaneBeam);
             if (chainLaserRank > 0)
             {
                 chainLaserTimer -= deltaTime;
@@ -111,21 +140,54 @@ namespace Project.Scripts.Progression
                 }
             }
 
-            int voidNovaRank = RunSession.GetAbilityRank(RunAbilityType.VoidNova);
-            if (voidNovaRank > 0)
+            int firestormRank = RunSession.GetSkillRank(RunSkillType.Firestorm);
+            if (firestormRank > 0)
             {
-                voidNovaTimer -= deltaTime;
-                if (voidNovaTimer <= 0f)
+                firestormTimer -= deltaTime;
+                if (firestormTimer <= 0f)
                 {
-                    FireVoidNova(voidNovaRank);
-                    voidNovaTimer = Mathf.Max(2.7f, 5.6f - voidNovaRank * 0.58f);
+                    FireFirestorm(firestormRank);
+                    firestormTimer = Mathf.Max(2.4f, 5.2f - firestormRank * 0.55f);
+                }
+            }
+
+            int whirlwindRank = RunSession.GetSkillRank(RunSkillType.Whirlwind);
+            if (whirlwindRank > 0)
+            {
+                whirlwindTimer -= deltaTime;
+                if (whirlwindTimer <= 0f)
+                {
+                    FireWhirlwind(whirlwindRank);
+                    whirlwindTimer = Mathf.Max(2.1f, 4.5f - whirlwindRank * 0.5f);
+                }
+            }
+
+            int healingRank = RunSession.GetSkillRank(RunSkillType.HealingAura);
+            if (healingRank > 0)
+            {
+                healingTimer -= deltaTime;
+                if (healingTimer <= 0f)
+                {
+                    playerHealth.Heal(2.5f + healingRank * 3f);
+                    healingTimer = Mathf.Max(1.8f, 4.2f - healingRank * 0.48f);
+                }
+            }
+
+            int sanctuaryRank = RunSession.GetSkillRank(RunSkillType.Sanctuary);
+            if (sanctuaryRank > 0)
+            {
+                sanctuaryTimer -= deltaTime;
+                if (sanctuaryTimer <= 0f)
+                {
+                    FireSanctuary(sanctuaryRank);
+                    sanctuaryTimer = Mathf.Max(3.4f, 6.4f - sanctuaryRank * 0.55f);
                 }
             }
         }
 
         private void SyncOrbs()
         {
-            int rank = RunSession.GetAbilityRank(RunAbilityType.BouncingOrb);
+            int rank = RunSession.GetSkillRank(RunSkillType.ArcaneBeam);
             int desiredCount = Mathf.Min(3, rank);
 
             for (int index = orbs.Count - 1; index >= 0; index--)
@@ -152,7 +214,20 @@ namespace Project.Scripts.Progression
 
             Vector2 direction = ((Vector2)target.transform.position - (Vector2)player.position).normalized;
             return attack.TryShootAutomatic(direction, 0.68f + rank * 0.18f,
-                1.08f + rank * 0.05f, new Color(0.24f, 1f, 0.9f, 1f));
+                1.08f + rank * 0.05f, RunSession.GetClassColor(RunClassType.Archer));
+        }
+
+        private bool FireRadiantBullet(int rank)
+        {
+            if (attack == null) attack = FindPlayerComponent<AttackPlayer>();
+            if (attack == null) return false;
+
+            Health target = FindClosestEnemy(player.position, AutoBulletRange);
+            if (target == null) return false;
+
+            Vector2 direction = ((Vector2)target.transform.position - (Vector2)player.position).normalized;
+            return attack.TryShootAutomatic(direction, 0.78f + rank * 0.2f,
+                1.14f + rank * 0.06f, RunSession.GetClassColor(RunClassType.Healer));
         }
 
         private void FireChainLaser(int rank)
@@ -175,19 +250,58 @@ namespace Project.Scripts.Progression
                 ApplyAbilityDamage(target, 22f + rank * 12f);
             }
 
-            if (points.Count > 1) SpawnLineEffect("Chain Laser", points,
-                new Color(0.22f, 0.92f, 1f, 1f), 0.2f, 0.24f);
+            if (points.Count > 1) SpawnLineEffect("Arcane Beam", points,
+                RunSession.GetClassColor(RunClassType.Mage), 0.2f, 0.24f);
         }
 
-        private void FireVoidNova(int rank)
+        private void FireFirestorm(int rank)
         {
-            float radius = 2.4f + rank * 0.38f;
+            float radius = 2.4f + rank * 0.42f;
             CollectEnemies(player.position, radius);
             foreach (Health target in targets)
-                ApplyAbilityDamage(target, 26f + rank * 13f);
+                ApplyAbilityDamage(target, 30f + rank * 15f);
 
-            SpawnRingEffect(player.position, radius, new Color(1f, 0.18f, 0.65f, 1f),
+            SpawnRingEffect(player.position, radius, RunSession.GetClassColor(RunClassType.Mage),
                 0.3f, 0.16f);
+        }
+
+        private void FireBladeWave(int rank)
+        {
+            Vector2 direction = player.right;
+            CollectEnemies(player.position, 3.4f + rank * 0.35f);
+            foreach (Health target in targets)
+            {
+                Vector2 offset = ((Vector2)target.transform.position - (Vector2)player.position).normalized;
+                if (Vector2.Dot(direction.normalized, offset) < 0.05f) continue;
+                ApplyAbilityDamage(target, 18f + rank * 13f);
+            }
+
+            List<Vector3> points = new()
+            {
+                player.position,
+                player.position + (Vector3)(direction.normalized * (2.7f + rank * 0.3f))
+            };
+            SpawnLineEffect("Blade Wave", points, RunSession.GetClassColor(RunClassType.Warrior),
+                0.22f, 0.28f);
+        }
+
+        private void FireWhirlwind(int rank)
+        {
+            float radius = 1.65f + rank * 0.35f;
+            CollectEnemies(player.position, radius);
+            foreach (Health target in targets)
+                ApplyAbilityDamage(target, 24f + rank * 14f);
+
+            SpawnRingEffect(player.position, radius, RunSession.GetClassColor(RunClassType.Warrior),
+                0.24f, 0.2f);
+        }
+
+        private void FireSanctuary(int rank)
+        {
+            float radius = 1.55f + rank * 0.25f;
+            playerHealth.Heal(7f + rank * 4f);
+            SpawnRingEffect(player.position, radius, RunSession.GetClassColor(RunClassType.Healer),
+                0.42f, 0.12f);
         }
 
         private void ApplyAbilityDamage(Health target, float damage)
@@ -373,8 +487,13 @@ namespace Project.Scripts.Progression
             ClearEffects();
             StopAllCoroutines();
             autoBulletTimer = 0f;
+            radiantBulletTimer = 0f;
+            bladeWaveTimer = 0f;
             chainLaserTimer = 0f;
-            voidNovaTimer = 0f;
+            firestormTimer = 0f;
+            whirlwindTimer = 0f;
+            healingTimer = 0f;
+            sanctuaryTimer = 0f;
         }
 
         private void ClearOrbs()
@@ -457,7 +576,7 @@ namespace Project.Scripts.Progression
 
         private void Update()
         {
-            int rank = RunSession.GetAbilityRank(RunAbilityType.BouncingOrb);
+            int rank = RunSession.GetSkillRank(RunSkillType.ArcaneBeam);
             if (owner == null || rank <= 0)
             {
                 Destroy(gameObject);
