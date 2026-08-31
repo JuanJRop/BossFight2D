@@ -87,7 +87,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat.MoleBoss.Attacks
                 context.Config.HordeContactCooldown, defeatedMinion =>
                 {
                     PlayerEconomy.AddGold(context.Config.MinionGoldReward);
-                    PlayerEconomy.AddExperience(context.Config.MinionExperienceReward);
+                    RunSession.AwardExperience(context.Config.MinionExperienceReward);
                     context.Telegraphs.Release(defeatedMinion);
                 });
             return minion;

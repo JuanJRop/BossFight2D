@@ -1,5 +1,6 @@
 using Project.Characters.Player.PlayerScripts.Controller;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using UnityEngine;
 
 namespace Project.Characters.Player.PlayerScripts.Movement
@@ -33,6 +34,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private bool isMoving = true;
         private bool roomTransitionLocked;
         private PlayerElectricStunFeedback stunFeedback;
+        private float baseSpeed;
 
         public Vector2 MoveInput => moveInput;
         public Vector2 LastMove => lastMove;
@@ -53,7 +55,8 @@ namespace Project.Characters.Player.PlayerScripts.Movement
 
         private void Awake()
         {
-            speed *= GameLoadout.MoveSpeedMultiplier;
+            baseSpeed = speed;
+            RefreshProgressionStats();
             playerSoundController = GetComponent<PlayerSoundController>();
             playerDodge = GetComponent<PlayerDodge>();
             rb = GetComponent<Rigidbody2D>();
@@ -62,6 +65,12 @@ namespace Project.Characters.Player.PlayerScripts.Movement
             stunFeedback = GetComponent<PlayerElectricStunFeedback>();
             if (stunFeedback == null) stunFeedback = gameObject.AddComponent<PlayerElectricStunFeedback>();
             PlayerSkinController.Attach(gameObject, animator, spriteRenderer);
+        }
+
+        public void RefreshProgressionStats()
+        {
+            if (baseSpeed <= 0f) baseSpeed = speed;
+            speed = Mathf.Max(0f, baseSpeed * GameLoadout.MoveSpeedMultiplier * RunSession.MoveSpeedMultiplier);
         }
 
         private void Update()

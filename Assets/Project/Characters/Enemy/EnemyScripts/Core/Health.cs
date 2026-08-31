@@ -3,6 +3,7 @@ using System.Collections;
 using Project.Characters.Enemy.EnemyScripts.Movement;
 using Project.Characters.Player.PlayerScripts.Controller;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -23,6 +24,7 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
         [SerializeField] private EnemyMove enemyMove;
 
         private float currentHealth;
+        private float baseMaxHealth;
         private bool isAlive;
         private CinemachineBasicMultiChannelPerlin noise;
         private PlayerSoundController soundController;
@@ -43,7 +45,9 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
 
         private void Awake()
         {
-            if (CompareTag("Player")) maxHealth *= GameLoadout.HealthMultiplier;
+            baseMaxHealth = maxHealth;
+            if (CompareTag("Player"))
+                maxHealth = baseMaxHealth * GameLoadout.HealthMultiplier * RunSession.PlayerHealthMultiplier;
             maxHealth = Mathf.Max(1f, maxHealth);
             currentHealth = maxHealth;
             isAlive = true;
@@ -113,6 +117,19 @@ namespace Project.Characters.Enemy.EnemyScripts.Core
                 isAlive = true;
                 OnHealthChanged?.Invoke(currentHealth, maxHealth);
             }
+        }
+
+        public void AddMaxHealthPercent(float percent, bool restoreHealth = true)
+        {
+            if (!CompareTag("Player") || percent <= 0f) return;
+
+            float previousMax = maxHealth;
+            float progressionMax = baseMaxHealth * GameLoadout.HealthMultiplier *
+                RunSession.PlayerHealthMultiplier;
+            maxHealth = Mathf.Max(previousMax * (1f + percent), progressionMax);
+            float increase = maxHealth - previousMax;
+            if (restoreHealth) currentHealth = Mathf.Min(maxHealth, currentHealth + increase);
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
         }
 
         public void Heal(float amount)

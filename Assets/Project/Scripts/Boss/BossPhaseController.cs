@@ -48,7 +48,7 @@ namespace Project.Scripts.Boss
             if (rewardGranted) return;
             rewardGranted = true;
             PlayerEconomy.AddGold(goldReward);
-            PlayerEconomy.AddExperience(experienceReward);
+            RunSession.AwardExperience(experienceReward);
             ShowVictoryReward();
         }
 

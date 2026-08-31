@@ -4,6 +4,7 @@ using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Player.PlayerScripts.Combat;
 using Project.Characters.Player.PlayerScripts.Movement;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using UnityEngine;
 
 namespace Project.Scripts.World
@@ -33,6 +34,8 @@ namespace Project.Scripts.World
         private Collider2D enemyCollider;
         private SpriteRenderer bodyRenderer;
         private SpriteRenderer indicatorRenderer;
+        private Transform visualTransform;
+        private Transform shadowTransform;
         private Sprite idleSprite;
         private Sprite actionSprite;
         private Sprite[] idleFrames;
@@ -45,6 +48,7 @@ namespace Project.Scripts.World
         private float moveSpeed;
         private float contactDamage;
         private float manaReward;
+        private int experienceReward;
         private float stateTime;
         private float nextAttackTime;
         private float nextContactDamageTime;
@@ -57,6 +61,9 @@ namespace Project.Scripts.World
         private float chaseRadius;
         private float disengageRadius;
         private float animationTime;
+        private float visualPulse;
+        private Vector3 visualBaseScale;
+        private Sprite lastConfiguredSprite;
         private bool alerted;
         private bool returningHome;
         private bool deathReported;
@@ -78,12 +85,22 @@ namespace Project.Scripts.World
 
             GameObject visualObject = new("Goblin Visual");
             visualObject.transform.SetParent(enemyObject.transform, false);
-            visualObject.transform.localPosition = new Vector3(0f, -0.04f, -0.02f);
-            visualObject.transform.localScale = Vector3.one * 5.2f;
+            visualObject.transform.localPosition = new Vector3(0f, -0.08f, -0.02f);
+            visualObject.transform.localScale = Vector3.one * 6f;
             SpriteRenderer renderer = visualObject.AddComponent<SpriteRenderer>();
             renderer.sprite = enemyIdleSprite != null ? enemyIdleSprite : RuntimeWhiteSprite.Instance;
             renderer.color = Color.white;
             renderer.sortingOrder = 9;
+            ConfigurePixelSprite(renderer.sprite);
+
+            GameObject shadowObject = new("Goblin Shadow");
+            shadowObject.transform.SetParent(enemyObject.transform, false);
+            shadowObject.transform.localPosition = new Vector3(0f, -0.67f, 0.02f);
+            shadowObject.transform.localScale = new Vector3(0.82f, 0.16f, 1f);
+            SpriteRenderer shadow = shadowObject.AddComponent<SpriteRenderer>();
+            shadow.sprite = RuntimeWhiteSprite.Instance;
+            shadow.color = new Color(0.02f, 0.008f, 0.012f, 0.42f);
+            shadow.sortingOrder = 8;
 
             GameObject indicatorObject = new("Attack Pattern Indicator");
             indicatorObject.transform.SetParent(enemyObject.transform, false);
@@ -154,10 +171,20 @@ namespace Project.Scripts.World
             patrolTarget = GetPatrolPoint();
             patrolWaitUntil = Time.time + 0.12f;
             animationTime = Mathf.Abs(GetInstanceID() % 100) * 0.03f;
+            visualTransform = bodyRenderer != null ? bodyRenderer.transform : null;
+            shadowTransform = transform.Find("Goblin Shadow");
+            visualBaseScale = visualTransform != null ? visualTransform.localScale : Vector3.one;
+            visualPulse = Mathf.Abs(GetInstanceID() % 10) * 0.08f;
             alerted = false;
             returningHome = false;
             state = EnemyState.Patrol;
             nextAttackTime = Time.time + 0.9f;
+            experienceReward = pattern switch
+            {
+                WorldEnemyPattern.Shooter => 55,
+                WorldEnemyPattern.Charger => 45,
+                _ => 35
+            };
             ApplyPatternColors();
 
             if (health != null) health.OnDied += HandleDied;
@@ -190,6 +217,9 @@ namespace Project.Scripts.World
             {
                 switch (pattern)
                 {
+                    case WorldEnemyPattern.Chaser:
+                        UpdateChaser();
+                        break;
                     case WorldEnemyPattern.Charger:
                         UpdateCharger();
                         break;
@@ -320,6 +350,42 @@ namespace Project.Scripts.World
             }
         }
 
+        private void UpdateChaser()
+        {
+            switch (state)
+            {
+                case EnemyState.Telegraph:
+                    StopMoving();
+                    stateTime -= Time.deltaTime;
+                    if (stateTime <= 0f)
+                    {
+                        TryMeleeAttack();
+                        state = EnemyState.Recover;
+                        stateTime = 0.28f;
+                        nextAttackTime = Time.time + 0.9f;
+                    }
+                    break;
+                case EnemyState.Recover:
+                    StopMoving();
+                    stateTime -= Time.deltaTime;
+                    if (stateTime <= 0f) state = EnemyState.Pursue;
+                    break;
+                default:
+                    float distance = Vector2.Distance(player.position, body.position);
+                    if (distance <= 1.35f && Time.time >= nextAttackTime)
+                    {
+                        state = EnemyState.Telegraph;
+                        stateTime = 0.24f;
+                        StopMoving();
+                    }
+                    else
+                    {
+                        MoveTowardsPlayer(moveSpeed);
+                    }
+                    break;
+            }
+        }
+
         private void UpdateShooter()
         {
             switch (state)
@@ -386,10 +452,27 @@ namespace Project.Scripts.World
             if (projectile != null) registerProjectile?.Invoke(projectile.gameObject);
         }
 
+        private void TryMeleeAttack()
+        {
+            Collider2D[] hits = Physics2D.OverlapCircleAll(body.position, 1.4f);
+            foreach (Collider2D hit in hits)
+            {
+                if (hit == null || !IsPlayer(hit)) continue;
+                PlayerDodge dodge = hit.GetComponentInParent<PlayerDodge>();
+                if (dodge != null && dodge.IsInvulnerable) continue;
+
+                Health playerHealth = hit.GetComponentInParent<Health>(true);
+                if (playerHealth == null || !playerHealth.IsAlive) continue;
+                playerHealth.TakeDamage(contactDamage);
+                break;
+            }
+        }
+
         private void OnTriggerStay2D(Collider2D other)
         {
             if (dying || !health.IsAlive || !IsPlayer(other)) return;
             if (!alerted) BeginAlert();
+            if (pattern == WorldEnemyPattern.Chaser) return;
             if (Time.time < nextContactDamageTime) return;
 
             PlayerDodge dodge = other.GetComponentInParent<PlayerDodge>();
@@ -411,6 +494,7 @@ namespace Project.Scripts.World
             if (body != null) body.linearVelocity = Vector2.zero;
             if (health != null) health.SetExternalInvulnerable(true);
             RewardPlayer();
+            RunSession.AwardExperience(experienceReward);
             onDefeated?.Invoke();
             StartCoroutine(DeathRoutine());
         }
@@ -479,7 +563,31 @@ namespace Project.Scripts.World
                     if (frames[frameIndex] != null) bodyRenderer.sprite = frames[frameIndex];
                 }
                 if (bodyRenderer.sprite == null) bodyRenderer.sprite = RuntimeWhiteSprite.Instance;
+                if (bodyRenderer.sprite != lastConfiguredSprite)
+                {
+                    ConfigurePixelSprite(bodyRenderer.sprite);
+                    lastConfiguredSprite = bodyRenderer.sprite;
+                }
                 bodyRenderer.flipX = player != null && player.position.x < transform.position.x;
+
+                float bob = walking
+                    ? Mathf.Sin((Time.time + visualPulse) * 12f) * 0.045f
+                    : Mathf.Sin((Time.time + visualPulse) * 4f) * 0.018f;
+                float attackStretch = showingAction ? 0.08f : 0f;
+                bodyRenderer.transform.localScale = Vector3.Scale(visualBaseScale, new Vector3(
+                    1f - bob * 0.45f + attackStretch,
+                    1f + bob * 0.8f - attackStretch * 0.45f,
+                    1f));
+                bodyRenderer.transform.localPosition = new Vector3(0f,
+                    -0.08f + Mathf.Abs(bob) * 0.35f, -0.02f);
+            }
+
+            if (shadowTransform != null)
+            {
+                float shadowScale = body != null && body.linearVelocity.sqrMagnitude > 0.08f
+                    ? 0.9f + Mathf.Sin((Time.time + visualPulse) * 12f) * 0.05f
+                    : 0.9f;
+                shadowTransform.localScale = new Vector3(shadowScale, 0.16f, 1f);
             }
 
             if (indicatorRenderer == null) return;
@@ -525,6 +633,14 @@ namespace Project.Scripts.World
         {
             if (frames != null && frames.Length > 0) return frames;
             return fallback != null ? new[] { fallback } : Array.Empty<Sprite>();
+        }
+
+        private static void ConfigurePixelSprite(Sprite sprite)
+        {
+            if (sprite == null || sprite.texture == null) return;
+            sprite.texture.filterMode = FilterMode.Point;
+            sprite.texture.wrapMode = TextureWrapMode.Clamp;
+            sprite.texture.anisoLevel = 0;
         }
     }
 

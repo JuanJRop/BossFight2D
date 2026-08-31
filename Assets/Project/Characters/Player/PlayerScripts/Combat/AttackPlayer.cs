@@ -5,6 +5,7 @@ using Project.Characters.Enemy.EnemyScripts.Combat;
 using Project.Characters.Player.PlayerScripts.Controller;
 using Project.Characters.Player.PlayerScripts.Core;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using UnityEngine;
 
 namespace Project.Characters.Player.PlayerScripts.Combat
@@ -50,6 +51,11 @@ namespace Project.Characters.Player.PlayerScripts.Combat
         private float fireTimer;
         private float autoShootTimer;
         private float weaponDamageMultiplier = 1f;
+        private float baseChargerCapacity;
+        private float baseChargerTime;
+        private float baseFireRate;
+        private float baseAutoShootRate;
+        private bool baseStatsCaptured;
 
         public event Action<float, float> OnReloadChange;
 
@@ -65,6 +71,11 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void Awake()
         {
+            baseChargerCapacity = chargerCapacity;
+            baseChargerTime = chargerTime;
+            baseFireRate = fireRate;
+            baseAutoShootRate = autoShootRate;
+            baseStatsCaptured = true;
             playerSoundController = GetComponent<PlayerSoundController>();
         }
 
@@ -263,7 +274,8 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
             bulletObject.transform.SetPositionAndRotation(firePoint.position, rotation);
             Vector2 direction = rotation * Vector3.right;
-            body.linearVelocity = direction.normalized * currentAttack.Speed;
+            float projectileSpeed = currentAttack.Speed * RunSession.ProjectileSpeedMultiplier;
+            body.linearVelocity = direction.normalized * projectileSpeed;
             bullet.SetPool(
                 objectPool,
                 currentAttack.BulletPrefab,
@@ -271,7 +283,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 currentAttack.LifeTime,
                 BulletOwner.Player,
                 currentAttack.Damage * weaponDamageMultiplier * Mathf.Max(0.1f, abilityDamageMultiplier));
-            bullet.SetTarget(enemyTarget, homing, currentAttack.Speed);
+            bullet.SetTarget(enemyTarget, homing, projectileSpeed);
             bullet.SetHitCallback(powerUpHoming != null ? powerUpHoming.RegisterEnemyHit : null);
             bullet.SetEmpoweredVisual(visualScale > 1f, visualScale, visualColor);
             bullet.SetWeaponVisual(GameLoadout.WeaponColor);
@@ -353,14 +365,33 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void ApplySelectedLoadout()
         {
-            weaponDamageMultiplier = GameLoadout.WeaponDamageMultiplier;
-            chargerCapacity = Mathf.Max(1f, Mathf.Round(chargerCapacity * GameLoadout.MagazineMultiplier));
-            chargerTime = Mathf.Max(0.25f, chargerTime * GameLoadout.ReloadMultiplier);
-            fireRate = Mathf.Max(0.04f, fireRate * GameLoadout.FireRateMultiplier);
+            RefreshProgressionStats();
 
             if (firePoint == null) return;
             SpriteRenderer weaponRenderer = firePoint.GetComponentInParent<SpriteRenderer>();
             if (weaponRenderer != null) weaponRenderer.color = GameLoadout.WeaponColor;
+        }
+
+        public void RefreshProgressionStats()
+        {
+            if (!baseStatsCaptured)
+            {
+                baseChargerCapacity = chargerCapacity;
+                baseChargerTime = chargerTime;
+                baseFireRate = fireRate;
+                baseAutoShootRate = autoShootRate;
+                baseStatsCaptured = true;
+            }
+
+            weaponDamageMultiplier = GameLoadout.WeaponDamageMultiplier * RunSession.DamageMultiplier;
+            chargerCapacity = Mathf.Max(1f,
+                Mathf.Round(baseChargerCapacity * GameLoadout.MagazineMultiplier));
+            chargerTime = Mathf.Max(0.25f,
+                baseChargerTime * GameLoadout.ReloadMultiplier);
+            fireRate = Mathf.Max(0.04f,
+                baseFireRate * GameLoadout.FireRateMultiplier * RunSession.AttackCooldownMultiplier);
+            autoShootRate = Mathf.Max(0.04f,
+                baseAutoShootRate * RunSession.AttackCooldownMultiplier);
         }
 
         private void ResolveEnemy()

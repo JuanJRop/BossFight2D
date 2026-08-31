@@ -5,6 +5,7 @@ using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Player.PlayerScripts.Combat;
 using Project.Characters.Player.PlayerScripts.Controller;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -17,7 +18,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         [SerializeField] private float dashTime;
 
         [Header("Dash Charges")]
-        [SerializeField, Range(1, 6)] private int maxDashCharges = 3;
+        [SerializeField, Range(1, 8)] private int maxDashCharges = 3;
         [SerializeField, Min(0.1f)] private float dashRechargeTime = 2.4f;
 
         [Header("Impact Dash")]
@@ -41,6 +42,12 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         private int dashCharges;
         private bool isDashing;
         private bool isInvulnerable;
+        private float baseDashForce;
+        private float baseDashTime;
+        private float baseDashRechargeTime;
+        private float baseDashDamage;
+        private int baseMaxDashCharges;
+        private bool statsInitialized;
 
         public event Action<float, float> OnStaminaChanged;
         public event Action<int, int, float> OnDashChargesChanged;
@@ -72,12 +79,44 @@ namespace Project.Characters.Player.PlayerScripts.Movement
                 : null;
 
             if (trail != null) trail.enabled = false;
-            maxDashCharges = Mathf.Clamp(maxDashCharges + GameLoadout.DashChargeBonus, 1, 6);
-            dashRechargeTime = Mathf.Max(0.1f,
-                dashRechargeTime * GameLoadout.DashRechargeMultiplier);
-            dashDamage = Mathf.Max(0f, dashDamage * GameLoadout.DashDamageMultiplier);
+            baseDashForce = dashForce;
+            baseDashTime = dashTime;
+            baseDashRechargeTime = dashRechargeTime;
+            baseDashDamage = dashDamage;
+            baseMaxDashCharges = maxDashCharges;
+            RefreshProgressionStats();
             dashCharges = maxDashCharges;
+            statsInitialized = true;
             NotifyStaminaChanged();
+        }
+
+        public void RefreshProgressionStats()
+        {
+            if (baseMaxDashCharges <= 0)
+            {
+                baseDashForce = dashForce;
+                baseDashTime = dashTime;
+                baseDashRechargeTime = dashRechargeTime;
+                baseDashDamage = dashDamage;
+                baseMaxDashCharges = maxDashCharges;
+            }
+
+            int previousMax = maxDashCharges;
+            maxDashCharges = Mathf.Clamp(baseMaxDashCharges + GameLoadout.DashChargeBonus +
+                RunSession.StaminaDashChargeBonus, 1, 8);
+            dashForce = Mathf.Max(0f, baseDashForce * RunSession.DashForceMultiplier);
+            dashTime = Mathf.Max(0.01f, baseDashTime);
+            dashRechargeTime = Mathf.Max(0.1f,
+                baseDashRechargeTime * GameLoadout.DashRechargeMultiplier *
+                RunSession.DashRechargeMultiplier);
+            dashDamage = Mathf.Max(0f,
+                baseDashDamage * GameLoadout.DashDamageMultiplier * RunSession.DamageMultiplier);
+
+            if (statsInitialized)
+            {
+                dashCharges = Mathf.Clamp(dashCharges + maxDashCharges - previousMax, 0, maxDashCharges);
+                NotifyStaminaChanged();
+            }
         }
 
         private void Update()
@@ -220,7 +259,7 @@ namespace Project.Characters.Player.PlayerScripts.Movement
         {
             dashForce = Mathf.Max(0f, dashForce);
             dashTime = Mathf.Max(0.01f, dashTime);
-            maxDashCharges = Mathf.Clamp(maxDashCharges, 1, 6);
+            maxDashCharges = Mathf.Clamp(maxDashCharges, 1, 8);
             dashRechargeTime = Mathf.Max(0.1f, dashRechargeTime);
             dashDamage = Mathf.Max(0f, dashDamage);
             dashHitRadius = Mathf.Max(0.1f, dashHitRadius);

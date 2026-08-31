@@ -494,7 +494,10 @@ namespace Project.Scripts.World
                 ? WorldPuzzleKind.Sequence
                 : WorldPuzzleKind.Circuit;
             WorldPuzzleController puzzle = WorldPuzzleController.CreateRuntime(
-                puzzleKind, playerActor != null ? playerActor.transform : null, transform,
+                puzzleKind, playerBody != null
+                    ? playerBody.transform
+                    : playerActor != null ? playerActor.transform : null,
+                transform,
                 () => CompletePuzzle(room));
             if (puzzle != null)
             {
@@ -524,7 +527,9 @@ namespace Project.Scripts.World
                 return;
             }
 
-            Transform target = playerActor != null ? playerActor.transform : null;
+            Transform target = playerBody != null
+                ? playerBody.transform
+                : playerActor != null ? playerActor.transform : null;
             if (target == null)
             {
                 roomChallengeLocked = false;
