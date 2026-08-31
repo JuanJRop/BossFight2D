@@ -49,6 +49,21 @@ namespace Project.Scripts.World
         [SerializeField] private GameObject healthKitPrefab;
         [SerializeField] private GameObject manaPotionPrefab;
 
+        [Header("Secondary enemy visuals")]
+        [SerializeField] private Sprite spearGoblinIdleSprite;
+        [SerializeField] private Sprite spearGoblinAttackSprite;
+        [SerializeField] private Sprite archerGoblinIdleSprite;
+        [SerializeField] private Sprite archerGoblinAttackSprite;
+        [SerializeField] private Sprite[] spearGoblinIdleFrames;
+        [SerializeField] private Sprite[] spearGoblinWalkFrames;
+        [SerializeField] private Sprite[] spearGoblinAttackFrames;
+        [SerializeField] private Sprite[] archerGoblinIdleFrames;
+        [SerializeField] private Sprite[] archerGoblinWalkFrames;
+        [SerializeField] private Sprite[] archerGoblinAttackFrames;
+
+        [Header("Room presentation")]
+        [SerializeField] private bool showRoomGuides = false;
+
         private readonly List<Tile> runtimeTiles = new();
         private readonly List<GameObject> roomObjects = new();
         private readonly HashSet<Vector2Int> visitedRooms = new();
@@ -528,10 +543,26 @@ namespace Project.Scripts.World
             for (int index = 0; index < enemyCount; index++)
             {
                 WorldEnemyPattern pattern = GetEnemyPattern(room, index);
+                Sprite idleSprite = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinIdleSprite
+                    : spearGoblinIdleSprite;
+                Sprite actionSprite = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinAttackSprite
+                    : spearGoblinAttackSprite;
+                Sprite[] idleFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinIdleFrames
+                    : spearGoblinIdleFrames;
+                Sprite[] walkFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinWalkFrames
+                    : spearGoblinWalkFrames;
+                Sprite[] attackFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinAttackFrames
+                    : spearGoblinAttackFrames;
                 WorldSecondaryEnemy enemy = WorldSecondaryEnemy.CreateRuntime(
                     $"Secondary Enemy {index + 1}", spawnPositions[index], pattern,
                     GetEnemyHealth(room, index), GetEnemySpeed(pattern), GetEnemyDamage(pattern),
-                    target, transform, roomObject => roomObjects.Add(roomObject),
+                    idleSprite, actionSprite, idleFrames, walkFrames, attackFrames, target, transform,
+                    roomObject => roomObjects.Add(roomObject),
                     NotifyRoomEnemyDefeated);
                 if (enemy == null) continue;
 
@@ -696,6 +727,8 @@ namespace Project.Scripts.World
 
         private void BuildRoomPresentation(Vector2Int room)
         {
+            if (!showRoomGuides) return;
+
             RoomVisualPalette palette = GetRoomVisualPalette(room);
             RoomOpenings openings = GetOpenings(room);
             Color shadow = WithAlpha(palette.Shadow, 0.36f);
@@ -1066,16 +1099,25 @@ namespace Project.Scripts.World
             Camera camera = cameraObject.AddComponent<Camera>();
             cameraObject.AddComponent<UniversalAdditionalCameraData>();
             camera.orthographic = true;
-            camera.orthographicSize = 8f;
+            camera.orthographicSize = GetRoomCameraSize(camera.aspect);
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.025f, 0.008f, 0.012f, 1f);
-            camera.transform.position = new Vector3(0f, -5f, -10f);
+            camera.transform.position = new Vector3(0f, 0.5f, -10f);
             cameraObject.AddComponent<AudioListener>();
 
             WorldPathCamera follow = cameraObject.AddComponent<WorldPathCamera>();
             follow.Configure(target, new Vector2(-RoomHalfWidth, -RoomHalfHeight),
                 new Vector2(RoomHalfWidth + 1f, RoomHalfHeight + 1f));
             return follow;
+        }
+
+        private static float GetRoomCameraSize(float aspect)
+        {
+            float roomWidth = (RoomHalfWidth + 1f) - -RoomHalfWidth;
+            float roomHeight = (RoomHalfHeight + 1f) - -RoomHalfHeight;
+            float verticalHalfSize = roomHeight * 0.5f + 0.35f;
+            float horizontalHalfSize = roomWidth / (2f * Mathf.Max(0.1f, aspect)) + 0.35f;
+            return Mathf.Max(verticalHalfSize, horizontalHalfSize);
         }
 
         private static void BuildWorldLighting()
@@ -1617,6 +1659,7 @@ namespace Project.Scripts.World
         {
             minimum = worldMinimum;
             maximum = worldMaximum;
+            FrameEntireRoom();
         }
 
         public void SnapToTarget()
@@ -1628,9 +1671,19 @@ namespace Project.Scripts.World
         private void LateUpdate()
         {
             if (target == null || worldCamera == null) return;
+            FrameEntireRoom();
             Vector3 desired = ResolveDesiredPosition();
             transform.position = Vector3.Lerp(transform.position, desired,
                 1f - Mathf.Exp(-11f * Time.unscaledDeltaTime));
+        }
+
+        private void FrameEntireRoom()
+        {
+            if (worldCamera == null || !worldCamera.orthographic) return;
+            float requiredSize = Mathf.Max(
+                (maximum.y - minimum.y) * 0.5f + 0.35f,
+                (maximum.x - minimum.x) / (2f * Mathf.Max(0.1f, worldCamera.aspect)) + 0.35f);
+            worldCamera.orthographicSize = requiredSize;
         }
 
         private Vector3 ResolveDesiredPosition()
@@ -1638,8 +1691,16 @@ namespace Project.Scripts.World
             float halfHeight = worldCamera.orthographicSize;
             float halfWidth = halfHeight * Mathf.Max(0.1f, worldCamera.aspect);
             Vector3 desired = target.position;
-            desired.x = Mathf.Clamp(desired.x, minimum.x + halfWidth, maximum.x - halfWidth);
-            desired.y = Mathf.Clamp(desired.y, minimum.y + halfHeight, maximum.y - halfHeight);
+            float minimumX = minimum.x + halfWidth;
+            float maximumX = maximum.x - halfWidth;
+            float minimumY = minimum.y + halfHeight;
+            float maximumY = maximum.y - halfHeight;
+            desired.x = minimumX <= maximumX
+                ? Mathf.Clamp(desired.x, minimumX, maximumX)
+                : (minimum.x + maximum.x) * 0.5f;
+            desired.y = minimumY <= maximumY
+                ? Mathf.Clamp(desired.y, minimumY, maximumY)
+                : (minimum.y + maximum.y) * 0.5f;
             desired.z = -10f;
             return desired;
         }

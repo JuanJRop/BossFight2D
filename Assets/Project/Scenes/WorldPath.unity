@@ -181,6 +181,41 @@ MonoBehaviour:
   destructibleHealth: 52
   healthKitPrefab: {fileID: 100000, guid: 7f0a3348f3de47e7a5318f534b68de6b, type: 3}
   manaPotionPrefab: {fileID: 100000, guid: d8fbf4db07df4daebcb2d7e6d7654853, type: 3}
+  spearGoblinIdleSprite: {fileID: 4723107735738678597, guid: 35f705a7f4361304db680fa91b21cda0, type: 3}
+  spearGoblinAttackSprite: {fileID: 6108012597462862368, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
+  archerGoblinIdleSprite: {fileID: 4723107735738678597, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  archerGoblinAttackSprite: {fileID: -7856493677412862020, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
+  spearGoblinIdleFrames:
+  - {fileID: 4723107735738678597, guid: 35f705a7f4361304db680fa91b21cda0, type: 3}
+  - {fileID: 6373048116405451881, guid: 35f705a7f4361304db680fa91b21cda0, type: 3}
+  - {fileID: 3278449094680734212, guid: 35f705a7f4361304db680fa91b21cda0, type: 3}
+  - {fileID: -3914248031228685145, guid: 35f705a7f4361304db680fa91b21cda0, type: 3}
+  spearGoblinWalkFrames:
+  - {fileID: 4944230376442633554, guid: 7b0c7b20a6dcec146b725b20a59d2ead, type: 3}
+  - {fileID: -4440497016933152808, guid: 7b0c7b20a6dcec146b725b20a59d2ead, type: 3}
+  - {fileID: -5168576596277122810, guid: 7b0c7b20a6dcec146b725b20a59d2ead, type: 3}
+  - {fileID: -1286830556838052669, guid: 7b0c7b20a6dcec146b725b20a59d2ead, type: 3}
+  spearGoblinAttackFrames:
+  - {fileID: 6108012597462862368, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
+  - {fileID: -2446075364717494585, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
+  - {fileID: -8452378982718362965, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
+  - {fileID: 5751293451512966711, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
+  archerGoblinIdleFrames:
+  - {fileID: 4723107735738678597, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  - {fileID: 6373048116405451881, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  - {fileID: 3278449094680734212, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  - {fileID: -3914248031228685145, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  archerGoblinWalkFrames:
+  - {fileID: 4944230376442633554, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
+  - {fileID: -4440497016933152808, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
+  - {fileID: -5168576596277122810, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
+  - {fileID: -1286830556838052669, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
+  archerGoblinAttackFrames:
+  - {fileID: -7856493677412862020, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
+  - {fileID: 4704730849205151557, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
+  - {fileID: 8995680207889981604, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
+  - {fileID: -7941910657955093014, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
+  showRoomGuides: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

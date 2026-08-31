@@ -19,6 +19,7 @@ namespace Project.Scripts.World
     {
         private enum EnemyState
         {
+            Patrol,
             Pursue,
             Telegraph,
             Dash,
@@ -32,6 +33,11 @@ namespace Project.Scripts.World
         private Collider2D enemyCollider;
         private SpriteRenderer bodyRenderer;
         private SpriteRenderer indicatorRenderer;
+        private Sprite idleSprite;
+        private Sprite actionSprite;
+        private Sprite[] idleFrames;
+        private Sprite[] walkFrames;
+        private Sprite[] attackFrames;
         private WorldEnemyPattern pattern;
         private EnemyState state;
         private Action onDefeated;
@@ -43,13 +49,24 @@ namespace Project.Scripts.World
         private float nextAttackTime;
         private float nextContactDamageTime;
         private Vector2 dashDirection;
+        private Vector2 patrolOrigin;
+        private Vector2 patrolTarget;
+        private int patrolIndex;
+        private float patrolRadius;
+        private float patrolWaitUntil;
+        private float chaseRadius;
+        private float disengageRadius;
+        private float animationTime;
+        private bool alerted;
+        private bool returningHome;
         private bool deathReported;
         private bool dying;
 
         public static WorldSecondaryEnemy CreateRuntime(string objectName, Vector2 position,
             WorldEnemyPattern enemyPattern, float maxHealth, float speed, float damage,
-            Transform playerTarget, Transform parent, Action<GameObject> onProjectileCreated,
-            Action defeatedCallback)
+            Sprite enemyIdleSprite, Sprite enemyActionSprite, Sprite[] enemyIdleFrames,
+            Sprite[] enemyWalkFrames, Sprite[] enemyAttackFrames, Transform playerTarget,
+            Transform parent, Action<GameObject> onProjectileCreated, Action defeatedCallback)
         {
             if (parent == null || playerTarget == null) return null;
 
@@ -57,17 +74,20 @@ namespace Project.Scripts.World
             enemyObject.tag = "Enemy";
             enemyObject.transform.SetParent(parent, false);
             enemyObject.transform.position = new Vector3(position.x, position.y, -0.05f);
-            enemyObject.transform.localScale = enemyPattern == WorldEnemyPattern.Charger
-                ? Vector3.one * 1.08f
-                : Vector3.one * 0.92f;
+            enemyObject.transform.localScale = Vector3.one;
 
-            SpriteRenderer renderer = enemyObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = RuntimeWhiteSprite.Instance;
+            GameObject visualObject = new("Goblin Visual");
+            visualObject.transform.SetParent(enemyObject.transform, false);
+            visualObject.transform.localPosition = new Vector3(0f, -0.04f, -0.02f);
+            visualObject.transform.localScale = Vector3.one * 5.2f;
+            SpriteRenderer renderer = visualObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = enemyIdleSprite != null ? enemyIdleSprite : RuntimeWhiteSprite.Instance;
+            renderer.color = Color.white;
             renderer.sortingOrder = 9;
 
             GameObject indicatorObject = new("Attack Pattern Indicator");
             indicatorObject.transform.SetParent(enemyObject.transform, false);
-            indicatorObject.transform.localPosition = new Vector3(0f, 0.72f, 0f);
+            indicatorObject.transform.localPosition = new Vector3(0f, 0.9f, 0f);
             indicatorObject.transform.localScale = new Vector3(0.24f, 0.24f, 1f);
             SpriteRenderer indicator = indicatorObject.AddComponent<SpriteRenderer>();
             indicator.sprite = RuntimeWhiteSprite.Instance;
@@ -87,17 +107,25 @@ namespace Project.Scripts.World
 
             WorldSecondaryEnemy enemy = enemyObject.AddComponent<WorldSecondaryEnemy>();
             enemy.Configure(renderer, indicator, collider, rigidbody, enemyHealth, enemyPattern,
-                speed, damage, playerTarget, onProjectileCreated, defeatedCallback);
+                enemyIdleSprite, enemyActionSprite, enemyIdleFrames, enemyWalkFrames,
+                enemyAttackFrames, speed, damage, playerTarget, onProjectileCreated,
+                defeatedCallback);
             return enemy;
         }
 
         private void Configure(SpriteRenderer renderer, SpriteRenderer indicator, Collider2D collider,
-            Rigidbody2D rigidbody, Health enemyHealth, WorldEnemyPattern enemyPattern, float speed,
-            float damage, Transform playerTarget, Action<GameObject> onProjectileCreated,
-            Action defeatedCallback)
+            Rigidbody2D rigidbody, Health enemyHealth, WorldEnemyPattern enemyPattern,
+            Sprite enemyIdleSprite, Sprite enemyActionSprite, Sprite[] enemyIdleFrames,
+            Sprite[] enemyWalkFrames, Sprite[] enemyAttackFrames, float speed, float damage,
+            Transform playerTarget, Action<GameObject> onProjectileCreated, Action defeatedCallback)
         {
             bodyRenderer = renderer;
             indicatorRenderer = indicator;
+            idleSprite = enemyIdleSprite;
+            actionSprite = enemyActionSprite;
+            idleFrames = PrepareFrames(enemyIdleFrames, enemyIdleSprite);
+            walkFrames = PrepareFrames(enemyWalkFrames, enemyIdleSprite);
+            attackFrames = PrepareFrames(enemyAttackFrames, enemyActionSprite);
             enemyCollider = collider;
             body = rigidbody;
             health = enemyHealth;
@@ -108,41 +136,143 @@ namespace Project.Scripts.World
             moveSpeed = Mathf.Max(0.1f, speed);
             contactDamage = Mathf.Max(0f, damage);
             manaReward = pattern == WorldEnemyPattern.Shooter ? 3f : 2f;
-            state = EnemyState.Pursue;
-            nextAttackTime = Time.time + (pattern == WorldEnemyPattern.Chaser ? 999f : 0.9f);
+            patrolOrigin = body.position;
+            patrolRadius = pattern switch
+            {
+                WorldEnemyPattern.Charger => 2.35f,
+                WorldEnemyPattern.Shooter => 2.7f,
+                _ => 2.05f
+            };
+            chaseRadius = pattern switch
+            {
+                WorldEnemyPattern.Charger => 6.2f,
+                WorldEnemyPattern.Shooter => 7.4f,
+                _ => 5.3f
+            };
+            disengageRadius = chaseRadius * 1.55f;
+            patrolIndex = Mathf.Abs(GetInstanceID() % 4);
+            patrolTarget = GetPatrolPoint();
+            patrolWaitUntil = Time.time + 0.12f;
+            animationTime = Mathf.Abs(GetInstanceID() % 100) * 0.03f;
+            alerted = false;
+            returningHome = false;
+            state = EnemyState.Patrol;
+            nextAttackTime = Time.time + 0.9f;
             ApplyPatternColors();
 
             if (health != null) health.OnDied += HandleDied;
             FloatingHealthBar healthBar = GetComponent<FloatingHealthBar>();
             if (healthBar == null) healthBar = gameObject.AddComponent<FloatingHealthBar>();
-            healthBar.ConfigureRuntime(health, new Vector2(1.15f, 0.12f), new Vector2(0f, 0.82f),
+            healthBar.ConfigureRuntime(health, new Vector2(1.3f, 0.12f), new Vector2(0f, 1.15f),
                 new Color(1f, 0.28f, 0.1f, 1f));
         }
 
         private void Update()
         {
-            if (dying || health == null || !health.IsAlive || player == null) return;
+            if (dying || health == null || !health.IsAlive || player == null || body == null) return;
             if (UIManager.instance != null && UIManager.instance.IsPaused)
             {
                 if (body != null) body.linearVelocity = Vector2.zero;
                 return;
             }
 
-            switch (pattern)
+            float playerDistance = Vector2.Distance(player.position, body.position);
+            if (!alerted && playerDistance <= chaseRadius)
+                BeginAlert();
+            else if (alerted && playerDistance > disengageRadius)
+                Disengage();
+
+            if (!alerted)
             {
-                case WorldEnemyPattern.Charger:
-                    UpdateCharger();
-                    break;
-                case WorldEnemyPattern.Shooter:
-                    UpdateShooter();
-                    break;
-                default:
-                    MoveTowardsPlayer(moveSpeed);
-                    break;
+                UpdatePatrol();
+            }
+            else
+            {
+                switch (pattern)
+                {
+                    case WorldEnemyPattern.Charger:
+                        UpdateCharger();
+                        break;
+                    case WorldEnemyPattern.Shooter:
+                        UpdateShooter();
+                        break;
+                    default:
+                        MoveTowardsPlayer(moveSpeed);
+                        break;
+                }
             }
 
             ClampToRoom();
             UpdatePresentation();
+        }
+
+        private void BeginAlert()
+        {
+            alerted = true;
+            returningHome = false;
+            state = EnemyState.Pursue;
+            nextAttackTime = Time.time + 0.42f;
+        }
+
+        private void Disengage()
+        {
+            alerted = false;
+            returningHome = true;
+            state = EnemyState.Patrol;
+            StopMoving();
+        }
+
+        private void UpdatePatrol()
+        {
+            if (returningHome)
+            {
+                if (MoveTowardsPoint(patrolOrigin, moveSpeed * 0.72f, 0.42f))
+                {
+                    returningHome = false;
+                    patrolIndex = 0;
+                    patrolTarget = GetPatrolPoint();
+                    patrolWaitUntil = Time.time + 0.18f;
+                }
+                return;
+            }
+
+            if (Time.time < patrolWaitUntil)
+            {
+                StopMoving();
+                return;
+            }
+
+            if (MoveTowardsPoint(patrolTarget, moveSpeed * 0.48f, 0.36f))
+            {
+                patrolIndex = (patrolIndex + 1) % 4;
+                patrolTarget = GetPatrolPoint();
+                patrolWaitUntil = Time.time + 0.2f;
+            }
+        }
+
+        private Vector2 GetPatrolPoint()
+        {
+            Vector2 direction = patrolIndex switch
+            {
+                0 => Vector2.right,
+                1 => Vector2.up,
+                2 => Vector2.left,
+                _ => Vector2.down
+            };
+            return patrolOrigin + direction * patrolRadius;
+        }
+
+        private bool MoveTowardsPoint(Vector2 target, float speed, float arrivalDistance)
+        {
+            Vector2 toTarget = target - body.position;
+            if (toTarget.sqrMagnitude <= arrivalDistance * arrivalDistance)
+            {
+                StopMoving();
+                return true;
+            }
+
+            body.linearVelocity = toTarget.normalized * speed;
+            return false;
         }
 
         private void UpdateCharger()
@@ -258,7 +388,9 @@ namespace Project.Scripts.World
 
         private void OnTriggerStay2D(Collider2D other)
         {
-            if (dying || !health.IsAlive || Time.time < nextContactDamageTime || !IsPlayer(other)) return;
+            if (dying || !health.IsAlive || !IsPlayer(other)) return;
+            if (!alerted) BeginAlert();
+            if (Time.time < nextContactDamageTime) return;
 
             PlayerDodge dodge = other.GetComponentInParent<PlayerDodge>();
             if (dodge != null && dodge.IsInvulnerable) return;
@@ -328,13 +460,31 @@ namespace Project.Scripts.World
                 WorldEnemyPattern.Shooter => new Color(0.42f, 0.72f, 1f, 1f),
                 _ => new Color(0.34f, 0.92f, 0.68f, 1f)
             };
-            if (bodyRenderer != null) bodyRenderer.color = color;
+            if (bodyRenderer != null) bodyRenderer.color = Color.white;
             if (indicatorRenderer != null) indicatorRenderer.color = color;
         }
 
         private void UpdatePresentation()
         {
+            if (bodyRenderer != null)
+            {
+                bool showingAction = state == EnemyState.Telegraph || state == EnemyState.Dash;
+                bool walking = body != null && body.linearVelocity.sqrMagnitude > 0.08f;
+                Sprite[] frames = showingAction ? attackFrames : walking ? walkFrames : idleFrames;
+                float frameRate = showingAction ? 11f : walking ? 8f : 4f;
+                animationTime += Time.deltaTime * frameRate;
+                if (frames != null && frames.Length > 0)
+                {
+                    int frameIndex = Mathf.FloorToInt(animationTime) % frames.Length;
+                    if (frames[frameIndex] != null) bodyRenderer.sprite = frames[frameIndex];
+                }
+                if (bodyRenderer.sprite == null) bodyRenderer.sprite = RuntimeWhiteSprite.Instance;
+                bodyRenderer.flipX = player != null && player.position.x < transform.position.x;
+            }
+
             if (indicatorRenderer == null) return;
+            indicatorRenderer.enabled = alerted;
+            if (!alerted) return;
             Color color = indicatorRenderer.color;
             float alpha = state == EnemyState.Telegraph ? 1f : state == EnemyState.Dash ? 0.9f : 0.42f;
             float pulse = state == EnemyState.Telegraph
@@ -369,6 +519,12 @@ namespace Project.Scripts.World
             if (other.CompareTag("Player")) return true;
             Transform root = other.transform.root;
             return root != null && root.CompareTag("Player");
+        }
+
+        private static Sprite[] PrepareFrames(Sprite[] frames, Sprite fallback)
+        {
+            if (frames != null && frames.Length > 0) return frames;
+            return fallback != null ? new[] { fallback } : Array.Empty<Sprite>();
         }
     }
 

@@ -35801,6 +35801,7 @@ MonoBehaviour:
   viewportPadding: {x: 0.025, y: 0.04}
   wallThickness: 0.5
   actorPadding: 0.2
+  showMapDecoration: 0
   gridColor: {r: 0.08, g: 0.72, b: 0.84, a: 0.16}
   gridColumns: 12
   gridRows: 8

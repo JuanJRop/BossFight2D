@@ -20,6 +20,7 @@ namespace Project.Scripts.Arena
         [SerializeField, Min(0f)] private float actorPadding = 0.2f;
 
         [Header("Map Presentation")]
+        [SerializeField] private bool showMapDecoration = false;
         [SerializeField] private Color gridColor = new(0.08f, 0.72f, 0.84f, 0.16f);
         [SerializeField, Range(2, 16)] private int gridColumns = 8;
         [SerializeField, Range(2, 12)] private int gridRows = 5;
@@ -51,7 +52,7 @@ namespace Project.Scripts.Arena
             ResolveBounds();
             FitCameraToArena();
             DisableLegacyWallColliders();
-            BuildMapDecoration();
+            if (showMapDecoration) BuildMapDecoration();
             BuildPhysicalWalls();
             if (showBoundaryVisual) BuildBoundaryVisual();
         }

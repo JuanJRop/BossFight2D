@@ -8,7 +8,7 @@ namespace Project.Scripts.Controller
         {
             if (Input.GetKeyDown(KeyCode.Escape))
             {
-                UIManager.instance.SettingsManager();
+                EscapeMenuController.Toggle();
             }
         }
     }
