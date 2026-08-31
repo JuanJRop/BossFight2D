@@ -226,7 +226,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                     : index / (reservedProjectiles.Count - 1f);
                 float angleOffset = Mathf.Lerp(-RunSession.BasicProjectileSpread * 0.5f,
                     RunSession.BasicProjectileSpread * 0.5f, normalized);
-                Quaternion rotation = Quaternion.Euler(0f, 0f, firePoint.eulerAngles.z + angleOffset);
+                Quaternion rotation = GetMouseAimRotation(angleOffset);
                 if (!ConfigureProjectile(reservedProjectiles[index], rotation,
                         RunSession.BasicProjectileHoming, RunSession.BasicProjectileDamageMultiplier,
                         RunSession.BasicProjectileVisualScale, RunSession.BasicProjectileColor))
@@ -269,7 +269,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                     : index / (reservedProjectiles.Count - 1f);
                 float angleOffset = Mathf.Lerp(-RunSession.PowerProjectileSpread * 0.5f,
                     RunSession.PowerProjectileSpread * 0.5f, normalized);
-                Quaternion rotation = Quaternion.Euler(0f, 0f, firePoint.eulerAngles.z + angleOffset);
+                Quaternion rotation = GetMouseAimRotation(angleOffset);
                 if (!ConfigureProjectile(reservedProjectiles[index], rotation, RunSession.PowerProjectileHoming,
                         RunSession.PowerProjectileDamageMultiplier, RunSession.PowerProjectileVisualScale,
                         RunSession.PowerProjectileColor))
@@ -335,6 +335,28 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             bullet.SetEmpoweredVisual(visualScale > 1f, visualScale, visualColor);
             bullet.SetWeaponVisual(RunSession.BasicProjectileColor);
             return true;
+        }
+
+        private Quaternion GetMouseAimRotation(float angleOffset)
+        {
+            Vector2 direction = GetMouseAimDirection();
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg + angleOffset;
+            return Quaternion.Euler(0f, 0f, angle);
+        }
+
+        private Vector2 GetMouseAimDirection()
+        {
+            Camera mainCamera = Camera.main;
+            if (mainCamera == null || firePoint == null)
+                return firePoint != null ? (Vector2)firePoint.right : Vector2.right;
+
+            Vector3 mousePosition = Input.mousePosition;
+            mousePosition.z = firePoint.position.z - mainCamera.transform.position.z;
+            Vector3 target = mainCamera.ScreenToWorldPoint(mousePosition);
+            target.z = firePoint.position.z;
+
+            Vector2 direction = target - firePoint.position;
+            return direction.sqrMagnitude > 0.001f ? direction.normalized : (Vector2)firePoint.right;
         }
 
         private void ReturnReservedVolley()

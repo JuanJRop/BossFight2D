@@ -18,6 +18,7 @@ namespace Project.Scripts.World
     [DefaultExecutionOrder(-600)]
     public sealed class WorldPathBootstrap : MonoBehaviour
     {
+        private const float MapDecorationScaleMultiplier = 1.28f;
         private const int RoomHalfWidth = 18;
         private const int RoomHalfHeight = 12;
         private const int MinimumRoomX = -1;
@@ -934,7 +935,12 @@ namespace Project.Scripts.World
             {
                 TileBase decoration = decorationTiles[Mathf.Abs(room.x * 5 + room.y * 3 + index) %
                                                      decorationTiles.Length];
-                if (decoration != null) details.SetTile(positions[index], decoration);
+                if (decoration == null) continue;
+
+                details.SetTile(positions[index], decoration);
+                details.SetTileFlags(positions[index], TileFlags.None);
+                details.SetTransformMatrix(positions[index],
+                    Matrix4x4.Scale(Vector3.one * MapDecorationScaleMultiplier));
             }
         }
 
@@ -1332,7 +1338,8 @@ namespace Project.Scripts.World
             visual.transform.SetParent(transform, false);
             visual.transform.position = new Vector3(center.x, center.y, 0f);
             visual.transform.rotation = Quaternion.Euler(0f, 0f, rotation);
-            visual.transform.localScale = Vector3.one * scale;
+            float finalScale = Mathf.Max(0.01f, scale) * MapDecorationScaleMultiplier;
+            visual.transform.localScale = Vector3.one * finalScale;
 
             SpriteRenderer renderer = visual.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
@@ -1347,7 +1354,8 @@ namespace Project.Scripts.World
             GameObject visual = CreateRoomSprite(objectName, sprite, center, sortingOrder, 0f, scale);
             if (visual == null) return null;
 
-            Vector2 pivotOffset = sprite.bounds.center * scale;
+            float finalScale = Mathf.Max(0.01f, scale) * MapDecorationScaleMultiplier;
+            Vector2 pivotOffset = sprite.bounds.center * finalScale;
             visual.transform.position = new Vector3(
                 center.x - pivotOffset.x,
                 center.y - pivotOffset.y,
