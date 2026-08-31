@@ -53,10 +53,6 @@ namespace Project.Scripts.World
         [SerializeField, Range(0, 8)] private int destructiblesPerRoom = 5;
         [SerializeField, Min(1f)] private float destructibleHealth = 52f;
 
-        [Header("Route rewards")]
-        [SerializeField] private GameObject healthKitPrefab;
-        [SerializeField] private GameObject manaPotionPrefab;
-
         [Header("Secondary enemy visuals")]
         [SerializeField] private Sprite spearGoblinIdleSprite;
         [SerializeField] private Sprite spearGoblinAttackSprite;
@@ -68,6 +64,18 @@ namespace Project.Scripts.World
         [SerializeField] private Sprite[] archerGoblinIdleFrames;
         [SerializeField] private Sprite[] archerGoblinWalkFrames;
         [SerializeField] private Sprite[] archerGoblinAttackFrames;
+        [SerializeField] private Sprite[] spearGoblinIdleUpFrames;
+        [SerializeField] private Sprite[] spearGoblinIdleSideFrames;
+        [SerializeField] private Sprite[] spearGoblinWalkUpFrames;
+        [SerializeField] private Sprite[] spearGoblinWalkSideFrames;
+        [SerializeField] private Sprite[] spearGoblinAttackUpFrames;
+        [SerializeField] private Sprite[] spearGoblinAttackSideFrames;
+        [SerializeField] private Sprite[] archerGoblinIdleUpFrames;
+        [SerializeField] private Sprite[] archerGoblinIdleSideFrames;
+        [SerializeField] private Sprite[] archerGoblinWalkUpFrames;
+        [SerializeField] private Sprite[] archerGoblinWalkSideFrames;
+        [SerializeField] private Sprite[] archerGoblinAttackUpFrames;
+        [SerializeField] private Sprite[] archerGoblinAttackSideFrames;
 
         [Header("Room presentation")]
         [SerializeField] private bool showRoomGuides = true;
@@ -77,6 +85,7 @@ namespace Project.Scripts.World
         private readonly HashSet<Vector2Int> visitedRooms = new();
         private readonly HashSet<Vector2Int> clearedCombatRooms = new();
         private readonly HashSet<Vector2Int> solvedPuzzleRooms = new();
+        private readonly HashSet<Vector2Int> claimedPuzzleRewardRooms = new();
         private readonly Dictionary<Vector2Int, Image> mapCells = new();
         private readonly Dictionary<Vector2Int, TextMeshProUGUI> mapCellLabels = new();
         private readonly List<MapConnection> mapConnections = new();
@@ -464,36 +473,21 @@ namespace Project.Scripts.World
                 Color color = type == DestructiblePropType.Crate
                     ? new Color(0.78f, 0.3f, 0.1f, 1f)
                     : new Color(0.18f, 0.66f, 0.74f, 1f);
+                DestructibleRewardType rewardType = GetDestructibleRewardType(room, created);
 
                 DestructibleProp prop = DestructibleProp.CreateRuntime(
                     $"Room Cover {created + 1}", new Vector2(cell.x, cell.y), size, color, type,
-                    roomHealth, transform, profile.ManaReward);
+                    roomHealth, transform, rewardType,
+                    GetDestructibleRewardAmount(room, created, rewardType),
+                    rewardObject =>
+                    {
+                        if (rewardObject != null) roomObjects.Add(rewardObject);
+                    });
                 if (prop == null) continue;
 
                 roomObjects.Add(prop.gameObject);
                 created++;
             }
-        }
-
-        private void SpawnPuzzleReward(Vector2Int room)
-        {
-            GameObject prefab = GetRoomType(room) switch
-            {
-                WorldRoomType.PuzzleSequence => healthKitPrefab,
-                WorldRoomType.PuzzleCircuit => manaPotionPrefab,
-                _ => null
-            };
-            if (prefab == null) return;
-
-            Vector2 position = GetRoomType(room) == WorldRoomType.PuzzleSequence
-                ? new Vector2(0f, -5.2f)
-                : new Vector2(0f, 5.2f);
-            GameObject reward = Instantiate(prefab, new Vector3(position.x, position.y, -0.2f),
-                Quaternion.identity, transform);
-            reward.name = GetRoomType(room) == WorldRoomType.PuzzleSequence
-                ? "Puzzle Health Reward"
-                : "Puzzle Mana Reward";
-            roomObjects.Add(reward);
         }
 
         private void BuildRoomPuzzle(Vector2Int room)
@@ -530,20 +524,39 @@ namespace Project.Scripts.World
             if (room != currentRoom || solvedPuzzleRooms.Contains(room)) return;
             solvedPuzzleRooms.Add(room);
             roomChallengeLocked = false;
-            SpawnPuzzleReward(room);
+            BuildPuzzleChest(room);
             UpdateRoomHud();
         }
 
         private void BuildPuzzleChest(Vector2Int room)
         {
-            if (room != BossGatewayRoom || puzzleChestClaimed || solvedPuzzleRooms.Count < 2) return;
-
             Transform target = playerBody != null
                 ? playerBody.transform
                 : playerActor != null ? playerActor.transform : null;
-            WorldPuzzleChest chest = WorldPuzzleChest.CreateRuntime(new Vector2(0f, -1.8f),
-                target, transform, OpenPuzzleChest);
-            if (chest != null) roomObjects.Add(chest.gameObject);
+            if (target == null) return;
+
+            if (IsPuzzleRoom(room) && solvedPuzzleRooms.Contains(room) &&
+                !claimedPuzzleRewardRooms.Contains(room))
+            {
+                WorldPuzzleChest chest = WorldPuzzleChest.CreateRuntime(
+                    new Vector2(0f, -5.2f), target, transform,
+                    () => OpenPuzzleRewardChest(room), false);
+                if (chest != null) roomObjects.Add(chest.gameObject);
+                return;
+            }
+
+            if (room != BossGatewayRoom || puzzleChestClaimed || solvedPuzzleRooms.Count < 2) return;
+
+            WorldPuzzleChest finalChest = WorldPuzzleChest.CreateRuntime(new Vector2(0f, -1.8f),
+                target, transform, OpenPuzzleChest, true);
+            if (finalChest != null) roomObjects.Add(finalChest.gameObject);
+        }
+
+        private void OpenPuzzleRewardChest(Vector2Int room)
+        {
+            if (!claimedPuzzleRewardRooms.Add(room)) return;
+            RunSession.GrantPuzzleReward(85, 1, 0.2f);
+            UpdateRoomHud();
         }
 
         private void OpenPuzzleChest()
@@ -600,10 +613,30 @@ namespace Project.Scripts.World
                 Sprite[] attackFrames = pattern == WorldEnemyPattern.Shooter
                     ? archerGoblinAttackFrames
                     : spearGoblinAttackFrames;
+                Sprite[] idleUpFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinIdleUpFrames
+                    : spearGoblinIdleUpFrames;
+                Sprite[] idleSideFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinIdleSideFrames
+                    : spearGoblinIdleSideFrames;
+                Sprite[] walkUpFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinWalkUpFrames
+                    : spearGoblinWalkUpFrames;
+                Sprite[] walkSideFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinWalkSideFrames
+                    : spearGoblinWalkSideFrames;
+                Sprite[] attackUpFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinAttackUpFrames
+                    : spearGoblinAttackUpFrames;
+                Sprite[] attackSideFrames = pattern == WorldEnemyPattern.Shooter
+                    ? archerGoblinAttackSideFrames
+                    : spearGoblinAttackSideFrames;
                 WorldSecondaryEnemy enemy = WorldSecondaryEnemy.CreateRuntime(
                     $"Secondary Enemy {index + 1}", spawnPositions[index], pattern,
                     GetEnemyHealth(room, index), GetEnemySpeed(pattern), GetEnemyDamage(pattern),
-                    idleSprite, actionSprite, idleFrames, walkFrames, attackFrames, target, transform,
+                    idleSprite, actionSprite, idleFrames, walkFrames, attackFrames,
+                    idleUpFrames, idleSideFrames, walkUpFrames, walkSideFrames,
+                    attackUpFrames, attackSideFrames, target, transform,
                     roomObject => roomObjects.Add(roomObject),
                     NotifyRoomEnemyDefeated);
                 if (enemy == null) continue;
@@ -691,6 +724,28 @@ namespace Project.Scripts.World
                 WorldEnemyPattern.Charger => 24f,
                 WorldEnemyPattern.Shooter => 13f,
                 _ => 16f
+            };
+        }
+
+        private static DestructibleRewardType GetDestructibleRewardType(Vector2Int room, int index)
+        {
+            return (StableHash(room, 73 + index, 29) % 3) switch
+            {
+                0 => DestructibleRewardType.Health,
+                1 => DestructibleRewardType.Mana,
+                _ => DestructibleRewardType.Experience
+            };
+        }
+
+        private static float GetDestructibleRewardAmount(Vector2Int room, int index,
+            DestructibleRewardType rewardType)
+        {
+            RoomProfile profile = GetRoomProfile(room);
+            return rewardType switch
+            {
+                DestructibleRewardType.Health => 30f + Mathf.Max(0f, profile.HealthBonus) * 0.35f,
+                DestructibleRewardType.Experience => 24f + room.y * 5f + index * 4f,
+                _ => Mathf.Max(8f, profile.ManaReward + index * 1.5f)
             };
         }
 

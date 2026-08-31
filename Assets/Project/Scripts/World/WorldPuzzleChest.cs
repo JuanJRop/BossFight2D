@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Project.Scripts.Controller;
 using Project.Scripts.Progression;
 using UnityEngine;
@@ -16,11 +17,14 @@ namespace Project.Scripts.World
         private SpriteRenderer lockRenderer;
         private TextMesh label;
         private GameObject keyboardPrompt;
+        private readonly List<SpriteRenderer> celebrationRenderers = new();
+        private readonly List<Vector2> celebrationDirections = new();
+        private Color accentColor;
         private bool isOpen;
         private float pulseOffset;
 
         public static WorldPuzzleChest CreateRuntime(Vector2 position, Transform playerTarget,
-            Transform parent, Action openedCallback)
+            Transform parent, Action openedCallback, bool legendary = true)
         {
             if (playerTarget == null || parent == null) return null;
 
@@ -28,7 +32,7 @@ namespace Project.Scripts.World
             chestObject.transform.SetParent(parent, false);
             chestObject.transform.localPosition = new Vector3(position.x, position.y, -0.35f);
             WorldPuzzleChest chest = chestObject.AddComponent<WorldPuzzleChest>();
-            chest.Configure(playerTarget, openedCallback);
+            chest.Configure(playerTarget, openedCallback, legendary);
 
             BoxCollider2D collider = chestObject.AddComponent<BoxCollider2D>();
             collider.isTrigger = true;
@@ -36,25 +40,36 @@ namespace Project.Scripts.World
             return chest;
         }
 
-        private void Configure(Transform playerTarget, Action openedCallback)
+        private void Configure(Transform playerTarget, Action openedCallback, bool legendary)
         {
             player = playerTarget;
             opened = openedCallback;
             pulseOffset = Mathf.Abs(GetInstanceID() % 100) * 0.05f;
+            accentColor = legendary
+                ? new Color(1f, 0.7f, 0.16f, 1f)
+                : new Color(0.22f, 0.82f, 1f, 1f);
 
             chestBody = CreateVisual("Chest Body", new Vector2(0f, -0.18f),
-                new Vector2(1.9f, 0.82f), new Color(0.34f, 0.08f, 0.03f, 1f), 44);
+                new Vector2(1.9f, 0.82f), legendary
+                    ? new Color(0.34f, 0.08f, 0.03f, 1f)
+                    : new Color(0.035f, 0.14f, 0.23f, 1f), 44);
             chestLid = CreateVisual("Chest Lid", new Vector2(0f, 0.3f),
-                new Vector2(2.05f, 0.46f), new Color(0.98f, 0.48f, 0.08f, 1f), 45);
+                new Vector2(2.05f, 0.46f), accentColor, 45);
             glow = CreateVisual("Chest Glow", new Vector2(0f, 0f),
-                new Vector2(2.5f, 1.7f), new Color(1f, 0.32f, 0.04f, 0.12f), 43);
+                new Vector2(2.5f, 1.7f), WithAlpha(accentColor, 0.12f), 43);
             lockRenderer = CreateVisual("Chest Lock", new Vector2(0f, -0.08f),
-                new Vector2(0.3f, 0.36f), new Color(1f, 0.86f, 0.28f, 1f), 46);
+                new Vector2(0.3f, 0.36f), legendary
+                    ? new Color(1f, 0.86f, 0.28f, 1f)
+                    : new Color(0.7f, 0.94f, 1f, 1f), 46);
 
             label = CreateLabel("Legendary Chest Label", new Vector3(0f, 1.05f, -0.05f),
-                GameLoadout.IsSpanish ? "COFRE LEGENDARIO" : "LEGENDARY CHEST",
-                new Color(1f, 0.86f, 0.48f, 1f), 47);
+                GameLoadout.IsSpanish
+                    ? legendary ? "COFRE LEGENDARIO" : "COFRE DE RECOMPENSA"
+                    : legendary ? "LEGENDARY CHEST" : "PUZZLE REWARD CHEST",
+                legendary ? new Color(1f, 0.86f, 0.48f, 1f) : new Color(0.58f, 0.92f, 1f, 1f),
+                47);
             BuildKeyboardPrompt();
+            BuildVictoryBurst();
         }
 
         private void Update()
@@ -68,7 +83,7 @@ namespace Project.Scripts.World
             if (glow != null)
             {
                 float alpha = 0.1f + Mathf.Abs(Mathf.Sin((Time.time + pulseOffset) * 3.2f)) * 0.12f;
-                glow.color = new Color(1f, 0.32f, 0.04f, alpha);
+                glow.color = WithAlpha(accentColor, alpha);
             }
 
             if (nearby && Input.GetKeyDown(KeyCode.E)) Open();
@@ -85,7 +100,7 @@ namespace Project.Scripts.World
 
         private IEnumerator OpenRoutine()
         {
-            const float duration = 0.36f;
+            const float duration = 0.68f;
             float elapsed = 0f;
             while (elapsed < duration)
             {
@@ -99,7 +114,23 @@ namespace Project.Scripts.World
                 if (lockRenderer != null)
                     lockRenderer.transform.localScale = Vector3.Lerp(Vector3.one, Vector3.zero, progress);
                 if (glow != null)
-                    glow.color = new Color(1f, 0.78f, 0.18f, 0.24f + progress * 0.45f);
+                    glow.color = WithAlpha(Color.Lerp(accentColor, Color.white, progress * 0.4f),
+                        0.24f + progress * 0.45f);
+
+                float burstProgress = Mathf.Clamp01((progress - 0.24f) / 0.76f);
+                for (int index = 0; index < celebrationRenderers.Count; index++)
+                {
+                    SpriteRenderer burst = celebrationRenderers[index];
+                    if (burst == null) continue;
+                    Transform burstTransform = burst.transform;
+                    float distance = Mathf.Lerp(0f, 1.45f, Mathf.SmoothStep(0f, 1f,
+                        burstProgress));
+                    burstTransform.localPosition = celebrationDirections[index] * distance;
+                    float size = Mathf.Lerp(0.18f, 0.03f, burstProgress);
+                    burstTransform.localScale = Vector3.one * size;
+                    burst.color = WithAlpha(Color.Lerp(accentColor, Color.white, burstProgress),
+                        Mathf.Clamp01(burstProgress * 2.2f) * (1f - burstProgress * 0.65f));
+                }
                 yield return null;
             }
 
@@ -108,6 +139,25 @@ namespace Project.Scripts.World
                 bool spanish = GameLoadout.IsSpanish;
                 label.text = spanish ? "RECOMPENSA OBTENIDA" : "REWARD CLAIMED";
                 label.color = new Color(0.38f, 1f, 0.62f, 1f);
+            }
+        }
+
+        private void BuildVictoryBurst()
+        {
+            for (int index = 0; index < 8; index++)
+            {
+                float angle = (Mathf.PI * 2f * index) / 8f + Mathf.PI * 0.125f;
+                GameObject burstObject = new($"Victory Spark {index + 1}");
+                burstObject.transform.SetParent(transform, false);
+                burstObject.transform.localPosition = Vector3.zero;
+                burstObject.transform.localScale = Vector3.one * 0.03f;
+
+                SpriteRenderer burst = burstObject.AddComponent<SpriteRenderer>();
+                burst.sprite = RuntimeWhiteSprite.Instance;
+                burst.color = Color.clear;
+                burst.sortingOrder = 48;
+                celebrationRenderers.Add(burst);
+                celebrationDirections.Add(new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)));
             }
         }
 
@@ -183,6 +233,12 @@ namespace Project.Scripts.World
             renderer.sprite = RuntimeWhiteSprite.Instance;
             renderer.color = color;
             renderer.sortingOrder = sortingOrder;
+        }
+
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
         }
     }
 }

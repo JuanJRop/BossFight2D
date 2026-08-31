@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Player.PlayerScripts.Combat;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using UnityEngine;
 
 namespace Project.Scripts.Pickups
@@ -9,7 +10,8 @@ namespace Project.Scripts.Pickups
     public enum CombatPickupType
     {
         Health,
-        Mana
+        Mana,
+        Experience
     }
 
     public sealed class CombatPickup : MonoBehaviour
@@ -32,6 +34,30 @@ namespace Project.Scripts.Pickups
         private GameObject interactionPrompt;
         private Transform shadowTransform;
         private SpriteRenderer shadowRenderer;
+
+        public static CombatPickup CreateRuntime(Vector2 position, CombatPickupType type,
+            float pickupAmount, Transform parent = null)
+        {
+            GameObject pickupObject = new($"{type} Drop");
+            if (parent != null) pickupObject.transform.SetParent(parent, false);
+            pickupObject.transform.position = new Vector3(position.x, position.y, -0.25f);
+            pickupObject.transform.localScale = Vector3.one * 0.46f;
+
+            SpriteRenderer renderer = pickupObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = GetSolidSprite();
+            renderer.color = GetPickupColor(type);
+            renderer.sortingOrder = 24;
+
+            CircleCollider2D collider = pickupObject.AddComponent<CircleCollider2D>();
+            collider.isTrigger = true;
+            collider.radius = 0.62f;
+
+            CombatPickup pickup = pickupObject.AddComponent<CombatPickup>();
+            pickup.pickupType = type;
+            pickup.amount = Mathf.Max(1f, pickupAmount);
+            pickup.BuildRuntimeGlyph(type);
+            return pickup;
+        }
 
         private void Awake()
         {
@@ -69,10 +95,20 @@ namespace Project.Scripts.Pickups
             Collider2D playerPart = GetClosestPlayerCollider();
             if (playerPart == null) return;
 
-            bool consumed = pickupType == CombatPickupType.Health
-                ? TryRestoreHealth(playerPart)
-                : TryRestoreMana(playerPart);
+            bool consumed = pickupType switch
+            {
+                CombatPickupType.Health => TryRestoreHealth(playerPart),
+                CombatPickupType.Mana => TryRestoreMana(playerPart),
+                CombatPickupType.Experience => TryGrantExperience(),
+                _ => false
+            };
             if (consumed) Destroy(gameObject);
+        }
+
+        private bool TryGrantExperience()
+        {
+            RunSession.AwardExperience(Mathf.RoundToInt(amount));
+            return true;
         }
 
         private void UpdatePresentation(float normalizedLift)
@@ -269,6 +305,49 @@ namespace Project.Scripts.Pickups
         {
             PowerUp powerUp = playerPart.GetComponentInParent<PowerUp>();
             return powerUp != null && powerUp.TryAddMana(amount);
+        }
+
+        private void BuildRuntimeGlyph(CombatPickupType type)
+        {
+            GameObject glyphObject = new("Reward Glyph");
+            glyphObject.transform.SetParent(transform, false);
+            glyphObject.transform.localPosition = new Vector3(0f, 0f, -0.04f);
+            glyphObject.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            glyphObject.transform.localScale = Vector3.one * 0.62f;
+
+            SpriteRenderer glyph = glyphObject.AddComponent<SpriteRenderer>();
+            glyph.sprite = GetSolidSprite();
+            glyph.color = Color.Lerp(GetPickupColor(type), Color.white, 0.28f);
+            glyph.sortingOrder = 25;
+
+            GameObject labelObject = new("Reward Label");
+            labelObject.transform.SetParent(transform, false);
+            labelObject.transform.localPosition = new Vector3(0f, 0f, -0.08f);
+            TextMesh label = labelObject.AddComponent<TextMesh>();
+            label.text = type switch
+            {
+                CombatPickupType.Health => "HP",
+                CombatPickupType.Mana => "MP",
+                _ => "XP"
+            };
+            label.anchor = TextAnchor.MiddleCenter;
+            label.alignment = TextAlignment.Center;
+            label.fontSize = 24;
+            label.characterSize = 0.045f;
+            label.fontStyle = FontStyle.Bold;
+            label.color = new Color(0.08f, 0.04f, 0.03f, 1f);
+            MeshRenderer labelRenderer = labelObject.GetComponent<MeshRenderer>();
+            if (labelRenderer != null) labelRenderer.sortingOrder = 26;
+        }
+
+        private static Color GetPickupColor(CombatPickupType type)
+        {
+            return type switch
+            {
+                CombatPickupType.Health => new Color(1f, 0.25f, 0.3f, 1f),
+                CombatPickupType.Mana => new Color(0.18f, 0.64f, 1f, 1f),
+                _ => new Color(0.35f, 1f, 0.48f, 1f)
+            };
         }
 
         private void OnValidate()

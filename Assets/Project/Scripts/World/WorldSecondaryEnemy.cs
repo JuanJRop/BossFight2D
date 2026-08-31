@@ -41,6 +41,12 @@ namespace Project.Scripts.World
         private Sprite[] idleFrames;
         private Sprite[] walkFrames;
         private Sprite[] attackFrames;
+        private Sprite[] idleUpFrames;
+        private Sprite[] idleSideFrames;
+        private Sprite[] walkUpFrames;
+        private Sprite[] walkSideFrames;
+        private Sprite[] attackUpFrames;
+        private Sprite[] attackSideFrames;
         private WorldEnemyPattern pattern;
         private EnemyState state;
         private Action onDefeated;
@@ -64,7 +70,7 @@ namespace Project.Scripts.World
         private float visualPulse;
         private Vector3 visualBaseScale;
         private Sprite lastConfiguredSprite;
-        private Vector2 lastMovementDirection = Vector2.right;
+        private Vector2 lastMovementDirection = Vector2.down;
         private bool alerted;
         private bool returningHome;
         private bool deathReported;
@@ -74,7 +80,9 @@ namespace Project.Scripts.World
         public static WorldSecondaryEnemy CreateRuntime(string objectName, Vector2 position,
             WorldEnemyPattern enemyPattern, float maxHealth, float speed, float damage,
             Sprite enemyIdleSprite, Sprite enemyActionSprite, Sprite[] enemyIdleFrames,
-            Sprite[] enemyWalkFrames, Sprite[] enemyAttackFrames, Transform playerTarget,
+            Sprite[] enemyWalkFrames, Sprite[] enemyAttackFrames, Sprite[] enemyIdleUpFrames,
+            Sprite[] enemyIdleSideFrames, Sprite[] enemyWalkUpFrames, Sprite[] enemyWalkSideFrames,
+            Sprite[] enemyAttackUpFrames, Sprite[] enemyAttackSideFrames, Transform playerTarget,
             Transform parent, Action<GameObject> onProjectileCreated, Action defeatedCallback)
         {
             if (parent == null || playerTarget == null) return null;
@@ -127,15 +135,18 @@ namespace Project.Scripts.World
             WorldSecondaryEnemy enemy = enemyObject.AddComponent<WorldSecondaryEnemy>();
             enemy.Configure(renderer, indicator, collider, rigidbody, enemyHealth, enemyPattern,
                 enemyIdleSprite, enemyActionSprite, enemyIdleFrames, enemyWalkFrames,
-                enemyAttackFrames, speed, damage, playerTarget, onProjectileCreated,
-                defeatedCallback);
+                enemyAttackFrames, enemyIdleUpFrames, enemyIdleSideFrames, enemyWalkUpFrames,
+                enemyWalkSideFrames, enemyAttackUpFrames, enemyAttackSideFrames, speed, damage,
+                playerTarget, onProjectileCreated, defeatedCallback);
             return enemy;
         }
 
         private void Configure(SpriteRenderer renderer, SpriteRenderer indicator, Collider2D collider,
             Rigidbody2D rigidbody, Health enemyHealth, WorldEnemyPattern enemyPattern,
             Sprite enemyIdleSprite, Sprite enemyActionSprite, Sprite[] enemyIdleFrames,
-            Sprite[] enemyWalkFrames, Sprite[] enemyAttackFrames, float speed, float damage,
+            Sprite[] enemyWalkFrames, Sprite[] enemyAttackFrames, Sprite[] enemyIdleUpFrames,
+            Sprite[] enemyIdleSideFrames, Sprite[] enemyWalkUpFrames, Sprite[] enemyWalkSideFrames,
+            Sprite[] enemyAttackUpFrames, Sprite[] enemyAttackSideFrames, float speed, float damage,
             Transform playerTarget, Action<GameObject> onProjectileCreated, Action defeatedCallback)
         {
             bodyRenderer = renderer;
@@ -145,6 +156,12 @@ namespace Project.Scripts.World
             idleFrames = PrepareFrames(enemyIdleFrames, enemyIdleSprite);
             walkFrames = PrepareFrames(enemyWalkFrames, enemyIdleSprite);
             attackFrames = PrepareFrames(enemyAttackFrames, enemyActionSprite);
+            idleUpFrames = PrepareFrames(enemyIdleUpFrames, idleFrames);
+            idleSideFrames = PrepareFrames(enemyIdleSideFrames, idleFrames);
+            walkUpFrames = PrepareFrames(enemyWalkUpFrames, walkFrames);
+            walkSideFrames = PrepareFrames(enemyWalkSideFrames, walkFrames);
+            attackUpFrames = PrepareFrames(enemyAttackUpFrames, attackFrames);
+            attackSideFrames = PrepareFrames(enemyAttackSideFrames, attackFrames);
             enemyCollider = collider;
             body = rigidbody;
             health = enemyHealth;
@@ -177,9 +194,10 @@ namespace Project.Scripts.World
             shadowTransform = transform.Find("Goblin Shadow");
             visualBaseScale = visualTransform != null ? visualTransform.localScale : Vector3.one;
             visualPulse = Mathf.Abs(GetInstanceID() % 10) * 0.08f;
-            facingLeft = player != null && player.position.x < body.position.x;
+            facingLeft = false;
             alerted = false;
             returningHome = false;
+            lastMovementDirection = Vector2.down;
             state = EnemyState.Patrol;
             nextAttackTime = Time.time + 0.9f;
             experienceReward = pattern switch
@@ -596,7 +614,11 @@ namespace Project.Scripts.World
             {
                 bool showingAction = state == EnemyState.Telegraph || state == EnemyState.Dash;
                 bool walking = body != null && body.linearVelocity.sqrMagnitude > 0.08f;
-                Sprite[] frames = showingAction ? attackFrames : walking ? walkFrames : idleFrames;
+                UpdateMovementFacing();
+                Sprite[] downFrames = showingAction ? attackFrames : walking ? walkFrames : idleFrames;
+                Sprite[] upFrames = showingAction ? attackUpFrames : walking ? walkUpFrames : idleUpFrames;
+                Sprite[] sideFrames = showingAction ? attackSideFrames : walking ? walkSideFrames : idleSideFrames;
+                Sprite[] frames = GetDirectionalFrames(downFrames, upFrames, sideFrames);
                 float frameRate = showingAction ? 11f : walking ? 8f : 4f;
                 animationTime += Time.deltaTime * frameRate;
                 if (frames != null && frames.Length > 0)
@@ -610,22 +632,8 @@ namespace Project.Scripts.World
                     ConfigurePixelSprite(bodyRenderer.sprite);
                     lastConfiguredSprite = bodyRenderer.sprite;
                 }
-                Vector2 movement = body != null ? body.linearVelocity : lastMovementDirection;
-                if (Mathf.Abs(movement.x) > 0.08f)
-                {
-                    lastMovementDirection = new Vector2(Mathf.Sign(movement.x), 0f);
-                    if (visualTransform != null) visualTransform.localRotation = Quaternion.identity;
-                    facingLeft = movement.x < 0f;
-                    bodyRenderer.flipX = facingLeft;
-                }
-                else if (Mathf.Abs(movement.y) > 0.08f)
-                {
-                    lastMovementDirection = new Vector2(0f, Mathf.Sign(movement.y));
-                    if (visualTransform != null)
-                        visualTransform.localRotation = Quaternion.Euler(0f, 0f,
-                            movement.y > 0f ? 90f : -90f);
-                    bodyRenderer.flipX = false;
-                }
+                bodyRenderer.flipX = Mathf.Abs(lastMovementDirection.x) > 0.1f && facingLeft;
+                if (visualTransform != null) visualTransform.localRotation = Quaternion.identity;
 
                 float bob = walking
                     ? Mathf.Sin((Time.time + visualPulse) * 12f) * 0.045f
@@ -676,6 +684,24 @@ namespace Project.Scripts.World
                 if (Mathf.Abs(cardinalDirection.x) > 0.01f)
                     facingLeft = cardinalDirection.x < 0f;
             }
+        }
+
+        private void UpdateMovementFacing()
+        {
+            Vector2 movement = body != null ? body.linearVelocity : Vector2.zero;
+            if (movement.sqrMagnitude < 0.0064f) return;
+
+            lastMovementDirection = ToCardinalDirection(movement);
+            if (Mathf.Abs(lastMovementDirection.x) > 0.01f)
+                facingLeft = lastMovementDirection.x < 0f;
+        }
+
+        private Sprite[] GetDirectionalFrames(Sprite[] downFrames, Sprite[] upFrames,
+            Sprite[] sideFrames)
+        {
+            if (lastMovementDirection.y > 0.1f) return upFrames;
+            if (lastMovementDirection.y < -0.1f) return downFrames;
+            return sideFrames;
         }
 
         private Vector2 GetWalkableCardinalDirection(Vector2 desiredDirection)
@@ -737,6 +763,12 @@ namespace Project.Scripts.World
         {
             if (frames != null && frames.Length > 0) return frames;
             return fallback != null ? new[] { fallback } : Array.Empty<Sprite>();
+        }
+
+        private static Sprite[] PrepareFrames(Sprite[] frames, Sprite[] fallback)
+        {
+            if (frames != null && frames.Length > 0) return frames;
+            return fallback != null && fallback.Length > 0 ? fallback : Array.Empty<Sprite>();
         }
 
         private static void ConfigurePixelSprite(Sprite sprite)

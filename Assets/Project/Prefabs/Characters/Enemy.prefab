@@ -530,14 +530,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5b92ceea4ed47b69d9a18b95fd73742, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.Pickups.ArenaPickupSpawner
-  healthKitPrefab: {fileID: 100000, guid: 7f0a3348f3de47e7a5318f534b68de6b, type: 3}
-  manaPotionPrefab: {fileID: 100000, guid: d8fbf4db07df4daebcb2d7e6d7654853, type: 3}
-  initialHealthKits: 2
-  initialManaPotions: 2
-  maximumActivePickups: 5
-  respawnInterval: 20
-  bossClearRadius: 2.8
-  minimumPickupSpacing: 3.2
 --- !u!1001 &4823027560398680669
 PrefabInstance:
   m_ObjectHideFlags: 0

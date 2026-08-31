@@ -354,8 +354,25 @@ namespace Project.Scripts.Arena
                 Color color = type == DestructiblePropType.Boulder
                     ? new Color(0.1f, 0.58f, 0.7f, 1f)
                     : new Color(0.82f, 0.25f, 0.08f, 1f);
+                DestructibleRewardType rewardType = (index % 3) switch
+                {
+                    0 => DestructibleRewardType.Health,
+                    1 => DestructibleRewardType.Mana,
+                    _ => DestructibleRewardType.Experience
+                };
+                float rewardAmount = rewardType switch
+                {
+                    DestructibleRewardType.Health => 34f,
+                    DestructibleRewardType.Experience => 38f,
+                    _ => 10f
+                };
                 DestructibleProp prop = DestructibleProp.CreateRuntime(
-                    $"Arena Cover {index + 1}", position, size, color, type, destructibleHealth, transform);
+                    $"Arena Cover {index + 1}", position, size, color, type, destructibleHealth,
+                    transform, rewardType, rewardAmount,
+                    rewardObject =>
+                    {
+                        if (rewardObject != null) destructibles.Add(rewardObject);
+                    });
                 if (prop != null) destructibles.Add(prop.gameObject);
             }
         }

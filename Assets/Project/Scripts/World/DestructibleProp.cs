@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Player.PlayerScripts.Combat;
 using Project.Scripts.Controller;
+using Project.Scripts.Pickups;
 using UnityEngine;
 
 namespace Project.Scripts.World
@@ -10,6 +12,13 @@ namespace Project.Scripts.World
     {
         Crate,
         Boulder
+    }
+
+    public enum DestructibleRewardType
+    {
+        Health,
+        Mana,
+        Experience
     }
 
     public sealed class DestructibleProp : MonoBehaviour
@@ -28,13 +37,23 @@ namespace Project.Scripts.World
         private Color baseColor;
         private Coroutine hitRoutine;
         private bool breaking;
-        private float manaReward;
+        private DestructibleRewardType rewardType;
+        private float rewardAmount;
+        private Action<GameObject> rewardCreated;
 
         public bool IsBroken => breaking;
 
         public static DestructibleProp CreateRuntime(string objectName, Vector2 position, Vector2 size,
             Color color, DestructiblePropType type, float maximumHealth, Transform parent = null,
             float rewardMana = 8f)
+        {
+            return CreateRuntime(objectName, position, size, color, type, maximumHealth, parent,
+                DestructibleRewardType.Mana, rewardMana);
+        }
+
+        public static DestructibleProp CreateRuntime(string objectName, Vector2 position, Vector2 size,
+            Color color, DestructiblePropType type, float maximumHealth, Transform parent,
+            DestructibleRewardType reward, float amount, Action<GameObject> rewardCallback = null)
         {
             GameObject prop = new(objectName);
             if (parent != null) prop.transform.SetParent(parent, false);
@@ -53,7 +72,7 @@ namespace Project.Scripts.World
             propHealth.ConfigureRuntime(maximumHealth);
 
             DestructibleProp behaviour = prop.AddComponent<DestructibleProp>();
-            behaviour.Configure(propHealth, collider, renderer, rewardMana);
+            behaviour.Configure(propHealth, collider, renderer, reward, amount, rewardCallback);
             return behaviour;
         }
 
@@ -73,14 +92,17 @@ namespace Project.Scripts.World
             health.OnDied -= HandleDied;
         }
 
-        private void Configure(Health source, Collider2D collider, SpriteRenderer renderer, float reward)
+        private void Configure(Health source, Collider2D collider, SpriteRenderer renderer,
+            DestructibleRewardType reward, float amount, Action<GameObject> rewardCallback)
         {
             health = source;
             propCollider = collider;
             propRenderer = renderer;
             baseScale = transform.localScale;
             baseColor = propRenderer != null ? propRenderer.color : Color.white;
-            manaReward = Mathf.Max(0f, reward);
+            rewardType = reward;
+            rewardAmount = Mathf.Max(0f, amount);
+            rewardCreated = rewardCallback;
 
             health.OnDamaged += HandleDamaged;
             health.OnDied += HandleDied;
@@ -120,7 +142,7 @@ namespace Project.Scripts.World
             breaking = true;
             if (propCollider != null) propCollider.enabled = false;
             if (health != null) health.SetExternalInvulnerable(true);
-            RewardPlayer();
+            SpawnReward();
             StartCoroutine(BreakRoutine());
         }
 
@@ -147,13 +169,19 @@ namespace Project.Scripts.World
             Destroy(gameObject);
         }
 
-        private void RewardPlayer()
+        private void SpawnReward()
         {
-            if (manaReward <= 0f) return;
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player == null) return;
-            PowerUp powerUp = player.GetComponentInChildren<PowerUp>();
-            if (powerUp != null) powerUp.TryAddMana(manaReward);
+            if (rewardAmount <= 0f) return;
+
+            CombatPickupType pickupType = rewardType switch
+            {
+                DestructibleRewardType.Health => CombatPickupType.Health,
+                DestructibleRewardType.Experience => CombatPickupType.Experience,
+                _ => CombatPickupType.Mana
+            };
+            CombatPickup pickup = CombatPickup.CreateRuntime(transform.position, pickupType,
+                rewardAmount, transform.parent);
+            rewardCreated?.Invoke(pickup != null ? pickup.gameObject : null);
         }
 
         private static Sprite GetPropSprite(DestructiblePropType type)

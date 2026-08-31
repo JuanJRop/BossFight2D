@@ -102,6 +102,7 @@ namespace Project.Scripts.Progression
         public static event Action<int> OnPlayerDeathsChanged;
         public static event Action OnProgressionChanged;
         public static event Action OnLevelUpChoicesChanged;
+        public static event Action<int> OnLevelUp;
 
         public static bool IsRunActive => runStarted;
         public static int PlayerDeaths { get; private set; }
@@ -335,6 +336,7 @@ namespace Project.Scripts.Progression
                 Experience -= RequiredExperience(Level);
                 Level++;
                 AvailableSkillPoints += SkillPointsPerLevel;
+                OnLevelUp?.Invoke(Level);
             }
 
             RefreshPlayerStats();
@@ -541,13 +543,19 @@ namespace Project.Scripts.Progression
             return BaseExperienceToNextLevel + Mathf.Max(0, level - 1) * ExperienceGrowthPerLevel;
         }
 
-        public static void GrantPuzzleChestReward()
+        public static void GrantPuzzleReward(int experience, int skillPoints, float healFraction)
         {
             EnsureRunStarted();
-            AvailableSkillPoints += PuzzleChestSkillPoints;
-            trackedPlayerHealth?.Heal(trackedPlayerHealth.MaxHealth * 0.35f);
+            if (experience > 0) AwardExperience(experience);
+            AvailableSkillPoints += Mathf.Max(0, skillPoints);
+            trackedPlayerHealth?.Heal(trackedPlayerHealth.MaxHealth * Mathf.Clamp01(healFraction));
             RefreshPlayerStats();
             OnProgressionChanged?.Invoke();
+        }
+
+        public static void GrantPuzzleChestReward()
+        {
+            GrantPuzzleReward(180, PuzzleChestSkillPoints, 0.35f);
         }
 
         // Legacy wrappers map old pickups to meaningful nodes in the new tree.
