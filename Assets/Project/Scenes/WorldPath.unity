@@ -164,17 +164,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Project.Scripts.World.WorldPathBootstrap
   playerPrefab: {fileID: 509412361503784350, guid: b6d11e7718ee7134ca50907660946a85, type: 3}
-  backgroundTile: {fileID: 11400000, guid: 6c3faccece96b6348a92f56f3745b220, type: 2}
-  pathTile: {fileID: 11400000, guid: 08d765455ae474d4da7c0db1d87fddf2, type: 2}
+  backgroundTile: {fileID: 11400000, guid: 08d765455ae474d4da7c0db1d87fddf2, type: 2}
+  pathTile: {fileID: 11400000, guid: 6c3faccece96b6348a92f56f3745b220, type: 2}
   alternatePathTile: {fileID: 11400000, guid: 9d81b0ca522a07347980fa2ae87ebdee, type: 2}
   wallTile: {fileID: 11400000, guid: 4efcc5e2e7491294d85fffebfe4c5230, type: 2}
-  startAreaTile: {fileID: 11400000, guid: 56f51645aac648d419795b77e979177c, type: 2}
-  startAreaAccentTile: {fileID: 11400000, guid: 3397b9b93f2d46b46bc9c75bd9a71923, type: 2}
+  startAreaTile: {fileID: 11400000, guid: 6c3faccece96b6348a92f56f3745b220, type: 2}
+  startAreaAccentTile: {fileID: 11400000, guid: 6c3faccece96b6348a92f56f3745b220, type: 2}
   decorationTiles:
   - {fileID: 11400000, guid: c9153b9b893d292479c2f51136f941cb, type: 2}
   - {fileID: 11400000, guid: c221c89a9f79e8c40ace3d7892495e57, type: 2}
   - {fileID: 11400000, guid: fcf8dba43b057a845ab54a2164198cd7, type: 2}
   - {fileID: 11400000, guid: 4882bc1b92530aa43a91f6cda538efd6, type: 2}
+  ambientPropSprites:
+  - {fileID: 4063905118136706168, guid: 3a3c7270710faf0499b933eaff687d7d, type: 3}
+  - {fileID: -3399540256788588850, guid: 3a3c7270710faf0499b933eaff687d7d, type: 3}
+  - {fileID: -3353187798884332304, guid: 3a3c7270710faf0499b933eaff687d7d, type: 3}
+  - {fileID: -3738428423572437362, guid: 3a3c7270710faf0499b933eaff687d7d, type: 3}
+  - {fileID: -5039857598531192101, guid: 3a3c7270710faf0499b933eaff687d7d, type: 3}
+  - {fileID: 7790458280715001475, guid: 3a3c7270710faf0499b933eaff687d7d, type: 3}
+  - {fileID: -5842972638856826616, guid: 3a3c7270710faf0499b933eaff687d7d, type: 3}
+  mineEntranceSprite: {fileID: -2485108293020705562, guid: 9b750dfd601f98e48b50b72aadd8d3ba, type: 3}
+  mineEntranceAltSprite: {fileID: -3723089984326435548, guid: 9b750dfd601f98e48b50b72aadd8d3ba, type: 3}
   bossSceneName: BossFight
   spawnDestructibles: 1
   destructiblesPerRoom: 5
@@ -215,7 +225,7 @@ MonoBehaviour:
   - {fileID: 4704730849205151557, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
   - {fileID: 8995680207889981604, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
   - {fileID: -7941910657955093014, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
-  showRoomGuides: 1
+  showRoomGuides: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

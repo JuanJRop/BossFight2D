@@ -37,6 +37,11 @@ namespace Project.Scripts.World
         [SerializeField] private TileBase startAreaAccentTile;
         [SerializeField] private TileBase[] decorationTiles;
 
+        [Header("Dungeon room art kit")]
+        [SerializeField] private Sprite[] ambientPropSprites;
+        [SerializeField] private Sprite mineEntranceSprite;
+        [SerializeField] private Sprite mineEntranceAltSprite;
+
         [Header("Reserved destination")]
         [SerializeField] private string bossSceneName = "BossFight";
 
@@ -172,6 +177,7 @@ namespace Project.Scripts.World
             {
                 if (tile != null) Destroy(tile);
             }
+            RuntimeCaveArt.Release();
         }
 
         internal void RequestRoomChange(RoomDirection direction)
@@ -348,11 +354,10 @@ namespace Project.Scripts.World
                         y > -RoomHalfHeight && y < RoomHalfHeight)
                     {
                         int hash = StableHash(room, x, y);
-                        TileBase roomFloor = startAreaTile != null ? startAreaTile : pathTile;
-                        if (startAreaAccentTile != null && hash % 11 == 0)
+                        TileBase roomFloor = pathTile != null ? pathTile : startAreaTile;
+                        if (roomFloor == null) roomFloor = alternatePathTile;
+                        if (room == StartRoom && startAreaAccentTile != null && hash % 31 == 0)
                             roomFloor = startAreaAccentTile;
-                        else if (alternatePathTile != null && hash % 17 == 0)
-                            roomFloor = alternatePathTile;
                         floor.SetTile(cell, roomFloor);
                     }
                 }
@@ -363,6 +368,7 @@ namespace Project.Scripts.World
             PaintHorizontalWall(-RoomHalfHeight, openings.Down);
             PaintVerticalWall(-RoomHalfWidth, openings.Left);
             PaintVerticalWall(RoomHalfWidth, openings.Right);
+            PaintDungeonDetails(room);
             PaintRoomFeatures(room);
             PaintDecorations(room);
             BuildRoomPresentation(room);
@@ -797,6 +803,60 @@ namespace Project.Scripts.World
             }
         }
 
+        private void PaintDungeonDetails(Vector2Int room)
+        {
+            if (details == null || backgroundTile == null) return;
+
+            int layout = StableHash(room, 101, 47) % 4;
+            switch (layout)
+            {
+                case 0:
+                    PaintVoidPatch(new Vector3Int(-11, 7, 0), 6, 3);
+                    PaintRockShelf(new Vector3Int(7, -8, 0), true, 5);
+                    break;
+                case 1:
+                    PaintVoidPatch(new Vector3Int(10, -6, 0), 5, 4);
+                    PaintRockShelf(new Vector3Int(-9, 8, 0), true, 6);
+                    break;
+                case 2:
+                    PaintVoidPatch(new Vector3Int(-10, -6, 0), 5, 4);
+                    PaintRockShelf(new Vector3Int(8, 8, 0), false, 5);
+                    break;
+                default:
+                    PaintVoidPatch(new Vector3Int(10, 7, 0), 6, 3);
+                    PaintRockShelf(new Vector3Int(-9, -8, 0), true, 6);
+                    break;
+            }
+        }
+
+        private void PaintVoidPatch(Vector3Int center, int width, int height)
+        {
+            int halfWidth = Mathf.Max(1, width / 2);
+            int halfHeight = Mathf.Max(1, height / 2);
+            for (int x = -halfWidth; x <= halfWidth; x++)
+            {
+                for (int y = -halfHeight; y <= halfHeight; y++)
+                {
+                    float normalizedX = x / (float)(halfWidth + 0.5f);
+                    float normalizedY = y / (float)(halfHeight + 0.5f);
+                    if (normalizedX * normalizedX + normalizedY * normalizedY > 1.05f) continue;
+                    details.SetTile(center + new Vector3Int(x, y, 0), backgroundTile);
+                }
+            }
+        }
+
+        private void PaintRockShelf(Vector3Int start, bool horizontal, int length)
+        {
+            if (alternatePathTile == null) return;
+            for (int index = 0; index < length; index++)
+            {
+                Vector3Int offset = horizontal
+                    ? new Vector3Int(index, 0, 0)
+                    : new Vector3Int(0, index, 0);
+                details.SetTile(start + offset, alternatePathTile);
+            }
+        }
+
         private void PaintDecorations(Vector2Int room)
         {
             if (details == null || decorationTiles == null || decorationTiles.Length == 0) return;
@@ -818,10 +878,12 @@ namespace Project.Scripts.World
 
         private void BuildRoomPresentation(Vector2Int room)
         {
-            if (!showRoomGuides) return;
-
             RoomVisualPalette palette = GetRoomVisualPalette(room);
             RoomOpenings openings = GetOpenings(room);
+
+            BuildDungeonSetPieces(room, palette);
+            if (!showRoomGuides) return;
+
             Color shadow = WithAlpha(palette.Shadow, 0.36f);
             Color softAccent = WithAlpha(palette.Accent, 0.42f);
             Color softWarm = WithAlpha(palette.Warm, 0.48f);
@@ -867,6 +929,105 @@ namespace Project.Scripts.World
             if (openings.Left) BuildDoorGuide(RoomDirection.Left, palette);
             if (openings.Right) BuildDoorGuide(RoomDirection.Right, palette);
             BuildRoomMechanicPresentation(room, palette);
+        }
+
+        private void BuildDungeonSetPieces(Vector2Int room, RoomVisualPalette palette)
+        {
+            BuildWaterFeature(room);
+            BuildMineRail(room);
+            BuildAmbientProps(room);
+            BuildTorches(room, palette);
+
+            int entranceLayout = StableHash(room, 61, 13) % 3;
+            if (mineEntranceSprite != null && (room == StartRoom || room == BossGatewayRoom || entranceLayout == 0))
+            {
+                CreatePixelProp("Mine Entrance", mineEntranceSprite,
+                    new Vector2(-12.6f, 8.3f), 4.8f, 4);
+            }
+
+            if (mineEntranceAltSprite != null && (room == BossGatewayRoom || entranceLayout == 1))
+            {
+                CreatePixelProp("Mine Entrance Alternate", mineEntranceAltSprite,
+                    new Vector2(12.4f, 7.8f), 4.8f, 4);
+            }
+        }
+
+        private void BuildWaterFeature(Vector2Int room)
+        {
+            if (room == BossGatewayRoom || room == BossRoom) return;
+            Vector2 position = GetWaterPosition(room);
+            CreateRoomSprite("Cave Water Pool", RuntimeCaveArt.WaterPool, position, 2);
+        }
+
+        private static Vector2 GetWaterPosition(Vector2Int room)
+        {
+            return GetRoomType(room) switch
+            {
+                WorldRoomType.Start => new Vector2(-8.4f, 6.4f),
+                WorldRoomType.ShootingTutorial => new Vector2(10.2f, 5.8f),
+                WorldRoomType.CoverCombat => new Vector2(-9.8f, -5.8f),
+                WorldRoomType.PuzzleSequence => new Vector2(8.2f, -5.4f),
+                WorldRoomType.PuzzleCircuit => new Vector2(-8.5f, 5.4f),
+                WorldRoomType.PatternCombat => new Vector2(10.2f, 6.2f),
+                WorldRoomType.ConvergenceCombat => new Vector2(-9.8f, -6.1f),
+                _ => new Vector2(9.6f, -5.7f)
+            };
+        }
+
+        private void BuildMineRail(Vector2Int room)
+        {
+            int layout = StableHash(room, 71, 29) % 3;
+            if (layout == 2 && room != StartRoom && room != BossGatewayRoom) return;
+
+            Vector2 position = layout == 1
+                ? new Vector2(-5.5f, -7.2f)
+                : new Vector2(4.2f, -7.5f);
+            CreateRoomSprite("Mine Rail", RuntimeCaveArt.RailHorizontal, position, 2);
+            if (layout == 0 || room == StartRoom)
+            {
+                CreateRoomSprite("Mine Rail Turn", RuntimeCaveArt.RailHorizontal,
+                    position + new Vector2(-7.5f, 3.2f), 2, 90f);
+            }
+        }
+
+        private void BuildAmbientProps(Vector2Int room)
+        {
+            if (ambientPropSprites == null || ambientPropSprites.Length == 0) return;
+
+            Vector2[] positions =
+            {
+                new(-14.1f, 8.2f), new(14.0f, 8.0f),
+                new(-14.2f, -8.3f), new(14.1f, -8.0f),
+                new(-7.3f, 9.4f), new(7.5f, -9.3f),
+                new(-15.0f, 1.9f), new(15.0f, -1.7f),
+                new(-5.7f, -9.1f), new(5.8f, 9.1f)
+            };
+            int seed = StableHash(room, 83, 37);
+            for (int index = 0; index < positions.Length; index++)
+            {
+                Sprite prop = ambientPropSprites[(seed + index * 7) % ambientPropSprites.Length];
+                if (prop == null) continue;
+                CreatePixelProp($"Cave Prop {index}", prop, positions[index], 6.25f, 4);
+            }
+        }
+
+        private void BuildTorches(Vector2Int room, RoomVisualPalette palette)
+        {
+            // The torch sprite already contains its warm pixel palette; keep it un-tinted.
+            Color torchColor = Color.white;
+            Vector2[] positions =
+            {
+                new(-15.4f, 5.8f), new(15.4f, 5.8f),
+                new(-15.4f, -5.8f), new(15.4f, -5.8f)
+            };
+            int first = StableHash(room, 97, 11) % positions.Length;
+            for (int index = 0; index < 2; index++)
+            {
+                GameObject torch = CreateRoomSprite($"Cave Torch {index}", RuntimeCaveArt.Torch,
+                    positions[(first + index) % positions.Length], 4);
+                SpriteRenderer renderer = torch != null ? torch.GetComponent<SpriteRenderer>() : null;
+                if (renderer != null) renderer.color = torchColor;
+            }
         }
 
         private void BuildCornerDressing(Vector2 corner, RoomVisualPalette palette, int index)
@@ -999,6 +1160,37 @@ namespace Project.Scripts.World
             renderer.color = color;
             renderer.sortingOrder = sortingOrder;
             roomObjects.Add(visual);
+            return visual;
+        }
+
+        private GameObject CreateRoomSprite(string objectName, Sprite sprite, Vector2 center,
+            int sortingOrder, float rotation = 0f, float scale = 1f)
+        {
+            if (sprite == null) return null;
+            GameObject visual = new(objectName);
+            visual.transform.SetParent(transform, false);
+            visual.transform.position = new Vector3(center.x, center.y, 0f);
+            visual.transform.rotation = Quaternion.Euler(0f, 0f, rotation);
+            visual.transform.localScale = Vector3.one * scale;
+
+            SpriteRenderer renderer = visual.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.sortingOrder = sortingOrder;
+            roomObjects.Add(visual);
+            return visual;
+        }
+
+        private GameObject CreatePixelProp(string objectName, Sprite sprite, Vector2 center,
+            float scale, int sortingOrder)
+        {
+            GameObject visual = CreateRoomSprite(objectName, sprite, center, sortingOrder, 0f, scale);
+            if (visual == null) return null;
+
+            Vector2 pivotOffset = sprite.bounds.center * scale;
+            visual.transform.position = new Vector3(
+                center.x - pivotOffset.x,
+                center.y - pivotOffset.y,
+                0f);
             return visual;
         }
 
@@ -1983,6 +2175,176 @@ namespace Project.Scripts.World
                 instance.name = "Runtime White Sprite";
                 return instance;
             }
+        }
+    }
+
+    internal static class RuntimeCaveArt
+    {
+        private static Sprite waterPool;
+        private static Sprite railHorizontal;
+        private static Sprite torch;
+        private static Texture2D waterTexture;
+        private static Texture2D railTexture;
+        private static Texture2D torchTexture;
+
+        public static Sprite WaterPool => waterPool != null ? waterPool : waterPool = BuildWaterPool();
+        public static Sprite RailHorizontal => railHorizontal != null
+            ? railHorizontal
+            : railHorizontal = BuildRailHorizontal();
+        public static Sprite Torch => torch != null ? torch : torch = BuildTorch();
+
+        public static void Release()
+        {
+            if (waterPool != null) Object.Destroy(waterPool);
+            if (railHorizontal != null) Object.Destroy(railHorizontal);
+            if (torch != null) Object.Destroy(torch);
+            if (waterTexture != null) Object.Destroy(waterTexture);
+            if (railTexture != null) Object.Destroy(railTexture);
+            if (torchTexture != null) Object.Destroy(torchTexture);
+            waterPool = null;
+            railHorizontal = null;
+            torch = null;
+            waterTexture = null;
+            railTexture = null;
+            torchTexture = null;
+        }
+
+        private static Sprite BuildWaterPool()
+        {
+            const int blockSize = 8;
+            string[] mask =
+            {
+                "   ########   ",
+                "  ##########  ",
+                "  ########### ",
+                "##############",
+                "##############",
+                "  ########### ",
+                "  ##########  ",
+                "    ######    "
+            };
+            int width = mask[0].Length * blockSize;
+            int height = mask.Length * blockSize;
+            waterTexture = CreateTexture("Runtime Cave Water", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int cellX = x / blockSize;
+                    int cellY = mask.Length - 1 - y / blockSize;
+                    if (!IsActive(mask, cellX, cellY)) continue;
+
+                    bool edge = (x % blockSize == 0 && !IsActive(mask, cellX - 1, cellY)) ||
+                                (x % blockSize == blockSize - 1 && !IsActive(mask, cellX + 1, cellY)) ||
+                                (y % blockSize == 0 && !IsActive(mask, cellX, cellY - 1)) ||
+                                (y % blockSize == blockSize - 1 && !IsActive(mask, cellX, cellY + 1));
+                    Color color = edge
+                        ? new Color(0.08f, 0.7f, 0.94f, 1f)
+                        : new Color(0.035f, 0.39f, 0.8f, 1f);
+
+                    if (!edge && (cellX * 7 + cellY * 11) % 6 == 0 && y % blockSize < 2)
+                        color = new Color(0.12f, 0.55f, 0.92f, 1f);
+                    pixels[y * width + x] = color;
+                }
+            }
+
+            waterTexture.SetPixels(pixels);
+            waterTexture.Apply();
+            return CreateSprite(waterTexture, "Runtime Cave Water Sprite");
+        }
+
+        private static Sprite BuildRailHorizontal()
+        {
+            const int width = 176;
+            const int height = 24;
+            railTexture = CreateTexture("Runtime Mine Rail", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+
+            for (int y = 3; y <= 20; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    Color color = new Color(0f, 0f, 0f, 0f);
+                    if (y is 4 or 5 or 18 or 19)
+                        color = new Color(0.56f, 0.6f, 0.64f, 1f);
+                    else if (y is 6 or 17)
+                        color = new Color(0.18f, 0.2f, 0.25f, 1f);
+                    else if (x % 20 >= 4 && x % 20 <= 8)
+                        color = new Color(0.43f, 0.22f, 0.12f, 1f);
+                    else if (y is 7 or 16)
+                        color = new Color(0.27f, 0.12f, 0.08f, 1f);
+                    pixels[y * width + x] = color;
+                }
+            }
+
+            railTexture.SetPixels(pixels);
+            railTexture.Apply();
+            return CreateSprite(railTexture, "Runtime Mine Rail Sprite");
+        }
+
+        private static Sprite BuildTorch()
+        {
+            const int width = 24;
+            const int height = 32;
+            torchTexture = CreateTexture("Runtime Cave Torch", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+            for (int y = 5; y < 22; y++)
+            {
+                pixels[y * width + 11] = new Color(0.24f, 0.09f, 0.05f, 1f);
+                pixels[y * width + 12] = new Color(0.42f, 0.17f, 0.08f, 1f);
+            }
+
+            for (int y = 20; y < 31; y++)
+            {
+                for (int x = 7; x < 17; x++)
+                {
+                    int distance = Mathf.Abs(x - 12) + Mathf.Abs(y - 25);
+                    if (distance <= 7)
+                        pixels[y * width + x] = new Color(1f, 0.26f, 0.04f, 1f);
+                    if (distance <= 4)
+                        pixels[y * width + x] = new Color(1f, 0.72f, 0.12f, 1f);
+                    if (distance <= 2)
+                        pixels[y * width + x] = new Color(1f, 0.96f, 0.55f, 1f);
+                }
+            }
+
+            torchTexture.SetPixels(pixels);
+            torchTexture.Apply();
+            return CreateSprite(torchTexture, "Runtime Cave Torch Sprite");
+        }
+
+        private static Texture2D CreateTexture(string objectName, int width, int height)
+        {
+            return new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                name = objectName,
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                anisoLevel = 0
+            };
+        }
+
+        private static Color[] CreateTransparentPixels(int length)
+        {
+            Color[] pixels = new Color[length];
+            for (int index = 0; index < pixels.Length; index++)
+                pixels[index] = new Color(0f, 0f, 0f, 0f);
+            return pixels;
+        }
+
+        private static bool IsActive(string[] mask, int x, int y)
+        {
+            return y >= 0 && y < mask.Length && x >= 0 && x < mask[y].Length && mask[y][x] == '#';
+        }
+
+        private static Sprite CreateSprite(Texture2D texture, string spriteName)
+        {
+            Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f), 16f);
+            sprite.name = spriteName;
+            return sprite;
         }
     }
 }
