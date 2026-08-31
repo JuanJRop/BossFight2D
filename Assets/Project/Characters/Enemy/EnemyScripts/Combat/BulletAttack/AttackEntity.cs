@@ -14,6 +14,10 @@ namespace Project.Characters.Enemy.EnemyScripts.Combat
         private GameObject pooledInstance;
         private ObjectPool pool;
         private BulletOwner owner;
+<<<<<<< Updated upstream:Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackEntity.cs
+=======
+        //private AttackData data;
+>>>>>>> Stashed changes:Assets/Project/Characters/Enemy/EnemyScripts/Combat/BulletAttack/AttackEntity.cs
         private float damage;
         private bool hasReturned;
 

@@ -12,15 +12,29 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 {
     public class AttackPlayer : MonoBehaviour
     {
+<<<<<<< Updated upstream:Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs
         [Header("Attack Data")]
+=======
+        #region Attack Configuration
+
+        /*[Header("Attack Data")]
+>>>>>>> Stashed changes:Assets/Project/Scenes/Combat/AttackPlayer.cs
         [SerializeField] private AttackData attack;
-        [SerializeField] private AttackData powerUpAttack;
+        [SerializeField] private AttackData powerUpAttack;*/
 
         [Header("Attack References")]
         [SerializeField] private Transform firePoint;
         [SerializeField] private ObjectPool objectPool;
         [SerializeField] private PowerUp powerUpHoming;
 
+<<<<<<< Updated upstream:Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs
+=======
+        //private AttackData currentAttack;
+
+        #endregion
+        #region Reload System
+
+>>>>>>> Stashed changes:Assets/Project/Scenes/Combat/AttackPlayer.cs
         [Header("Reload Settings")]
         [SerializeField] private float chargerCapacity = 6f;
         [SerializeField] private float chargerTime = 2f;
@@ -81,10 +95,14 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void Start()
         {
+<<<<<<< Updated upstream:Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs
             currentAttack = attack;
             ApplySelectedLoadout();
             ResolveEnemy();
 
+=======
+            //currentAttack = attack;
+>>>>>>> Stashed changes:Assets/Project/Scenes/Combat/AttackPlayer.cs
             if (powerUpHoming != null)
             {
                 powerUpHoming.OnPowerUpStateChanged += OnPowerUpStateChanged;
@@ -117,8 +135,14 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void OnPowerUpStateChanged(bool isActive)
         {
+<<<<<<< Updated upstream:Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs
             currentAttack = isActive && powerUpAttack != null ? powerUpAttack : attack;
             autoShootTimer = 0f;
+=======
+           /* currentAttack = isActive && powerUpAttack != null
+                ? powerUpAttack
+                : attack;*/
+>>>>>>> Stashed changes:Assets/Project/Scenes/Combat/AttackPlayer.cs
         }
 
         private void HandleInputShoot()
@@ -175,6 +199,7 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void Shoot()
         {
+<<<<<<< Updated upstream:Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs
             if (!CanShoot()) return;
             if (enemyTarget == null) ResolveEnemy();
 
@@ -188,6 +213,26 @@ namespace Project.Characters.Player.PlayerScripts.Combat
             {
                 ShootSingleProjectile();
             }
+=======
+            Transform target = FindEnemy();
+            //GameObject bulletObject = objectPool.GetObject();
+            playerSoundController.PlayFire(volumeShoot);
+            counterShoots++;
+           // bulletObject.transform.position = firePoint.position;
+            //bulletObject.transform.rotation = firePoint.rotation;
+            //Rigidbody2D rb = bulletObject.GetComponent<Rigidbody2D>();
+            //rb.linearVelocity = firePoint.right * currentAttack.speed;
+            //Bullet bullet = bulletObject.GetComponent<Bullet>();
+            /*bullet.SetPool(
+                objectPool,
+                currentAttack.bulletPrefab,
+                currentAttack.timeAfterDestroy,
+                BulletOwner.Player,
+                currentAttack.damage
+            );*/
+            bool isHoming = powerUpHoming != null && powerUpHoming.IsActive;
+            //bullet.SetTarget(target, isHoming);
+>>>>>>> Stashed changes:Assets/Project/Scenes/Combat/AttackPlayer.cs
         }
 
         private bool CanShoot()

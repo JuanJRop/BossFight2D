@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="55d2ec87-80b0-45ae-8b84-7535eff753b1" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.BossFight2D/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.BossFight2D/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackConfiguration.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackConfiguration.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackContext.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackContext.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackData.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackData.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackEntity.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackEntity.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackExecutorBase.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackExecutorBase.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackFactory.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackFactory.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/CilinderAttack.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/CilinderAttack.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/EnemyController.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/EnemyController.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/HomingProjectile.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/HomingProjectile.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/LifeTimer.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/LifeTimer.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/PrefabsAttackEnemy/AttackConfiguration.asset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/PrefabsAttackEnemy/AttackConfiguration.asset.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/PrefabsAttackEnemy/NewAttackData.asset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/PrefabsAttackEnemy/NewAttackData.asset.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/RotationRadialAttack.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/RotationRadialAttack.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/SimpleAttackContext.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/SimpleAttackContext.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/AttackPlayer.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/Bullet.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/Bullet.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/BulletOwner.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/BulletOwner.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/PowerUp.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Combat/PowerUp.cs.meta" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/AttackFactory.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/EnemyAttack.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/EnemyAttackSpawner.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/EntityAttack.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Enemy/EnemyScripts/Combat/PrefabsAttackEnemy/AttackSO.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Characters/Player/PlayerScripts/Controller/PlayerSoundController.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Scripts/Controller/DeathEvent.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Scripts/Controller/InputManager.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Scripts/Controller/UIManager.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Scripts/Menu/MenuAnimation.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Project/Scripts/Menu/PlayerJump.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.2d.tilemap@f011712243ad/Editor/GridEditorUtility.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.ugui@bb329a87fcdc/Editor/TMP/TMP_FontAsset_CreationMenu.cs" root0="SKIP_HIGHLIGHTING" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="3Bu0Q2ji2qyTPpaj5c6c398SNkz" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RunManager" selected="Attach to Unity Editor.Attach to Unity Editor">
+    <configuration name="Start Unity" type="RunUnityExe" factoryName="Unity Executable">
+      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.3.9f1\Editor\Unity.exe" />
+      <option name="PROGRAM_PARAMETERS" value="-projectPath &quot;C:\Users\Juan Jose\Documents\ProyectosUnity\Juegos\BossFight2D&quot; -debugCodeOptimization" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\Juan Jose\Documents\ProyectosUnity\Juegos\BossFight2D" />
+      <option name="PASS_PARENT_ENVS" value="1" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Unit Tests (batch mode)" type="RunUnityExe" factoryName="Unity Executable">
+      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.3.9f1\Editor\Unity.exe" />
+      <option name="PROGRAM_PARAMETERS" value="-runTests -batchmode -projectPath &quot;C:\Users\Juan Jose\Documents\ProyectosUnity\Juegos\BossFight2D&quot; -testResults Logs/results.xml -logFile Logs/Editor.log -testPlatform EditMode -debugCodeOptimization" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\Juan Jose\Documents\ProyectosUnity\Juegos\BossFight2D" />
+      <option name="PASS_PARENT_ENVS" value="1" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Attach to Unity Editor &amp; Play" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="UNITY_ATTACH_AND_PLAY" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost">
+      <option name="allowRunningInParallel" value="false" />
+      <option name="listenPortForConnections" value="false" />
+      <option name="pid" />
+      <option name="projectPathOnTarget" />
+      <option name="selectedOptions">
+        <list />
+      </option>
+      <method v="2" />
+    </configuration>
+    <configuration name="Attach to Unity Editor" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost">
+      <option name="allowRunningInParallel" value="false" />
+      <option name="listenPortForConnections" value="false" />
+      <option name="pid" />
+      <option name="projectPathOnTarget" />
+      <option name="selectedOptions">
+        <list />
+      </option>
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="55d2ec87-80b0-45ae-8b84-7535eff753b1" name="Changes" comment="" />
+      <created>1775323628443</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1775323628443</updated>
+      <workItem from="1775323629998" duration="10646000" />
+      <workItem from="1775399578799" duration="8682000" />
+      <workItem from="1775507553079" duration="8609000" />
+      <workItem from="1775525699812" duration="2876000" />
+      <workItem from="1775575933258" duration="37777000" />
+      <workItem from="1775953075129" duration="7084000" />
+      <workItem from="1776017521795" duration="8985000" />
+      <workItem from="1776101101098" duration="15253000" />
+      <workItem from="1776181753509" duration="21399000" />
+      <workItem from="1776265104583" duration="2508000" />
+      <workItem from="1776358588580" duration="16034000" />
+      <workItem from="1776468952187" duration="4165000" />
+      <workItem from="1776476267529" duration="36177000" />
+      <workItem from="1776701666657" duration="1412000" />
+      <workItem from="1776741801309" duration="6358000" />
+      <workItem from="1776818348912" duration="12380000" />
+      <workItem from="1776893711855" duration="16326000" />
+      <workItem from="1776988035263" duration="884000" />
+      <workItem from="1777001740152" duration="2622000" />
+      <workItem from="1777175044910" duration="7548000" />
+      <workItem from="1777433025097" duration="33525000" />
+      <workItem from="1777745188782" duration="13281000" />
+      <workItem from="1778067749396" duration="5273000" />
+      <workItem from="1778321028784" duration="28363000" />
+      <workItem from="1779130413470" duration="13872000" />
+      <workItem from="1779490290386" duration="14001000" />
+      <workItem from="1787260515374" duration="2920000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnityProjectConfiguration" hasMinimizedUI="true" />
+  <component name="UnityProjectDiscoverer">
+    <option name="hasUnityReference" value="true" />
+    <option name="unityProject" value="true" />
+    <option name="unityProjectFolder" value="true" />
+  </component>
+  <component name="UnityUnitTestConfiguration" currentTestLauncher="Both" />
+  <component name="VcsManagerConfiguration">
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+  </component>
+</project>
