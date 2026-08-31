@@ -215,7 +215,7 @@ MonoBehaviour:
   - {fileID: 4704730849205151557, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
   - {fileID: 8995680207889981604, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
   - {fileID: -7941910657955093014, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
-  showRoomGuides: 0
+  showRoomGuides: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

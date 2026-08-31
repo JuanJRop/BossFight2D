@@ -62,7 +62,7 @@ namespace Project.Scripts.World
         [SerializeField] private Sprite[] archerGoblinAttackFrames;
 
         [Header("Room presentation")]
-        [SerializeField] private bool showRoomGuides = false;
+        [SerializeField] private bool showRoomGuides = true;
 
         private readonly List<Tile> runtimeTiles = new();
         private readonly List<GameObject> roomObjects = new();
@@ -88,6 +88,7 @@ namespace Project.Scripts.World
         private GameObject tutorialOverlay;
         private GameObject objectiveHud;
         private TextMeshProUGUI roomLabel;
+        private TextMeshProUGUI lessonLabel;
         private TextMeshProUGUI deathCounter;
         private RectTransform mapPanel;
         private float tutorialUnlockTime;
@@ -118,7 +119,6 @@ namespace Project.Scripts.World
         private static readonly RouteConnection[] RouteConnections =
         {
             new RouteConnection(StartRoom, new Vector2Int(0, 1)),
-            new RouteConnection(new Vector2Int(0, 1), new Vector2Int(0, 2)),
             new RouteConnection(new Vector2Int(0, 2), BossGatewayRoom),
             new RouteConnection(new Vector2Int(0, 1), new Vector2Int(-1, 1)),
             new RouteConnection(new Vector2Int(-1, 1), new Vector2Int(-1, 2)),
@@ -542,7 +542,7 @@ namespace Project.Scripts.World
 
         private void BuildRoomEncounter(Vector2Int room)
         {
-            if (GetRoomType(room) != WorldRoomType.Combat) return;
+            if (!IsCombatRoom(room)) return;
             if (clearedCombatRooms.Contains(room))
             {
                 roomChallengeLocked = false;
@@ -606,16 +606,23 @@ namespace Project.Scripts.World
             if (room == new Vector2Int(0, 1)) return 2;
             if (room == new Vector2Int(-1, 1)) return 3;
             if (room == new Vector2Int(1, 2)) return 4;
+            if (room == new Vector2Int(0, 2)) return 5;
             return 3;
         }
 
         private static WorldEnemyPattern GetEnemyPattern(Vector2Int room, int index)
         {
+            if (room == new Vector2Int(0, 1))
+                return index == 0 ? WorldEnemyPattern.Chaser : WorldEnemyPattern.Shooter;
             if (room == new Vector2Int(-1, 1))
-                return index == 0 ? WorldEnemyPattern.Charger : WorldEnemyPattern.Chaser;
+                return index == 0 ? WorldEnemyPattern.Shooter : WorldEnemyPattern.Chaser;
             if (room == new Vector2Int(1, 2))
                 return index % 3 == 0 ? WorldEnemyPattern.Shooter
                     : index % 3 == 1 ? WorldEnemyPattern.Charger
+                    : WorldEnemyPattern.Chaser;
+            if (room == new Vector2Int(0, 2))
+                return index % 4 == 0 ? WorldEnemyPattern.Shooter
+                    : index % 4 == 1 ? WorldEnemyPattern.Charger
                     : WorldEnemyPattern.Chaser;
 
             return index % 2 == 0 ? WorldEnemyPattern.Chaser : WorldEnemyPattern.Shooter;
@@ -623,7 +630,14 @@ namespace Project.Scripts.World
 
         private static float GetEnemyHealth(Vector2Int room, int index)
         {
-            float baseHealth = room == new Vector2Int(1, 2) ? 84f : 64f;
+            float baseHealth = GetRoomType(room) switch
+            {
+                WorldRoomType.ShootingTutorial => 54f,
+                WorldRoomType.CoverCombat => 68f,
+                WorldRoomType.PatternCombat => 84f,
+                WorldRoomType.ConvergenceCombat => 76f,
+                _ => 64f
+            };
             return baseHealth + index * 8f;
         }
 
@@ -664,7 +678,24 @@ namespace Project.Scripts.World
             if (room == BossGatewayRoom) return WorldRoomType.BossGateway;
             if (room == new Vector2Int(-1, 2)) return WorldRoomType.PuzzleSequence;
             if (room == new Vector2Int(1, 1)) return WorldRoomType.PuzzleCircuit;
+            if (room == new Vector2Int(0, 1)) return WorldRoomType.ShootingTutorial;
+            if (room == new Vector2Int(-1, 1)) return WorldRoomType.CoverCombat;
+            if (room == new Vector2Int(1, 2)) return WorldRoomType.PatternCombat;
+            if (room == new Vector2Int(0, 2)) return WorldRoomType.ConvergenceCombat;
             return WorldRoomType.Combat;
+        }
+
+        private static bool IsCombatRoom(Vector2Int room)
+        {
+            return GetRoomType(room) switch
+            {
+                WorldRoomType.Combat => true,
+                WorldRoomType.ShootingTutorial => true,
+                WorldRoomType.CoverCombat => true,
+                WorldRoomType.PatternCombat => true,
+                WorldRoomType.ConvergenceCombat => true,
+                _ => false
+            };
         }
 
         private static bool IsPuzzleRoom(Vector2Int room)
@@ -678,10 +709,14 @@ namespace Project.Scripts.World
             return GetRoomType(room) switch
             {
                 WorldRoomType.Start => new RoomProfile(-3, -10f, 5f),
+                WorldRoomType.ShootingTutorial => new RoomProfile(0, -16f, 6f),
+                WorldRoomType.CoverCombat => new RoomProfile(2, 6f, 8f),
                 WorldRoomType.Combat => new RoomProfile(1, 10f, 8f),
-                WorldRoomType.PuzzleSequence => new RoomProfile(-1, 0f, 8f),
-                WorldRoomType.PuzzleCircuit => new RoomProfile(-1, 0f, 8f),
-                WorldRoomType.BossGateway => new RoomProfile(-2, 0f, 8f),
+                WorldRoomType.PuzzleSequence => new RoomProfile(-1, 0f, 10f),
+                WorldRoomType.PuzzleCircuit => new RoomProfile(-1, 0f, 10f),
+                WorldRoomType.PatternCombat => new RoomProfile(1, 18f, 11f),
+                WorldRoomType.ConvergenceCombat => new RoomProfile(2, 24f, 13f),
+                WorldRoomType.BossGateway => new RoomProfile(-2, 0f, 12f),
                 _ => new RoomProfile(0, 0f, 8f)
             };
         }
@@ -691,9 +726,13 @@ namespace Project.Scripts.World
             return GetRoomType(room) switch
             {
                 WorldRoomType.Start => spanish ? "CAMPAMENTO" : "CAMP",
+                WorldRoomType.ShootingTutorial => spanish ? "PRACTICA DE TIRO" : "AIM PRACTICE",
+                WorldRoomType.CoverCombat => spanish ? "COBERTURA" : "COVER",
                 WorldRoomType.Combat => spanish ? "COMBATE" : "FIGHT",
                 WorldRoomType.PuzzleSequence => spanish ? "ORDEN" : "SEQUENCE",
                 WorldRoomType.PuzzleCircuit => spanish ? "CIRCUITO" : "CIRCUIT",
+                WorldRoomType.PatternCombat => spanish ? "PATRONES" : "PATTERNS",
+                WorldRoomType.ConvergenceCombat => spanish ? "COMBINACION" : "COMBINATION",
                 WorldRoomType.BossGateway => spanish ? "UMBRAL BOSS" : "BOSS GATE",
                 _ => spanish ? "SALA" : "ROOM"
             };
@@ -703,9 +742,13 @@ namespace Project.Scripts.World
         {
             return GetRoomType(room) switch
             {
+                WorldRoomType.ShootingTutorial => new Color(0.88f, 0.3f, 0.1f, 1f),
+                WorldRoomType.CoverCombat => new Color(0.68f, 0.56f, 0.12f, 1f),
                 WorldRoomType.Combat => new Color(0.78f, 0.18f, 0.08f, 1f),
                 WorldRoomType.PuzzleSequence => new Color(0.18f, 0.58f, 0.36f, 1f),
                 WorldRoomType.PuzzleCircuit => new Color(0.12f, 0.52f, 0.72f, 1f),
+                WorldRoomType.PatternCombat => new Color(0.68f, 0.18f, 0.32f, 1f),
+                WorldRoomType.ConvergenceCombat => new Color(0.52f, 0.28f, 0.72f, 1f),
                 WorldRoomType.BossGateway => new Color(0.78f, 0.34f, 0.08f, 1f),
                 _ => new Color(0.48f, 0.18f, 0.07f, 1f)
             };
@@ -803,6 +846,7 @@ namespace Project.Scripts.World
             if (openings.Down) BuildDoorGuide(RoomDirection.Down, palette);
             if (openings.Left) BuildDoorGuide(RoomDirection.Left, palette);
             if (openings.Right) BuildDoorGuide(RoomDirection.Right, palette);
+            BuildRoomMechanicPresentation(room, palette);
         }
 
         private void BuildCornerDressing(Vector2 corner, RoomVisualPalette palette, int index)
@@ -851,6 +895,77 @@ namespace Project.Scripts.World
                 WithAlpha(palette.Accent, 0.2f), 2);
         }
 
+        private void BuildRoomMechanicPresentation(Vector2Int room, RoomVisualPalette palette)
+        {
+            Color accent = WithAlpha(palette.Accent, 0.2f);
+            Color warm = WithAlpha(palette.Warm, 0.26f);
+
+            switch (GetRoomType(room))
+            {
+                case WorldRoomType.ShootingTutorial:
+                    CreateRoomVisual("Aim Practice Lane", new Vector2(0f, 0f),
+                        new Vector2(24f, 0.1f), accent, 2);
+                    BuildLessonMarker("Aim Target Left", new Vector2(-8f, 0f), warm);
+                    BuildLessonMarker("Aim Target Center", new Vector2(0f, 0f), warm);
+                    BuildLessonMarker("Aim Target Right", new Vector2(8f, 0f), warm);
+                    break;
+                case WorldRoomType.CoverCombat:
+                    CreateRoomVisual("Cover Lane Upper", new Vector2(0f, 4.8f),
+                        new Vector2(23f, 0.08f), accent, 2);
+                    CreateRoomVisual("Cover Lane Lower", new Vector2(0f, -4.8f),
+                        new Vector2(23f, 0.08f), accent, 2);
+                    BuildLessonMarker("Cover Marker", new Vector2(0f, 0f), warm);
+                    break;
+                case WorldRoomType.PuzzleSequence:
+                    CreateRoomVisual("Sequence Route Left", new Vector2(-3.5f, 2.6f),
+                        new Vector2(7.2f, 0.08f), accent, 2);
+                    CreateRoomVisual("Sequence Route Right", new Vector2(3.5f, 2.6f),
+                        new Vector2(7.2f, 0.08f), accent, 2);
+                    CreateRoomVisual("Sequence Route Down", new Vector2(0f, -1.3f),
+                        new Vector2(0.08f, 3.2f), accent, 2);
+                    break;
+                case WorldRoomType.PuzzleCircuit:
+                    CreateRoomVisual("Circuit Spine", new Vector2(0f, 0f),
+                        new Vector2(18f, 0.08f), accent, 2);
+                    CreateRoomVisual("Circuit Branch", new Vector2(0f, 2.2f),
+                        new Vector2(0.08f, 4.4f), warm, 2);
+                    break;
+                case WorldRoomType.PatternCombat:
+                    CreateRoomVisual("Pattern Warning Upper", new Vector2(0f, 4.1f),
+                        new Vector2(25f, 0.12f), warm, 2);
+                    CreateRoomVisual("Pattern Warning Lower", new Vector2(0f, -4.1f),
+                        new Vector2(25f, 0.12f), warm, 2);
+                    CreateRoomVisual("Pattern Warning Left", new Vector2(-8.2f, 0f),
+                        new Vector2(0.12f, 8.2f), accent, 2);
+                    CreateRoomVisual("Pattern Warning Right", new Vector2(8.2f, 0f),
+                        new Vector2(0.12f, 8.2f), accent, 2);
+                    break;
+                case WorldRoomType.ConvergenceCombat:
+                    CreateRoomVisual("Build Convergence Horizontal", Vector2.zero,
+                        new Vector2(11f, 0.12f), accent, 2);
+                    CreateRoomVisual("Build Convergence Vertical", Vector2.zero,
+                        new Vector2(0.12f, 11f), accent, 2);
+                    BuildLessonMarker("Build Convergence Core", Vector2.zero, warm);
+                    break;
+                case WorldRoomType.BossGateway:
+                    CreateRoomVisual("Boss Approach Left", new Vector2(-4.4f, 4.2f),
+                        new Vector2(0.12f, 7.4f), accent, 2);
+                    CreateRoomVisual("Boss Approach Right", new Vector2(4.4f, 4.2f),
+                        new Vector2(0.12f, 7.4f), accent, 2);
+                    CreateRoomVisual("Boss Approach Threshold", new Vector2(0f, 8.1f),
+                        new Vector2(8.8f, 0.12f), warm, 2);
+                    break;
+            }
+        }
+
+        private void BuildLessonMarker(string objectName, Vector2 position, Color color)
+        {
+            CreateRoomVisual($"{objectName} Horizontal", position, new Vector2(2.2f, 0.1f), color, 2);
+            CreateRoomVisual($"{objectName} Vertical", position, new Vector2(0.1f, 2.2f), color, 2);
+            CreateRoomVisual($"{objectName} Core", position, new Vector2(0.28f, 0.28f),
+                Color.white, 2);
+        }
+
         private GameObject CreateRoomVisual(string objectName, Vector2 position, Vector2 size,
             Color color, int sortingOrder)
         {
@@ -871,6 +986,16 @@ namespace Project.Scripts.World
         {
             switch (GetRoomType(room))
             {
+                case WorldRoomType.ShootingTutorial:
+                    return new RoomVisualPalette(
+                        new Color(0.1f, 0.78f, 0.92f, 1f),
+                        new Color(1f, 0.42f, 0.12f, 1f),
+                        new Color(0.02f, 0.06f, 0.1f, 1f));
+                case WorldRoomType.CoverCombat:
+                    return new RoomVisualPalette(
+                        new Color(0.28f, 0.82f, 0.48f, 1f),
+                        new Color(0.96f, 0.76f, 0.18f, 1f),
+                        new Color(0.03f, 0.09f, 0.05f, 1f));
                 case WorldRoomType.Combat:
                     return new RoomVisualPalette(
                         new Color(0.94f, 0.16f, 0.1f, 1f),
@@ -886,6 +1011,16 @@ namespace Project.Scripts.World
                         new Color(0.16f, 0.7f, 1f, 1f),
                         new Color(0.34f, 0.96f, 0.92f, 1f),
                         new Color(0.015f, 0.055f, 0.12f, 1f));
+                case WorldRoomType.PatternCombat:
+                    return new RoomVisualPalette(
+                        new Color(0.94f, 0.18f, 0.34f, 1f),
+                        new Color(1f, 0.6f, 0.16f, 1f),
+                        new Color(0.11f, 0.02f, 0.05f, 1f));
+                case WorldRoomType.ConvergenceCombat:
+                    return new RoomVisualPalette(
+                        new Color(0.42f, 0.48f, 1f, 1f),
+                        new Color(0.98f, 0.34f, 0.16f, 1f),
+                        new Color(0.06f, 0.035f, 0.12f, 1f));
                 case WorldRoomType.BossGateway:
                     return new RoomVisualPalette(
                         new Color(1f, 0.24f, 0.08f, 1f),
@@ -1171,11 +1306,14 @@ namespace Project.Scripts.World
             canvasObject.AddComponent<GraphicRaycaster>();
 
             RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
-            objectiveHud = CreatePanel("Room HUD", canvasRect, new Vector2(0.28f, 0.91f),
+            objectiveHud = CreatePanel("Room HUD", canvasRect, new Vector2(0.28f, 0.84f),
                 new Vector2(0.72f, 0.975f), new Color(0.09f, 0.025f, 0.018f, 0.9f));
             roomLabel = CreateText("Room Text", objectiveHud.transform as RectTransform,
-                Vector2.zero, Vector2.one, string.Empty, 24f,
+                new Vector2(0.04f, 0.68f), new Vector2(0.96f, 0.98f), string.Empty, 22f,
                 new Color(1f, 0.88f, 0.68f), TextAlignmentOptions.Center);
+            lessonLabel = CreateText("Room Lesson", objectiveHud.transform as RectTransform,
+                new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.67f), string.Empty, 14f,
+                new Color(0.96f, 0.7f, 0.42f), TextAlignmentOptions.Center);
             objectiveHud.SetActive(false);
 
             GameObject deathPanel = CreatePanel("Death Counter", canvasRect,
@@ -1196,8 +1334,8 @@ namespace Project.Scripts.World
             bool spanish = GameLoadout.IsSpanish;
             string title = spanish ? "SALAS DE LA CAVERNA" : "CAVERN ROOMS";
             string subtitle = spanish
-                ? "Elige la ruta directa o un desvio: dos salas tienen puzzle y el resto combate."
-                : "Choose the direct route or a detour: two rooms have puzzles and the rest are fights.";
+                ? "Aprende una mecanica por sala y elige entre dos rutas antes del boss."
+                : "Learn one mechanic per room and choose between two routes before the boss.";
             string controls = spanish
                 ? "WASD / FLECHAS     MOVERSE\nRATÓN                 APUNTAR\nCLIC IZQUIERDO        DISPARAR\nESPACIO               DASH · GOLPE · CARGAS\nR                      RECARGAR\nE                      INTERACTUAR\nPUERTAS                CAMBIAR DE SALA"
                 : "WASD / ARROWS      MOVE\nMOUSE                  AIM\nLEFT CLICK             SHOOT\nSPACE                  DASH · STRIKE · CHARGES\nR                      RELOAD\nE                      INTERACT\nDOORS                   CHANGE ROOM";
@@ -1226,8 +1364,8 @@ namespace Project.Scripts.World
             CreateText("Map Title", mapPanel, new Vector2(0.08f, 0.87f), new Vector2(0.92f, 0.98f),
                 GameLoadout.IsSpanish ? "MAPA  ·  M" : "MAP  ·  M", 22f,
                 new Color(1f, 0.78f, 0.48f), TextAlignmentOptions.Center);
-            CreateText("Map Legend", mapPanel, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.11f),
-                GameLoadout.IsSpanish ? "! COMBATE   A/C PUZZLE" : "! FIGHT   A/C PUZZLE", 12f,
+            CreateText("Map Legend", mapPanel, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.16f),
+                GameLoadout.IsSpanish ? "F TIRO  C COBERTURA\nA/E PUZLE  P PATRON" : "F AIM  C COVER\nA/E PUZZLE  P PATTERN", 11f,
                 new Color(0.78f, 0.58f, 0.42f), TextAlignmentOptions.Center);
 
             foreach (RouteConnection connection in RouteConnections)
@@ -1355,9 +1493,13 @@ namespace Project.Scripts.World
             return GetRoomType(room) switch
             {
                 WorldRoomType.Start => "S",
+                WorldRoomType.ShootingTutorial => "F",
+                WorldRoomType.CoverCombat => "C",
                 WorldRoomType.Combat => "!",
                 WorldRoomType.PuzzleSequence => "A",
-                WorldRoomType.PuzzleCircuit => "C",
+                WorldRoomType.PuzzleCircuit => "E",
+                WorldRoomType.PatternCombat => "P",
+                WorldRoomType.ConvergenceCombat => "+",
                 WorldRoomType.BossGateway => "G",
                 _ => "?"
             };
@@ -1414,8 +1556,8 @@ namespace Project.Scripts.World
             transitionFade = black.GetComponent<CanvasGroup>();
             transitionFade.alpha = 1f;
             transitionFade.blocksRaycasts = true;
-            transitionLabel = CreateText("Transition Label", rect, new Vector2(0.2f, 0.44f),
-                new Vector2(0.8f, 0.56f), string.Empty, 38f,
+            transitionLabel = CreateText("Transition Label", rect, new Vector2(0.16f, 0.37f),
+                new Vector2(0.84f, 0.63f), string.Empty, 32f,
                 new Color(1f, 0.82f, 0.56f), TextAlignmentOptions.Center);
             transitionLabel.raycastTarget = false;
         }
@@ -1459,10 +1601,51 @@ namespace Project.Scripts.World
             int roomNumber = GetRoomNumber(currentRoom);
             bool spanish = GameLoadout.IsSpanish;
             string roomName = GetRoomDisplayName(currentRoom, spanish);
+            RoomLesson lesson = GetRoomLesson(currentRoom);
             roomLabel.text = spanish
                 ? $"SALA {roomNumber:00}  ·  {roomName}  ·  {visitedRooms.Count:00}/{RouteRooms.Length:00}"
                 : $"ROOM {roomNumber:00}  ·  {roomName}  ·  {visitedRooms.Count:00}/{RouteRooms.Length:00}";
+            if (lessonLabel != null)
+            {
+                lessonLabel.text = spanish
+                    ? $"APRENDE: {lesson.SpanishMechanic}\nOBJETIVO: {lesson.SpanishObjective}"
+                    : $"LEARN: {lesson.EnglishMechanic}\nOBJECTIVE: {lesson.EnglishObjective}";
+            }
             UpdateMap();
+        }
+
+        private static RoomLesson GetRoomLesson(Vector2Int room)
+        {
+            return GetRoomType(room) switch
+            {
+                WorldRoomType.Start => new RoomLesson(
+                    "MOVIMIENTO Y MAPA", "llega al pasillo y observa las dos rutas",
+                    "MOVEMENT AND MAP", "reach the hall and read both routes"),
+                WorldRoomType.ShootingTutorial => new RoomLesson(
+                    "DISPARO Y APUNTADO", "limpia la sala y elige una ruta",
+                    "AIM AND SHOOT", "clear the room and choose a route"),
+                WorldRoomType.CoverCombat => new RoomLesson(
+                    "COBERTURA DESTRUCTIBLE", "rompe cajas y usa muros para abrir angulos",
+                    "DESTRUCTIBLE COVER", "break crates and use walls to open angles"),
+                WorldRoomType.PuzzleSequence => new RoomLesson(
+                    "ORDEN DE COLORES", "activa los terminales con E en el orden mostrado",
+                    "COLOR SEQUENCE", "activate terminals with E in the shown order"),
+                WorldRoomType.PuzzleCircuit => new RoomLesson(
+                    "CIRCUITO Y POSICION", "conecta los nodos y controla tu espacio",
+                    "CIRCUIT AND POSITION", "connect the nodes and control your space"),
+                WorldRoomType.PatternCombat => new RoomLesson(
+                    "PATRONES DE ENEMIGOS", "lee las senales, esquiva y contraataca",
+                    "ENEMY PATTERNS", "read the signals, dodge and counterattack"),
+                WorldRoomType.ConvergenceCombat => new RoomLesson(
+                    "COMBINAR HABILIDADES", "limpia la arena y prueba tu build",
+                    "COMBINE ABILITIES", "clear the arena and test your build"),
+                WorldRoomType.BossGateway => new RoomLesson(
+                    "CHECKPOINT Y COFRE", "preparate, recoge la mejora y entra al boss",
+                    "CHECKPOINT AND CHEST", "prepare, claim the upgrade and enter the boss"),
+                _ => new RoomLesson(
+                    "COMBATE", "derrota a los enemigos para abrir las salidas",
+                    "COMBAT", "defeat enemies to open the exits")
+            };
         }
 
         private static int GetRoomNumber(Vector2Int room)
@@ -1497,8 +1680,12 @@ namespace Project.Scripts.World
         {
             Start,
             Combat,
+            ShootingTutorial,
+            CoverCombat,
             PuzzleSequence,
             PuzzleCircuit,
+            PatternCombat,
+            ConvergenceCombat,
             BossGateway
         }
 
@@ -1528,21 +1715,41 @@ namespace Project.Scripts.World
             public float ManaReward { get; }
         }
 
+        private readonly struct RoomLesson
+        {
+            public RoomLesson(string spanishMechanic, string spanishObjective,
+                string englishMechanic, string englishObjective)
+            {
+                SpanishMechanic = spanishMechanic;
+                SpanishObjective = spanishObjective;
+                EnglishMechanic = englishMechanic;
+                EnglishObjective = englishObjective;
+            }
+
+            public string SpanishMechanic { get; }
+            public string SpanishObjective { get; }
+            public string EnglishMechanic { get; }
+            public string EnglishObjective { get; }
+        }
+
         private void SetTransitionLabel(Vector2Int destination)
         {
             if (transitionLabel == null) return;
 
             if (destination == BossRoom)
             {
-                transitionLabel.text = GameLoadout.IsSpanish ? "SALA DEL JEFE" : "BOSS ROOM";
+                transitionLabel.text = GameLoadout.IsSpanish
+                    ? "SALA DEL JEFE\nCHECKPOINT ACTIVO"
+                    : "BOSS ROOM\nCHECKPOINT ACTIVE";
                 return;
             }
 
             int roomNumber = GetRoomNumber(destination);
             string roomName = GetRoomDisplayName(destination, GameLoadout.IsSpanish);
+            RoomLesson lesson = GetRoomLesson(destination);
             transitionLabel.text = GameLoadout.IsSpanish
-                ? $"SALA {roomNumber:00}  ·  {roomName}"
-                : $"ROOM {roomNumber:00}  ·  {roomName}";
+                ? $"SALA {roomNumber:00}  ·  {roomName}\n{lesson.SpanishMechanic}"
+                : $"ROOM {roomNumber:00}  ·  {roomName}\n{lesson.EnglishMechanic}";
         }
 
         private static GameObject CreatePanel(string objectName, RectTransform parent,
