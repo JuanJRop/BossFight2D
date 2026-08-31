@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Player.PlayerScripts.Movement;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using Project.Scripts.World;
+using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Project.Scripts.Arena
 {
@@ -44,23 +48,31 @@ namespace Project.Scripts.Arena
         private Transform playerCombatTransform;
         private Health playerHealth;
         private PlayerDodge playerDodge;
+        private TextMeshProUGUI deathCounter;
+        private GameObject deathCounterCanvas;
         private Material laserMaterial;
         private Texture2D laserTexture;
         private int completedCycles;
+        private bool retrying;
 
         private void Awake()
         {
+            RunSession.MarkBossCheckpoint();
             ResolveReferences();
             BuildDestructibles();
+            ConfigureDeathMenu();
+            BuildDeathCounter();
         }
 
         private void OnEnable()
         {
+            RunSession.OnPlayerDeathsChanged += UpdateDeathCounter;
             hazardRoutine = StartCoroutine(HazardLoop());
         }
 
         private void OnDisable()
         {
+            RunSession.OnPlayerDeathsChanged -= UpdateDeathCounter;
             if (hazardRoutine != null) StopCoroutine(hazardRoutine);
             hazardRoutine = null;
             ReleaseAll();
@@ -69,8 +81,19 @@ namespace Project.Scripts.Arena
 
         private void OnDestroy()
         {
+            RunSession.UnregisterPlayer(playerHealth);
             if (laserMaterial != null) Destroy(laserMaterial);
             if (laserTexture != null) Destroy(laserTexture);
+        }
+
+        public void RetryBoss()
+        {
+            if (retrying || !RunSession.BossCheckpointReached) return;
+
+            retrying = true;
+            Time.timeScale = 1f;
+            if (UIManager.instance != null) UIManager.instance.IsPaused = false;
+            SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().name);
         }
 
         private IEnumerator HazardLoop()
@@ -217,6 +240,91 @@ namespace Project.Scripts.Arena
             if (playerHealth == null) playerHealth = player.GetComponentInChildren<Health>();
             playerDodge = player.GetComponent<PlayerDodge>();
             if (playerDodge == null) playerDodge = player.GetComponentInChildren<PlayerDodge>();
+            RunSession.RegisterPlayer(playerHealth);
+        }
+
+        private void ConfigureDeathMenu()
+        {
+            GameObject loseScreen = FindSceneObject("LoseScreen");
+            if (loseScreen == null) return;
+
+            bool spanish = GameLoadout.IsSpanish;
+            foreach (TMP_Text text in loseScreen.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (text.text == "You Die") text.text = spanish ? "HAS MUERTO" : "YOU DIED";
+            }
+
+            Button retryButton = loseScreen.GetComponentInChildren<Button>(true);
+            if (retryButton == null) return;
+
+            TMP_Text label = retryButton.GetComponentInChildren<TMP_Text>(true);
+            if (label != null) label.text = spanish ? "REINTENTAR" : "RETRY";
+        }
+
+        private void BuildDeathCounter()
+        {
+            deathCounterCanvas = new GameObject("Run Stats");
+            deathCounterCanvas.transform.SetParent(transform, false);
+
+            Canvas canvas = deathCounterCanvas.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 220;
+
+            CanvasScaler scaler = deathCounterCanvas.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            RectTransform canvasRect = deathCounterCanvas.GetComponent<RectTransform>();
+            GameObject panel = new("Death Counter", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.SetParent(canvasRect, false);
+            panelRect.anchorMin = new Vector2(0.79f, 0.91f);
+            panelRect.anchorMax = new Vector2(0.975f, 0.975f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+
+            Image panelImage = panel.GetComponent<Image>();
+            panelImage.color = new Color(0.08f, 0.018f, 0.014f, 0.88f);
+            panelImage.raycastTarget = false;
+
+            GameObject textObject = new("Death Counter Text", typeof(RectTransform), typeof(CanvasRenderer),
+                typeof(TextMeshProUGUI));
+            RectTransform textRect = textObject.GetComponent<RectTransform>();
+            textRect.SetParent(panelRect, false);
+            textRect.anchorMin = new Vector2(0.06f, 0f);
+            textRect.anchorMax = new Vector2(0.94f, 1f);
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            deathCounter = textObject.GetComponent<TextMeshProUGUI>();
+            TMP_Text template = FindFirstObjectByType<TMP_Text>();
+            if (template != null) deathCounter.font = template.font;
+            deathCounter.fontSize = 20f;
+            deathCounter.color = new Color(1f, 0.62f, 0.38f);
+            deathCounter.alignment = TextAlignmentOptions.Center;
+            deathCounter.textWrappingMode = TextWrappingModes.NoWrap;
+            deathCounter.raycastTarget = false;
+            UpdateDeathCounter(RunSession.PlayerDeaths);
+        }
+
+        private void UpdateDeathCounter(int deaths)
+        {
+            if (deathCounter == null) return;
+            deathCounter.text = GameLoadout.IsSpanish
+                ? $"MUERTES  {deaths:00}"
+                : $"DEATHS  {deaths:00}";
+        }
+
+        private static GameObject FindSceneObject(string objectName)
+        {
+            foreach (GameObject candidate in Resources.FindObjectsOfTypeAll<GameObject>())
+            {
+                if (candidate.name != objectName || !candidate.scene.IsValid() || !candidate.scene.isLoaded) continue;
+                return candidate;
+            }
+
+            return null;
         }
 
         private void BuildDestructibles()

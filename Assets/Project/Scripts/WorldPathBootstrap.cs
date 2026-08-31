@@ -1,9 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using Project.Characters.Enemy.EnemyScripts.Core;
 using Project.Characters.Player.PlayerScripts.Combat;
 using Project.Characters.Player.PlayerScripts.Core;
 using Project.Characters.Player.PlayerScripts.Movement;
 using Project.Scripts.Controller;
+using Project.Scripts.Progression;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -43,9 +45,15 @@ namespace Project.Scripts.World
         [SerializeField, Range(0, 8)] private int destructiblesPerRoom = 5;
         [SerializeField, Min(1f)] private float destructibleHealth = 52f;
 
+        [Header("Route rewards")]
+        [SerializeField] private GameObject healthKitPrefab;
+        [SerializeField] private GameObject manaPotionPrefab;
+
         private readonly List<Tile> runtimeTiles = new();
         private readonly List<GameObject> roomObjects = new();
         private readonly HashSet<Vector2Int> visitedRooms = new();
+        private readonly HashSet<Vector2Int> clearedCombatRooms = new();
+        private readonly HashSet<Vector2Int> solvedPuzzleRooms = new();
         private readonly Dictionary<Vector2Int, Image> mapCells = new();
         private readonly Dictionary<Vector2Int, TextMeshProUGUI> mapCellLabels = new();
         private readonly List<MapConnection> mapConnections = new();
@@ -57,6 +65,7 @@ namespace Project.Scripts.World
         private TileBase collisionWall;
         private GameObject playerActor;
         private Rigidbody2D playerBody;
+        private Health playerHealth;
         private PlayerMove playerMove;
         private WorldPathCamera worldCamera;
         private CanvasGroup transitionFade;
@@ -64,11 +73,14 @@ namespace Project.Scripts.World
         private GameObject tutorialOverlay;
         private GameObject objectiveHud;
         private TextMeshProUGUI roomLabel;
+        private TextMeshProUGUI deathCounter;
         private RectTransform mapPanel;
         private float tutorialUnlockTime;
         private bool tutorialOpen;
         private bool transitioning;
         private bool mapExpanded;
+        private bool roomChallengeLocked;
+        private int activeRoomThreats;
         private Vector2Int currentRoom;
         private RoomDirection lockedDoorDirection;
         private float doorLockUntil;
@@ -76,14 +88,39 @@ namespace Project.Scripts.World
         private static readonly Vector2Int StartRoom = Vector2Int.zero;
         private static readonly Vector2Int BossGatewayRoom = new(0, MaximumRoomY);
         private static readonly Vector2Int BossRoom = new(0, MaximumRoomY + 1);
+        private static readonly Vector2Int[] RouteRooms =
+        {
+            StartRoom,
+            new Vector2Int(0, 1),
+            new Vector2Int(-1, 1),
+            new Vector2Int(-1, 2),
+            new Vector2Int(1, 1),
+            new Vector2Int(1, 2),
+            new Vector2Int(0, 2),
+            BossGatewayRoom
+        };
+        private static readonly RouteConnection[] RouteConnections =
+        {
+            new RouteConnection(StartRoom, new Vector2Int(0, 1)),
+            new RouteConnection(new Vector2Int(0, 1), new Vector2Int(0, 2)),
+            new RouteConnection(new Vector2Int(0, 2), BossGatewayRoom),
+            new RouteConnection(new Vector2Int(0, 1), new Vector2Int(-1, 1)),
+            new RouteConnection(new Vector2Int(-1, 1), new Vector2Int(-1, 2)),
+            new RouteConnection(new Vector2Int(-1, 2), new Vector2Int(0, 2)),
+            new RouteConnection(new Vector2Int(0, 1), new Vector2Int(1, 1)),
+            new RouteConnection(new Vector2Int(1, 1), new Vector2Int(1, 2)),
+            new RouteConnection(new Vector2Int(1, 2), new Vector2Int(0, 2))
+        };
 
         private void Awake()
         {
             Time.timeScale = 1f;
+            RunSession.EnsureRunStarted();
             BuildReusableRoom();
             GameObject player = SpawnPlayer();
             playerActor = player;
             playerBody = ResolvePlayerBody(player);
+            playerHealth = player != null ? player.GetComponentInChildren<Health>(true) : null;
             playerMove = player != null ? player.GetComponentInChildren<PlayerMove>(true) : null;
             worldCamera = BuildCamera(playerBody != null
                 ? playerBody.transform
@@ -113,6 +150,7 @@ namespace Project.Scripts.World
 
         private void OnDestroy()
         {
+            RunSession.UnregisterPlayer(playerHealth);
             Time.timeScale = 1f;
             foreach (Tile tile in runtimeTiles)
             {
@@ -169,6 +207,7 @@ namespace Project.Scripts.World
                 yield break;
             }
 
+            RunSession.MarkBossCheckpoint();
             AsyncOperation loadOperation = SceneManager.LoadSceneAsync(bossSceneName);
             if (loadOperation != null)
             {
@@ -263,6 +302,8 @@ namespace Project.Scripts.World
 
         private void ClearRoom()
         {
+            roomChallengeLocked = false;
+            activeRoomThreats = 0;
             if (background != null) background.ClearAllTiles();
             if (floor != null) floor.ClearAllTiles();
             if (walls != null) walls.ClearAllTiles();
@@ -358,6 +399,8 @@ namespace Project.Scripts.World
             }
 
             BuildDestructibles(room);
+            BuildRoomPuzzle(room);
+            BuildRoomEncounter(room);
         }
 
         private void BuildDestructibles(Vector2Int room)
@@ -370,7 +413,10 @@ namespace Project.Scripts.World
                 new(-6, 7, 0), new(6, 7, 0), new(-6, -7, 0), new(6, -7, 0),
                 new(0, 8, 0), new(0, -8, 0)
             };
-            int targetCount = Mathf.Min(destructiblesPerRoom, candidates.Length);
+            RoomProfile profile = GetRoomProfile(room);
+            int targetCount = Mathf.Clamp(destructiblesPerRoom + profile.DestructibleBonus,
+                0, candidates.Length);
+            float roomHealth = Mathf.Max(1f, destructibleHealth + profile.HealthBonus);
             int startIndex = StableHash(room, 13, 7) % candidates.Length;
             int created = 0;
 
@@ -389,12 +435,221 @@ namespace Project.Scripts.World
 
                 DestructibleProp prop = DestructibleProp.CreateRuntime(
                     $"Room Cover {created + 1}", new Vector2(cell.x, cell.y), size, color, type,
-                    destructibleHealth, transform);
+                    roomHealth, transform, profile.ManaReward);
                 if (prop == null) continue;
 
                 roomObjects.Add(prop.gameObject);
                 created++;
             }
+        }
+
+        private void SpawnPuzzleReward(Vector2Int room)
+        {
+            GameObject prefab = GetRoomType(room) switch
+            {
+                WorldRoomType.PuzzleSequence => healthKitPrefab,
+                WorldRoomType.PuzzleCircuit => manaPotionPrefab,
+                _ => null
+            };
+            if (prefab == null) return;
+
+            Vector2 position = GetRoomType(room) == WorldRoomType.PuzzleSequence
+                ? new Vector2(0f, -5.2f)
+                : new Vector2(0f, 5.2f);
+            GameObject reward = Instantiate(prefab, new Vector3(position.x, position.y, -0.2f),
+                Quaternion.identity, transform);
+            reward.name = GetRoomType(room) == WorldRoomType.PuzzleSequence
+                ? "Puzzle Health Reward"
+                : "Puzzle Mana Reward";
+            roomObjects.Add(reward);
+        }
+
+        private void BuildRoomPuzzle(Vector2Int room)
+        {
+            WorldRoomType type = GetRoomType(room);
+            if (!IsPuzzleRoom(room)) return;
+            if (solvedPuzzleRooms.Contains(room))
+            {
+                roomChallengeLocked = false;
+                return;
+            }
+
+            roomChallengeLocked = true;
+            WorldPuzzleKind puzzleKind = type == WorldRoomType.PuzzleSequence
+                ? WorldPuzzleKind.Sequence
+                : WorldPuzzleKind.Circuit;
+            WorldPuzzleController puzzle = WorldPuzzleController.CreateRuntime(
+                puzzleKind, playerActor != null ? playerActor.transform : null, transform,
+                () => CompletePuzzle(room));
+            if (puzzle != null)
+            {
+                roomObjects.Add(puzzle.gameObject);
+                return;
+            }
+
+            roomChallengeLocked = false;
+        }
+
+        private void CompletePuzzle(Vector2Int room)
+        {
+            if (room != currentRoom || solvedPuzzleRooms.Contains(room)) return;
+            solvedPuzzleRooms.Add(room);
+            roomChallengeLocked = false;
+            SpawnPuzzleReward(room);
+            UpdateRoomHud();
+        }
+
+        private void BuildRoomEncounter(Vector2Int room)
+        {
+            if (GetRoomType(room) != WorldRoomType.Combat) return;
+            if (clearedCombatRooms.Contains(room))
+            {
+                roomChallengeLocked = false;
+                activeRoomThreats = 0;
+                return;
+            }
+
+            Transform target = playerActor != null ? playerActor.transform : null;
+            if (target == null)
+            {
+                roomChallengeLocked = false;
+                return;
+            }
+
+            roomChallengeLocked = true;
+            activeRoomThreats = 0;
+            int enemyCount = GetCombatEnemyCount(room);
+            Vector2[] spawnPositions =
+            {
+                new(-8f, 6f), new(8f, 6f), new(-8f, -6f), new(8f, -6f),
+                new(0f, 6.5f), new(0f, -6.5f)
+            };
+
+            for (int index = 0; index < enemyCount; index++)
+            {
+                WorldEnemyPattern pattern = GetEnemyPattern(room, index);
+                WorldSecondaryEnemy enemy = WorldSecondaryEnemy.CreateRuntime(
+                    $"Secondary Enemy {index + 1}", spawnPositions[index], pattern,
+                    GetEnemyHealth(room, index), GetEnemySpeed(pattern), GetEnemyDamage(pattern),
+                    target, transform, roomObject => roomObjects.Add(roomObject),
+                    NotifyRoomEnemyDefeated);
+                if (enemy == null) continue;
+
+                roomObjects.Add(enemy.gameObject);
+                activeRoomThreats++;
+            }
+
+            if (activeRoomThreats == 0) roomChallengeLocked = false;
+        }
+
+        private static int GetCombatEnemyCount(Vector2Int room)
+        {
+            if (room == new Vector2Int(0, 1)) return 2;
+            if (room == new Vector2Int(-1, 1)) return 3;
+            if (room == new Vector2Int(1, 2)) return 4;
+            return 3;
+        }
+
+        private static WorldEnemyPattern GetEnemyPattern(Vector2Int room, int index)
+        {
+            if (room == new Vector2Int(-1, 1))
+                return index == 0 ? WorldEnemyPattern.Charger : WorldEnemyPattern.Chaser;
+            if (room == new Vector2Int(1, 2))
+                return index % 3 == 0 ? WorldEnemyPattern.Shooter
+                    : index % 3 == 1 ? WorldEnemyPattern.Charger
+                    : WorldEnemyPattern.Chaser;
+
+            return index % 2 == 0 ? WorldEnemyPattern.Chaser : WorldEnemyPattern.Shooter;
+        }
+
+        private static float GetEnemyHealth(Vector2Int room, int index)
+        {
+            float baseHealth = room == new Vector2Int(1, 2) ? 84f : 64f;
+            return baseHealth + index * 8f;
+        }
+
+        private static float GetEnemySpeed(WorldEnemyPattern pattern)
+        {
+            return pattern switch
+            {
+                WorldEnemyPattern.Charger => 2.9f,
+                WorldEnemyPattern.Shooter => 2.2f,
+                _ => 2.7f
+            };
+        }
+
+        private static float GetEnemyDamage(WorldEnemyPattern pattern)
+        {
+            return pattern switch
+            {
+                WorldEnemyPattern.Charger => 24f,
+                WorldEnemyPattern.Shooter => 13f,
+                _ => 16f
+            };
+        }
+
+        internal void NotifyRoomEnemyDefeated()
+        {
+            if (activeRoomThreats <= 0) return;
+            activeRoomThreats--;
+            if (activeRoomThreats > 0) return;
+
+            clearedCombatRooms.Add(currentRoom);
+            roomChallengeLocked = false;
+            UpdateRoomHud();
+        }
+
+        private static WorldRoomType GetRoomType(Vector2Int room)
+        {
+            if (room == StartRoom) return WorldRoomType.Start;
+            if (room == BossGatewayRoom) return WorldRoomType.BossGateway;
+            if (room == new Vector2Int(-1, 2)) return WorldRoomType.PuzzleSequence;
+            if (room == new Vector2Int(1, 1)) return WorldRoomType.PuzzleCircuit;
+            return WorldRoomType.Combat;
+        }
+
+        private static bool IsPuzzleRoom(Vector2Int room)
+        {
+            WorldRoomType type = GetRoomType(room);
+            return type == WorldRoomType.PuzzleSequence || type == WorldRoomType.PuzzleCircuit;
+        }
+
+        private static RoomProfile GetRoomProfile(Vector2Int room)
+        {
+            return GetRoomType(room) switch
+            {
+                WorldRoomType.Start => new RoomProfile(-3, -10f, 5f),
+                WorldRoomType.Combat => new RoomProfile(1, 10f, 8f),
+                WorldRoomType.PuzzleSequence => new RoomProfile(-1, 0f, 8f),
+                WorldRoomType.PuzzleCircuit => new RoomProfile(-1, 0f, 8f),
+                WorldRoomType.BossGateway => new RoomProfile(-2, 0f, 8f),
+                _ => new RoomProfile(0, 0f, 8f)
+            };
+        }
+
+        private static string GetRoomDisplayName(Vector2Int room, bool spanish)
+        {
+            return GetRoomType(room) switch
+            {
+                WorldRoomType.Start => spanish ? "CAMPAMENTO" : "CAMP",
+                WorldRoomType.Combat => spanish ? "COMBATE" : "FIGHT",
+                WorldRoomType.PuzzleSequence => spanish ? "ORDEN" : "SEQUENCE",
+                WorldRoomType.PuzzleCircuit => spanish ? "CIRCUITO" : "CIRCUIT",
+                WorldRoomType.BossGateway => spanish ? "UMBRAL BOSS" : "BOSS GATE",
+                _ => spanish ? "SALA" : "ROOM"
+            };
+        }
+
+        private static Color GetRoomMapColor(Vector2Int room)
+        {
+            return GetRoomType(room) switch
+            {
+                WorldRoomType.Combat => new Color(0.78f, 0.18f, 0.08f, 1f),
+                WorldRoomType.PuzzleSequence => new Color(0.18f, 0.58f, 0.36f, 1f),
+                WorldRoomType.PuzzleCircuit => new Color(0.12f, 0.52f, 0.72f, 1f),
+                WorldRoomType.BossGateway => new Color(0.78f, 0.34f, 0.08f, 1f),
+                _ => new Color(0.48f, 0.18f, 0.07f, 1f)
+            };
         }
 
         private void PaintPillarCluster(Vector3Int center)
@@ -553,6 +808,30 @@ namespace Project.Scripts.World
 
         private static RoomVisualPalette GetRoomVisualPalette(Vector2Int room)
         {
+            switch (GetRoomType(room))
+            {
+                case WorldRoomType.Combat:
+                    return new RoomVisualPalette(
+                        new Color(0.94f, 0.16f, 0.1f, 1f),
+                        new Color(1f, 0.56f, 0.12f, 1f),
+                        new Color(0.12f, 0.018f, 0.02f, 1f));
+                case WorldRoomType.PuzzleSequence:
+                    return new RoomVisualPalette(
+                        new Color(0.18f, 0.86f, 0.5f, 1f),
+                        new Color(0.74f, 1f, 0.4f, 1f),
+                        new Color(0.015f, 0.09f, 0.06f, 1f));
+                case WorldRoomType.PuzzleCircuit:
+                    return new RoomVisualPalette(
+                        new Color(0.16f, 0.7f, 1f, 1f),
+                        new Color(0.34f, 0.96f, 0.92f, 1f),
+                        new Color(0.015f, 0.055f, 0.12f, 1f));
+                case WorldRoomType.BossGateway:
+                    return new RoomVisualPalette(
+                        new Color(1f, 0.24f, 0.08f, 1f),
+                        new Color(1f, 0.72f, 0.18f, 1f),
+                        new Color(0.12f, 0.025f, 0.012f, 1f));
+            }
+
             int theme = Mathf.Abs(room.x * 7 + room.y * 13) % 3;
             return theme switch
             {
@@ -633,22 +912,43 @@ namespace Project.Scripts.World
         private RoomOpenings GetOpenings(Vector2Int room)
         {
             return new RoomOpenings(
-                room.y < MaximumRoomY || room == BossGatewayRoom,
-                room.y > MinimumRoomY,
-                room.x > MinimumRoomX,
-                   room.x < MaximumRoomX);
+                HasRouteConnection(room, room + Vector2Int.up),
+                HasRouteConnection(room, room + Vector2Int.down),
+                HasRouteConnection(room, room + Vector2Int.left),
+                HasRouteConnection(room, room + Vector2Int.right));
+        }
+
+        private static bool HasRouteConnection(Vector2Int first, Vector2Int second)
+        {
+            if ((first == BossGatewayRoom && second == BossRoom) ||
+                (first == BossRoom && second == BossGatewayRoom))
+                return true;
+
+            foreach (RouteConnection connection in RouteConnections)
+            {
+                if ((connection.First == first && connection.Second == second) ||
+                    (connection.First == second && connection.Second == first))
+                    return true;
+            }
+
+            return false;
         }
 
         internal bool IsDoorLocked(RoomDirection direction)
         {
-            return direction != RoomDirection.None && direction == lockedDoorDirection &&
-                   Time.unscaledTime < doorLockUntil;
+            if (direction == RoomDirection.None) return false;
+            return roomChallengeLocked || (direction == lockedDoorDirection &&
+                   Time.unscaledTime < doorLockUntil);
         }
 
         private static bool IsValidRoom(Vector2Int room)
         {
-            return room.x >= MinimumRoomX && room.x <= MaximumRoomX &&
-                   room.y >= MinimumRoomY && room.y <= MaximumRoomY;
+            foreach (Vector2Int routeRoom in RouteRooms)
+            {
+                if (routeRoom == room) return true;
+            }
+
+            return false;
         }
 
         private static Vector2Int DirectionOffset(RoomDirection direction)
@@ -745,6 +1045,8 @@ namespace Project.Scripts.World
             GameObject player = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
             player.name = "Player";
 
+            RunSession.RegisterPlayer(player.GetComponentInChildren<Health>(true));
+
             GameObject poolObject = new("World Projectile Pool");
             ObjectPool pool = poolObject.AddComponent<ObjectPool>();
             AttackPlayer attack = player.GetComponentInChildren<AttackPlayer>(true);
@@ -804,6 +1106,14 @@ namespace Project.Scripts.World
                 Vector2.zero, Vector2.one, string.Empty, 24f,
                 new Color(1f, 0.88f, 0.68f), TextAlignmentOptions.Center);
             objectiveHud.SetActive(false);
+
+            GameObject deathPanel = CreatePanel("Death Counter", canvasRect,
+                new Vector2(0.025f, 0.91f), new Vector2(0.20f, 0.975f),
+                new Color(0.09f, 0.025f, 0.018f, 0.9f));
+            deathCounter = CreateText("Death Counter Text", deathPanel.transform as RectTransform,
+                new Vector2(0.08f, 0f), new Vector2(0.92f, 1f), string.Empty, 20f,
+                new Color(1f, 0.62f, 0.38f), TextAlignmentOptions.Center);
+            UpdateDeathCounter(RunSession.PlayerDeaths);
             BuildMap(canvasRect);
 
             tutorialOverlay = CreatePanel("Tutorial Overlay", canvasRect, Vector2.zero, Vector2.one,
@@ -815,11 +1125,11 @@ namespace Project.Scripts.World
             bool spanish = GameLoadout.IsSpanish;
             string title = spanish ? "SALAS DE LA CAVERNA" : "CAVERN ROOMS";
             string subtitle = spanish
-                ? "Explora libremente. Cada puerta conduce a una sala distinta."
-                : "Explore freely. Every door leads to a different room.";
+                ? "Elige la ruta directa o un desvio: dos salas tienen puzzle y el resto combate."
+                : "Choose the direct route or a detour: two rooms have puzzles and the rest are fights.";
             string controls = spanish
-                ? "WASD / FLECHAS     MOVERSE\nRATÓN                 APUNTAR\nCLIC IZQUIERDO        DISPARAR\nESPACIO               DASH · GOLPE · CARGAS\nR                      RECARGAR\nPUERTAS                CAMBIAR DE SALA"
-                : "WASD / ARROWS      MOVE\nMOUSE                  AIM\nLEFT CLICK             SHOOT\nSPACE                  DASH · STRIKE · CHARGES\nR                      RELOAD\nDOORS                   CHANGE ROOM";
+                ? "WASD / FLECHAS     MOVERSE\nRATÓN                 APUNTAR\nCLIC IZQUIERDO        DISPARAR\nESPACIO               DASH · GOLPE · CARGAS\nR                      RECARGAR\nE                      INTERACTUAR\nPUERTAS                CAMBIAR DE SALA"
+                : "WASD / ARROWS      MOVE\nMOUSE                  AIM\nLEFT CLICK             SHOOT\nSPACE                  DASH · STRIKE · CHARGES\nR                      RELOAD\nE                      INTERACT\nDOORS                   CHANGE ROOM";
             string continueText = spanish
                 ? "PULSA CUALQUIER TECLA PARA EXPLORAR"
                 : "PRESS ANY KEY TO EXPLORE";
@@ -845,28 +1155,17 @@ namespace Project.Scripts.World
             CreateText("Map Title", mapPanel, new Vector2(0.08f, 0.87f), new Vector2(0.92f, 0.98f),
                 GameLoadout.IsSpanish ? "MAPA  ·  M" : "MAP  ·  M", 22f,
                 new Color(1f, 0.78f, 0.48f), TextAlignmentOptions.Center);
+            CreateText("Map Legend", mapPanel, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.11f),
+                GameLoadout.IsSpanish ? "! COMBATE   A/C PUZZLE" : "! FIGHT   A/C PUZZLE", 12f,
+                new Color(0.78f, 0.58f, 0.42f), TextAlignmentOptions.Center);
 
-            for (int y = MinimumRoomY; y <= MaximumRoomY; y++)
-            {
-                for (int x = MinimumRoomX; x <= MaximumRoomX; x++)
-                {
-                    Vector2Int room = new(x, y);
-                    if (x < MaximumRoomX)
-                        CreateMapConnection(room, new Vector2Int(x + 1, y));
-                    if (y < MaximumRoomY)
-                        CreateMapConnection(room, new Vector2Int(x, y + 1));
-                }
-            }
+            foreach (RouteConnection connection in RouteConnections)
+                CreateMapConnection(connection.First, connection.Second);
 
             CreateMapConnection(BossGatewayRoom, BossRoom);
 
-            for (int y = MinimumRoomY; y <= MaximumRoomY; y++)
-            {
-                for (int x = MinimumRoomX; x <= MaximumRoomX; x++)
-                {
-                    CreateMapCell(new Vector2Int(x, y));
-                }
-            }
+            foreach (Vector2Int room in RouteRooms)
+                CreateMapCell(room);
 
             CreateMapCell(BossRoom);
         }
@@ -919,7 +1218,7 @@ namespace Project.Scripts.World
             mapCells.Add(room, image);
 
             TextMeshProUGUI label = CreateText("Room State", cell, Vector2.zero, Vector2.one,
-                room == BossRoom ? "BOSS" : "?", room == BossRoom ? 14f : 20f,
+                room == BossRoom ? "BOSS" : GetRoomMapSymbol(room), room == BossRoom ? 14f : 20f,
                 room == BossRoom ? new Color(1f, 0.2f, 0.08f) : new Color(0.38f, 0.28f, 0.22f),
                 TextAlignmentOptions.Center);
             mapCellLabels.Add(room, label);
@@ -953,17 +1252,17 @@ namespace Project.Scripts.World
                 if (!visited)
                 {
                     image.color = new Color(0.025f, 0.012f, 0.008f, 0.96f);
-                    label.text = "?";
+                    label.text = GetRoomMapSymbol(pair.Key);
                     label.color = new Color(0.38f, 0.28f, 0.22f);
                     image.rectTransform.localScale = Vector3.one;
                     continue;
                 }
 
-                int number = (pair.Key.y - MinimumRoomY) * (MaximumRoomX - MinimumRoomX + 1) +
-                             (pair.Key.x - MinimumRoomX) + 1;
+                int number = GetRoomNumber(pair.Key);
+                Color roomColor = GetRoomMapColor(pair.Key);
                 image.color = current
                     ? new Color(1f, 0.46f, 0.12f, 1f)
-                    : new Color(0.48f, 0.18f, 0.07f, 1f);
+                    : roomColor;
                 label.text = number.ToString("00");
                 label.color = current ? Color.white : new Color(1f, 0.82f, 0.58f);
                 image.rectTransform.localScale = current ? Vector3.one * 1.16f : Vector3.one;
@@ -974,9 +1273,23 @@ namespace Project.Scripts.World
                 bool bossConnection = connection.First == BossRoom || connection.Second == BossRoom;
                 bool unlocked = bossConnection
                     ? bossUnlocked
-                    : visitedRooms.Contains(connection.First) && visitedRooms.Contains(connection.Second);
+                    : (visitedRooms.Contains(connection.First) && visitedRooms.Contains(connection.Second)) ||
+                      connection.First == currentRoom || connection.Second == currentRoom;
                 connection.Image.gameObject.SetActive(unlocked);
             }
+        }
+
+        private static string GetRoomMapSymbol(Vector2Int room)
+        {
+            return GetRoomType(room) switch
+            {
+                WorldRoomType.Start => "S",
+                WorldRoomType.Combat => "!",
+                WorldRoomType.PuzzleSequence => "A",
+                WorldRoomType.PuzzleCircuit => "C",
+                WorldRoomType.BossGateway => "G",
+                _ => "?"
+            };
         }
 
         private void ToggleMapSize()
@@ -1072,12 +1385,76 @@ namespace Project.Scripts.World
         private void UpdateRoomHud()
         {
             if (roomLabel == null) return;
-            int roomNumber = (currentRoom.y - MinimumRoomY) * (MaximumRoomX - MinimumRoomX + 1) +
-                             (currentRoom.x - MinimumRoomX) + 1;
-            roomLabel.text = GameLoadout.IsSpanish
-                ? $"SALA {roomNumber:00}  ·  EXPLORADAS {visitedRooms.Count:00}/12"
-                : $"ROOM {roomNumber:00}  ·  EXPLORED {visitedRooms.Count:00}/12";
+            int roomNumber = GetRoomNumber(currentRoom);
+            bool spanish = GameLoadout.IsSpanish;
+            string roomName = GetRoomDisplayName(currentRoom, spanish);
+            roomLabel.text = spanish
+                ? $"SALA {roomNumber:00}  ·  {roomName}  ·  {visitedRooms.Count:00}/{RouteRooms.Length:00}"
+                : $"ROOM {roomNumber:00}  ·  {roomName}  ·  {visitedRooms.Count:00}/{RouteRooms.Length:00}";
             UpdateMap();
+        }
+
+        private static int GetRoomNumber(Vector2Int room)
+        {
+            for (int index = 0; index < RouteRooms.Length; index++)
+            {
+                if (RouteRooms[index] == room) return index + 1;
+            }
+
+            return room == BossRoom ? RouteRooms.Length + 1 : 0;
+        }
+
+        private void OnEnable()
+        {
+            RunSession.OnPlayerDeathsChanged += UpdateDeathCounter;
+        }
+
+        private void OnDisable()
+        {
+            RunSession.OnPlayerDeathsChanged -= UpdateDeathCounter;
+        }
+
+        private void UpdateDeathCounter(int deaths)
+        {
+            if (deathCounter == null) return;
+            deathCounter.text = GameLoadout.IsSpanish
+                ? $"MUERTES  {deaths:00}"
+                : $"DEATHS  {deaths:00}";
+        }
+
+        private enum WorldRoomType
+        {
+            Start,
+            Combat,
+            PuzzleSequence,
+            PuzzleCircuit,
+            BossGateway
+        }
+
+        private readonly struct RouteConnection
+        {
+            public RouteConnection(Vector2Int first, Vector2Int second)
+            {
+                First = first;
+                Second = second;
+            }
+
+            public Vector2Int First { get; }
+            public Vector2Int Second { get; }
+        }
+
+        private readonly struct RoomProfile
+        {
+            public RoomProfile(int destructibleBonus, float healthBonus, float manaReward)
+            {
+                DestructibleBonus = destructibleBonus;
+                HealthBonus = healthBonus;
+                ManaReward = manaReward;
+            }
+
+            public int DestructibleBonus { get; }
+            public float HealthBonus { get; }
+            public float ManaReward { get; }
         }
 
         private void SetTransitionLabel(Vector2Int destination)
@@ -1090,11 +1467,11 @@ namespace Project.Scripts.World
                 return;
             }
 
-            int roomNumber = (destination.y - MinimumRoomY) * (MaximumRoomX - MinimumRoomX + 1) +
-                             (destination.x - MinimumRoomX) + 1;
+            int roomNumber = GetRoomNumber(destination);
+            string roomName = GetRoomDisplayName(destination, GameLoadout.IsSpanish);
             transitionLabel.text = GameLoadout.IsSpanish
-                ? $"SALA {roomNumber:00}"
-                : $"ROOM {roomNumber:00}";
+                ? $"SALA {roomNumber:00}  ·  {roomName}"
+                : $"ROOM {roomNumber:00}  ·  {roomName}";
         }
 
         private static GameObject CreatePanel(string objectName, RectTransform parent,

@@ -179,6 +179,8 @@ MonoBehaviour:
   spawnDestructibles: 1
   destructiblesPerRoom: 5
   destructibleHealth: 52
+  healthKitPrefab: {fileID: 100000, guid: 7f0a3348f3de47e7a5318f534b68de6b, type: 3}
+  manaPotionPrefab: {fileID: 100000, guid: d8fbf4db07df4daebcb2d7e6d7654853, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

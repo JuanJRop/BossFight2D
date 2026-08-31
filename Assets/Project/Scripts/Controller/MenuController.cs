@@ -1,5 +1,6 @@
 using System;
 using DG.Tweening;
+using Project.Scripts.Progression;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -97,6 +98,7 @@ namespace Project.Scripts.Controller
 
         public void StartGame()
         {
+            RunSession.BeginNewRun();
             PlayerPrefs.Save();
             Time.timeScale = 1f;
             SceneManager.LoadScene("WorldPath");

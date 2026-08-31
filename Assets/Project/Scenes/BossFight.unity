@@ -9087,9 +9087,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 35668462}
-        m_TargetAssemblyTypeName: Project.Scripts.Controller.MenuController, Assembly-CSharp
-        m_MethodName: StartGame
+      - m_Target: {fileID: 880000004}
+        m_TargetAssemblyTypeName: Project.Scripts.Arena.ArenaHazardDirector, Assembly-CSharp
+        m_MethodName: RetryBoss
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
