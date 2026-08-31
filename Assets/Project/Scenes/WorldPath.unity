@@ -211,6 +211,21 @@ MonoBehaviour:
   - {fileID: -3232016802565754395, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
   - {fileID: 7579325349694084374, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
   - {fileID: -1781326355032519099, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
+  archerGoblinIdleFrames:
+  - {fileID: 4723107735738678597, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  - {fileID: -7385789195546760866, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  - {fileID: 3234629978573100161, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  - {fileID: 6373048116405451881, guid: c54fdc0973546404da96cf35b765303d, type: 3}
+  archerGoblinWalkFrames:
+  - {fileID: 4944230376442633554, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
+  - {fileID: -2274363484027164459, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
+  - {fileID: 8284087734974297348, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
+  - {fileID: 5304202850863732263, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
+  archerGoblinAttackFrames:
+  - {fileID: -7856493677412862020, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
+  - {fileID: 9177565795109621906, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
+  - {fileID: 8308161197919842540, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
+  - {fileID: 8397226182628513416, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
   spearGoblinIdleUpFrames:
   - {fileID: -2331352242086191015, guid: 35f705a7f4361304db680fa91b21cda0, type: 3}
   - {fileID: -3914248031228685145, guid: 35f705a7f4361304db680fa91b21cda0, type: 3}
@@ -241,21 +256,6 @@ MonoBehaviour:
   - {fileID: 4424080537371764689, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
   - {fileID: -549505504794479726, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
   - {fileID: 4987719907933409365, guid: b58dc7edacbf37f4fa5805c211cd4684, type: 3}
-  archerGoblinIdleFrames:
-  - {fileID: 4723107735738678597, guid: c54fdc0973546404da96cf35b765303d, type: 3}
-  - {fileID: -7385789195546760866, guid: c54fdc0973546404da96cf35b765303d, type: 3}
-  - {fileID: 3234629978573100161, guid: c54fdc0973546404da96cf35b765303d, type: 3}
-  - {fileID: 6373048116405451881, guid: c54fdc0973546404da96cf35b765303d, type: 3}
-  archerGoblinWalkFrames:
-  - {fileID: 4944230376442633554, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
-  - {fileID: -2274363484027164459, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
-  - {fileID: 8284087734974297348, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
-  - {fileID: 5304202850863732263, guid: 0cd9c2d45f364174bbbe7f0cf37ceef1, type: 3}
-  archerGoblinAttackFrames:
-  - {fileID: -7856493677412862020, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
-  - {fileID: 9177565795109621906, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
-  - {fileID: 8308161197919842540, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
-  - {fileID: 8397226182628513416, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
   archerGoblinIdleUpFrames:
   - {fileID: -2331352242086191015, guid: c54fdc0973546404da96cf35b765303d, type: 3}
   - {fileID: -3914248031228685145, guid: c54fdc0973546404da96cf35b765303d, type: 3}
@@ -287,8 +287,66 @@ MonoBehaviour:
   - {fileID: 126196655831347465, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
   - {fileID: 4557897401448185533, guid: d25cfa39a2a582748a9d478b20918c7d, type: 3}
   showRoomGuides: 0
+--- !u!1001 &1263862541
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.53695
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.66204
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6110550654690839295, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8216319751088429461, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
+      propertyPath: m_Name
+      value: Controller
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4f3c679f1ade9754496a2653fa6c1a8c, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 100001}
+  - {fileID: 1263862541}
