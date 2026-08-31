@@ -251,21 +251,15 @@ namespace Project.Scripts.Progression
             float duration, float width)
         {
             GameObject effect = new(objectName);
-            LineRenderer line = effect.AddComponent<LineRenderer>();
-            line.useWorldSpace = true;
-            line.positionCount = points.Count;
-            line.numCornerVertices = 3;
-            line.numCapVertices = 3;
-            line.startWidth = width;
-            line.endWidth = width * 0.72f;
-            line.startColor = color;
-            line.endColor = new Color(color.r, color.g, color.b, 0.1f);
-            line.sortingOrder = 48;
-            line.material = GetEffectMaterial();
-            line.textureMode = LineTextureMode.Stretch;
-            line.SetPositions(points.ToArray());
+            LineRenderer glow = effect.AddComponent<LineRenderer>();
+            ConfigureLineRenderer(glow, points, color, width * 3.4f, 46, 0.2f);
+            LineRenderer core = effect.AddComponent<LineRenderer>();
+            ConfigureLineRenderer(core, points, color, width, 48, 1f);
+            LineRenderer highlight = effect.AddComponent<LineRenderer>();
+            ConfigureLineRenderer(highlight, points, Color.Lerp(color, Color.white, 0.72f),
+                width * 0.24f, 49, 0.9f);
             activeEffects.Add(effect);
-            StartCoroutine(FadeLine(effect, line, color, duration));
+            StartCoroutine(FadeLineLayers(effect, new[] { glow, core, highlight }, color, duration));
         }
 
         private void SpawnRingEffect(Vector2 center, float radius, Color color,
@@ -317,6 +311,51 @@ namespace Project.Scripts.Progression
                 activeEffects.Remove(effect);
                 Destroy(effect);
             }
+        }
+
+        private IEnumerator FadeLineLayers(GameObject effect, LineRenderer[] lines, Color color,
+            float duration)
+        {
+            float elapsed = 0f;
+            float[] opacity = { 0.2f, 1f, 0.9f };
+            while (elapsed < duration && effect != null)
+            {
+                elapsed += Time.deltaTime;
+                float alpha = 1f - Mathf.Clamp01(elapsed / duration);
+                for (int index = 0; index < lines.Length; index++)
+                {
+                    LineRenderer line = lines[index];
+                    if (line == null) continue;
+                    float layerAlpha = alpha * opacity[Mathf.Min(index, opacity.Length - 1)];
+                    line.startColor = new Color(color.r, color.g, color.b, layerAlpha);
+                    line.endColor = new Color(color.r, color.g, color.b, layerAlpha * 0.12f);
+                }
+                yield return null;
+            }
+
+            if (effect != null)
+            {
+                activeEffects.Remove(effect);
+                Destroy(effect);
+            }
+        }
+
+        private void ConfigureLineRenderer(LineRenderer line, List<Vector3> points, Color color,
+            float width, int sortingOrder, float opacity)
+        {
+            if (line == null) return;
+            line.useWorldSpace = true;
+            line.positionCount = points.Count;
+            line.numCornerVertices = 4;
+            line.numCapVertices = 4;
+            line.startWidth = width;
+            line.endWidth = width * 0.72f;
+            line.startColor = new Color(color.r, color.g, color.b, opacity);
+            line.endColor = new Color(color.r, color.g, color.b, opacity * 0.12f);
+            line.sortingOrder = sortingOrder;
+            line.material = GetEffectMaterial();
+            line.textureMode = LineTextureMode.Stretch;
+            line.SetPositions(points.ToArray());
         }
 
         private Material GetEffectMaterial()
@@ -372,10 +411,13 @@ namespace Project.Scripts.Progression
         private static readonly Vector2 RoomMinimum = new(-16.1f, -10.1f);
         private static readonly Vector2 RoomMaximum = new(16.1f, 10.1f);
         private readonly Dictionary<Health, float> hitCooldowns = new();
+        private static Sprite orbSprite;
+        private static Sprite glowSprite;
 
         private Transform owner;
         private Vector2 velocity;
         private SpriteRenderer orbRenderer;
+        private SpriteRenderer glowRenderer;
         private float nextHitTime;
         private int index;
 
@@ -396,10 +438,19 @@ namespace Project.Scripts.Progression
             float angle = (42f + index * 137f) * Mathf.Deg2Rad;
             velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 4.4f;
 
+            GameObject glowObject = new("Orb Glow");
+            glowObject.transform.SetParent(transform, false);
+            glowObject.transform.localPosition = new Vector3(0f, 0f, 0.02f);
+            glowRenderer = glowObject.AddComponent<SpriteRenderer>();
+            glowRenderer.sprite = GetGlowSprite();
+            glowRenderer.color = new Color(0.16f, 0.86f, 1f, 0.42f);
+            glowRenderer.sortingOrder = 46;
+            glowObject.transform.localScale = Vector3.one * 1.35f;
+
             orbRenderer = gameObject.AddComponent<SpriteRenderer>();
-            orbRenderer.sprite = RuntimeWhiteSprite.Instance;
-            orbRenderer.color = new Color(0.28f, 0.96f, 1f, 1f);
-            orbRenderer.sortingOrder = 47;
+            orbRenderer.sprite = GetOrbSprite();
+            orbRenderer.color = Color.white;
+            orbRenderer.sortingOrder = 48;
             transform.localScale = Vector3.one * 0.62f;
             nextHitTime = Time.time + 0.25f;
         }
@@ -431,6 +482,8 @@ namespace Project.Scripts.Progression
             transform.Rotate(0f, 0f, 260f * Time.deltaTime);
             float pulse = 1f + Mathf.Sin(Time.time * 14f + index) * 0.12f;
             transform.localScale = Vector3.one * (0.62f + rank * 0.035f) * pulse;
+            if (glowRenderer != null)
+                glowRenderer.transform.localScale = Vector3.one * (1.35f + pulse * 0.12f);
 
             if (Time.time < nextHitTime) return;
             nextHitTime = Time.time + 0.12f;
@@ -445,6 +498,76 @@ namespace Project.Scripts.Progression
                 target.TakeDamage((19f + rank * 11f) * RunSession.DamageMultiplier);
                 if (target.CurrentHealth < before) hitCooldowns[target] = Time.time + 0.38f;
             }
+        }
+
+        private static Sprite GetOrbSprite()
+        {
+            if (orbSprite != null) return orbSprite;
+            const int size = 24;
+            Texture2D texture = new(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "Bouncing Orb Pixel Texture",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            Vector2 center = new((size - 1) * 0.5f, (size - 1) * 0.5f);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x, y), center);
+                    Color pixel = Color.clear;
+                    if (distance <= 10.5f)
+                    {
+                        if (distance >= 8.8f)
+                            pixel = new Color(0.08f, 0.27f, 0.52f, 1f);
+                        else if (distance <= 2.8f)
+                            pixel = Color.white;
+                        else
+                            pixel = Color.Lerp(new Color(0.1f, 0.82f, 1f, 1f),
+                                new Color(0.42f, 0.2f, 1f, 1f), Mathf.Clamp01((distance - 3f) / 6f));
+                    }
+                    if (x >= 8 && x <= 10 && y >= 14 && y <= 17)
+                        pixel = new Color(1f, 1f, 1f, 0.9f);
+                    texture.SetPixel(x, y, pixel);
+                }
+            }
+            texture.Apply(false, false);
+            orbSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size),
+                new Vector2(0.5f, 0.5f), size, 0, SpriteMeshType.FullRect);
+            orbSprite.name = "Bouncing Orb Pixel Sprite";
+            return orbSprite;
+        }
+
+        private static Sprite GetGlowSprite()
+        {
+            if (glowSprite != null) return glowSprite;
+            const int size = 24;
+            Texture2D texture = new(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "Bouncing Orb Glow Texture",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            Vector2 center = new((size - 1) * 0.5f, (size - 1) * 0.5f);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x, y), center);
+                    float alpha = distance <= 11f
+                        ? Mathf.Clamp01((11f - distance) / 6f) * 0.76f
+                        : 0f;
+                    texture.SetPixel(x, y, new Color(0.05f, 0.72f, 1f, alpha));
+                }
+            }
+            texture.Apply(false, false);
+            glowSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size),
+                new Vector2(0.5f, 0.5f), size, 0, SpriteMeshType.FullRect);
+            glowSprite.name = "Bouncing Orb Glow Sprite";
+            return glowSprite;
         }
     }
 }

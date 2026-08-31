@@ -418,6 +418,7 @@ namespace Project.Scripts.World
             BuildDestructibles(room);
             BuildRoomPuzzle(room);
             BuildRoomEncounter(room);
+            BuildRoomHazards(room);
             BuildPuzzleChest(room);
         }
 
@@ -599,6 +600,25 @@ namespace Project.Scripts.World
             }
 
             if (activeRoomThreats == 0) roomChallengeLocked = false;
+        }
+
+        private void BuildRoomHazards(Vector2Int room)
+        {
+            WorldRoomHazardTheme? hazardTheme = GetRoomType(room) switch
+            {
+                WorldRoomType.CoverCombat => WorldRoomHazardTheme.SawGrid,
+                WorldRoomType.PatternCombat => WorldRoomHazardTheme.MovingLasers,
+                WorldRoomType.ConvergenceCombat => WorldRoomHazardTheme.Hybrid,
+                _ => null
+            };
+            if (!hazardTheme.HasValue) return;
+
+            Transform target = playerBody != null
+                ? playerBody.transform
+                : playerActor != null ? playerActor.transform : null;
+            WorldRoomHazardController hazards = WorldRoomHazardController.CreateRuntime(
+                hazardTheme.Value, target, transform, StableHash(room, 41, 19));
+            if (hazards != null) roomObjects.Add(hazards.gameObject);
         }
 
         private static int GetCombatEnemyCount(Vector2Int room)

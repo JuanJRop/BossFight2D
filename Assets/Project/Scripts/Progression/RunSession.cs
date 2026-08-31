@@ -65,6 +65,8 @@ namespace Project.Scripts.Progression
         public static int Cadence { get; private set; }
         public static int Dexterity { get; private set; }
         public static int Stamina { get; private set; }
+        public static int AvailableStatPoints { get; private set; }
+        public static int AllocatedStatPoints => Strength + Speed + Cadence + Dexterity + Stamina;
         public static int AbilityLevelInterval => 5;
         public static int MaximumAbilityRank => 5;
         public static int ExperienceToNextLevel => RequiredExperience(Level);
@@ -104,6 +106,7 @@ namespace Project.Scripts.Progression
             Cadence = 0;
             Dexterity = 0;
             Stamina = 0;
+            AvailableStatPoints = 0;
             pendingAbilityRewards = 0;
             currentAbilityChoices.Clear();
             for (int index = 0; index < abilityRanks.Length; index++) abilityRanks[index] = 0;
@@ -172,6 +175,7 @@ namespace Project.Scripts.Progression
             {
                 Experience -= RequiredExperience(Level);
                 Level++;
+                AvailableStatPoints++;
                 if (Level % AbilityLevelInterval == 0) pendingAbilityRewards++;
             }
 
@@ -196,6 +200,28 @@ namespace Project.Scripts.Progression
             RefreshPlayerStats();
             OnProgressionChanged?.Invoke();
             OnLevelUpChoicesChanged?.Invoke();
+            return true;
+        }
+
+        public static bool SpendStatPoint(PlayerStatType stat)
+        {
+            if (AvailableStatPoints <= 0) return false;
+
+            ChangeStat(stat, 1);
+            AvailableStatPoints--;
+            RefreshPlayerStats();
+            OnProgressionChanged?.Invoke();
+            return true;
+        }
+
+        public static bool RefundStatPoint(PlayerStatType stat)
+        {
+            if (GetStatValue(stat) <= 0) return false;
+
+            ChangeStat(stat, -1);
+            AvailableStatPoints++;
+            RefreshPlayerStats();
+            OnProgressionChanged?.Invoke();
             return true;
         }
 
@@ -325,6 +351,28 @@ namespace Project.Scripts.Progression
                 PlayerStatType.Stamina => spanish ? "+10% vida, +1 dash" : "+10% health, +1 dash",
                 _ => string.Empty
             };
+        }
+
+        private static void ChangeStat(PlayerStatType stat, int amount)
+        {
+            switch (stat)
+            {
+                case PlayerStatType.Speed:
+                    Speed = Mathf.Max(0, Speed + amount);
+                    break;
+                case PlayerStatType.Strength:
+                    Strength = Mathf.Max(0, Strength + amount);
+                    break;
+                case PlayerStatType.Cadence:
+                    Cadence = Mathf.Max(0, Cadence + amount);
+                    break;
+                case PlayerStatType.Dexterity:
+                    Dexterity = Mathf.Max(0, Dexterity + amount);
+                    break;
+                case PlayerStatType.Stamina:
+                    Stamina = Mathf.Max(0, Stamina + amount);
+                    break;
+            }
         }
 
         private static void PrepareAbilityChoices()

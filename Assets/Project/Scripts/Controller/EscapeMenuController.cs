@@ -23,6 +23,13 @@ namespace Project.Scripts.Controller
         private Button firstButton;
         private bool isOpen;
 
+        public static bool IsOpen => instance != null && instance.isOpen;
+
+        public static void Close()
+        {
+            instance?.SetOpen(false);
+        }
+
         public static void Toggle()
         {
             if (RunSession.HasPendingAbilityChoice) return;
@@ -84,15 +91,18 @@ namespace Project.Scripts.Controller
                 GameLoadout.IsSpanish ? "La partida esta en pausa" : "The run is paused",
                 16f, mutedColor, TextAlignmentOptions.Center);
 
-            firstButton = CreateButton("Continue", content, new Vector2(0.16f, 0.50f),
-                new Vector2(0.84f, 0.61f), GameLoadout.IsSpanish ? "CONTINUAR" : "RESUME", Resume);
-            CreateButton("Restart Run", content, new Vector2(0.16f, 0.35f),
-                new Vector2(0.84f, 0.46f), GameLoadout.IsSpanish ? "REINICIAR PARTIDA" : "RESTART RUN", RestartRun);
-            CreateButton("Back To Menu", content, new Vector2(0.16f, 0.20f),
-                new Vector2(0.84f, 0.31f), GameLoadout.IsSpanish ? "SALIR AL MENU" : "BACK TO MENU", BackToMenu);
+            CreateButton("Character Status", content, new Vector2(0.16f, 0.50f),
+                new Vector2(0.84f, 0.61f), GameLoadout.IsSpanish ? "PERSONAJE (P)" : "CHARACTER (P)",
+                CharacterStatusMenu.Toggle);
+            firstButton = CreateButton("Continue", content, new Vector2(0.16f, 0.35f),
+                new Vector2(0.84f, 0.46f), GameLoadout.IsSpanish ? "CONTINUAR" : "RESUME", Resume);
+            CreateButton("Restart Run", content, new Vector2(0.16f, 0.20f),
+                new Vector2(0.84f, 0.31f), GameLoadout.IsSpanish ? "REINICIAR PARTIDA" : "RESTART RUN", RestartRun);
+            CreateButton("Back To Menu", content, new Vector2(0.16f, 0.05f),
+                new Vector2(0.84f, 0.16f), GameLoadout.IsSpanish ? "SALIR AL MENU" : "BACK TO MENU", BackToMenu);
 
-            CreateText("Pause Hint", content, new Vector2(0.12f, 0.06f), new Vector2(0.88f, 0.14f),
-                GameLoadout.IsSpanish ? "ESC  |  CERRAR" : "ESC  |  CLOSE",
+            CreateText("Pause Hint", content, new Vector2(0.12f, 0.005f), new Vector2(0.88f, 0.045f),
+                GameLoadout.IsSpanish ? "P  PERSONAJE  |  ESC  CERRAR" : "P  CHARACTER  |  ESC  CLOSE",
                 13f, mutedColor, TextAlignmentOptions.Center);
             menuRoot.SetActive(false);
         }

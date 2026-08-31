@@ -64,6 +64,7 @@ namespace Project.Scripts.World
         private float visualPulse;
         private Vector3 visualBaseScale;
         private Sprite lastConfiguredSprite;
+        private Vector2 lastMovementDirection = Vector2.right;
         private bool alerted;
         private bool returningHome;
         private bool deathReported;
@@ -163,11 +164,11 @@ namespace Project.Scripts.World
             };
             chaseRadius = pattern switch
             {
-                WorldEnemyPattern.Charger => 6.2f,
-                WorldEnemyPattern.Shooter => 7.4f,
-                _ => 5.3f
+                WorldEnemyPattern.Charger => 10.5f,
+                WorldEnemyPattern.Shooter => 12.5f,
+                _ => 9.5f
             };
-            disengageRadius = chaseRadius * 1.55f;
+            disengageRadius = chaseRadius * 1.4f;
             patrolIndex = Mathf.Abs(GetInstanceID() % 4);
             patrolTarget = GetPatrolPoint();
             patrolWaitUntil = Time.time + 0.12f;
@@ -253,7 +254,6 @@ namespace Project.Scripts.World
             }
 
             transform.rotation = Quaternion.identity;
-            if (visualTransform != null) visualTransform.localRotation = Quaternion.identity;
             if (shadowTransform != null) shadowTransform.localRotation = Quaternion.identity;
         }
 
@@ -417,7 +417,7 @@ namespace Project.Scripts.World
                     stateTime -= Time.deltaTime;
                     if (stateTime <= 0f)
                     {
-                        FireProjectile();
+                        if (HasLineOfSight()) FireProjectile();
                         state = EnemyState.Recover;
                         stateTime = 0.36f;
                         nextAttackTime = Time.time + 1.65f;
@@ -430,7 +430,7 @@ namespace Project.Scripts.World
                     break;
                 default:
                     MoveShooter();
-                    if (Time.time >= nextAttackTime)
+                    if (Time.time >= nextAttackTime && HasLineOfSight())
                     {
                         state = EnemyState.Telegraph;
                         stateTime = 0.42f;
@@ -472,6 +472,25 @@ namespace Project.Scripts.World
                 "Secondary Enemy Projectile", body.position, direction, 7.4f, contactDamage * 0.82f,
                 transform.parent);
             if (projectile != null) registerProjectile?.Invoke(projectile.gameObject);
+        }
+
+        private bool HasLineOfSight()
+        {
+            if (player == null || body == null) return false;
+            Vector2 direction = (Vector2)player.position - body.position;
+            if (direction.sqrMagnitude < 0.01f) return true;
+
+            RaycastHit2D[] hits = Physics2D.LinecastAll(body.position, player.position,
+                Physics2D.DefaultRaycastLayers);
+            foreach (RaycastHit2D hit in hits)
+            {
+                if (hit.collider == null || hit.collider == enemyCollider ||
+                    hit.collider.transform.IsChildOf(transform) || IsPlayer(hit.collider))
+                    continue;
+                return false;
+            }
+
+            return true;
         }
 
         private void TryMeleeAttack()
@@ -591,10 +610,22 @@ namespace Project.Scripts.World
                     ConfigurePixelSprite(bodyRenderer.sprite);
                     lastConfiguredSprite = bodyRenderer.sprite;
                 }
-                bodyRenderer.transform.localRotation = Quaternion.identity;
-                if (body != null && Mathf.Abs(body.linearVelocity.x) > 0.08f)
-                    facingLeft = body.linearVelocity.x < 0f;
-                bodyRenderer.flipX = facingLeft;
+                Vector2 movement = body != null ? body.linearVelocity : lastMovementDirection;
+                if (Mathf.Abs(movement.x) > 0.08f)
+                {
+                    lastMovementDirection = new Vector2(Mathf.Sign(movement.x), 0f);
+                    if (visualTransform != null) visualTransform.localRotation = Quaternion.identity;
+                    facingLeft = movement.x < 0f;
+                    bodyRenderer.flipX = facingLeft;
+                }
+                else if (Mathf.Abs(movement.y) > 0.08f)
+                {
+                    lastMovementDirection = new Vector2(0f, Mathf.Sign(movement.y));
+                    if (visualTransform != null)
+                        visualTransform.localRotation = Quaternion.Euler(0f, 0f,
+                            movement.y > 0f ? 90f : -90f);
+                    bodyRenderer.flipX = false;
+                }
 
                 float bob = walking
                     ? Mathf.Sin((Time.time + visualPulse) * 12f) * 0.045f
@@ -637,10 +668,39 @@ namespace Project.Scripts.World
         {
             if (body == null) return;
 
-            Vector2 cardinalDirection = ToCardinalDirection(direction);
+            Vector2 cardinalDirection = GetWalkableCardinalDirection(direction);
             body.linearVelocity = cardinalDirection * Mathf.Max(0f, speed);
-            if (Mathf.Abs(cardinalDirection.x) > 0.01f)
-                facingLeft = cardinalDirection.x < 0f;
+            if (cardinalDirection.sqrMagnitude > 0.01f)
+            {
+                lastMovementDirection = cardinalDirection;
+                if (Mathf.Abs(cardinalDirection.x) > 0.01f)
+                    facingLeft = cardinalDirection.x < 0f;
+            }
+        }
+
+        private Vector2 GetWalkableCardinalDirection(Vector2 desiredDirection)
+        {
+            Vector2 cardinalDirection = ToCardinalDirection(desiredDirection);
+            if (cardinalDirection.sqrMagnitude < 0.01f) return Vector2.zero;
+            if (IsWalkable(cardinalDirection, 0.72f)) return cardinalDirection;
+
+            Vector2 side = Mathf.Abs(cardinalDirection.x) > 0.01f ? Vector2.up : Vector2.right;
+            if ((GetInstanceID() + patrolIndex) % 2 != 0) side = -side;
+            if (IsWalkable(side, 0.72f)) return side;
+            if (IsWalkable(-side, 0.72f)) return -side;
+            if (IsWalkable(-cardinalDirection, 0.72f)) return -cardinalDirection;
+            return Vector2.zero;
+        }
+
+        private bool IsWalkable(Vector2 direction, float distance)
+        {
+            if (direction.sqrMagnitude < 0.01f || body == null) return false;
+            RaycastHit2D hit = Physics2D.CircleCast(body.position, 0.34f, direction,
+                distance, Physics2D.DefaultRaycastLayers);
+            if (hit.collider == null) return true;
+            if (hit.collider == enemyCollider || hit.collider.transform.IsChildOf(transform)) return true;
+            if (IsPlayer(hit.collider)) return true;
+            return false;
         }
 
         private static Vector2 ToCardinalDirection(Vector2 direction)
