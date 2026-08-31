@@ -9,8 +9,8 @@ namespace Project.Scripts.Progression
     {
         private static RunProgressionUI instance;
 
-        private static readonly Color HudColor = new(0.045f, 0.018f, 0.025f, 0.94f);
-        private static readonly Color FrameColor = new(0.6f, 0.25f, 0.14f, 1f);
+        private static readonly Color HudColor = new(0.045f, 0.018f, 0.025f, 0.86f);
+        private static readonly Color FrameColor = new(0.6f, 0.25f, 0.14f, 0.88f);
         private static readonly Color CreamColor = new(1f, 0.9f, 0.7f, 1f);
         private static readonly Color MutedColor = new(0.78f, 0.61f, 0.5f, 1f);
         private static readonly Color AccentColor = new(0.22f, 0.92f, 1f, 1f);
@@ -68,33 +68,33 @@ namespace Project.Scripts.Progression
 
             RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
             GameObject hud = CreatePanel("Progression HUD", canvasRect,
-                new Vector2(0.255f, 0.018f), new Vector2(0.745f, 0.14f), FrameColor, false);
+                new Vector2(0.018f, 0.018f), new Vector2(0.35f, 0.11f), FrameColor, false);
             RectTransform hudRect = CreatePanel("Progression HUD Content", hud.transform as RectTransform,
                 new Vector2(0.008f, 0.014f), new Vector2(0.992f, 0.986f), HudColor, false)
                 .transform as RectTransform;
 
-            levelText = CreateText("Level", hudRect, new Vector2(0.018f, 0.28f),
-                new Vector2(0.18f, 0.86f), string.Empty, 22f, CreamColor,
+            levelText = CreateText("Level", hudRect, new Vector2(0.018f, 0.2f),
+                new Vector2(0.17f, 0.86f), string.Empty, 16f, CreamColor,
                 TextAlignmentOptions.Center, FontStyles.Bold);
-            experienceText = CreateText("Experience", hudRect, new Vector2(0.195f, 0.64f),
-                new Vector2(0.78f, 0.91f), string.Empty, 13f, MutedColor,
+            experienceText = CreateText("Experience", hudRect, new Vector2(0.185f, 0.63f),
+                new Vector2(0.78f, 0.91f), string.Empty, 10f, MutedColor,
                 TextAlignmentOptions.Left, FontStyles.Bold);
 
             GameObject experienceTrack = CreatePanel("Experience Track", hudRect,
-                new Vector2(0.195f, 0.37f), new Vector2(0.78f, 0.58f),
+                new Vector2(0.185f, 0.38f), new Vector2(0.78f, 0.56f),
                 new Color(0.15f, 0.055f, 0.06f, 1f), false);
             GameObject fillObject = CreatePanel("Experience Fill", experienceTrack.transform as RectTransform,
                 Vector2.zero, new Vector2(0f, 1f), AccentColor, false);
             experienceFill = fillObject.GetComponent<Image>();
 
-            classText = CreateText("Active Class", hudRect, new Vector2(0.195f, 0.08f),
-                new Vector2(0.52f, 0.31f), string.Empty, 12f, CreamColor,
+            classText = CreateText("Active Class", hudRect, new Vector2(0.185f, 0.08f),
+                new Vector2(0.51f, 0.31f), string.Empty, 10f, CreamColor,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            skillText = CreateText("Active Skills", hudRect, new Vector2(0.525f, 0.08f),
-                new Vector2(0.78f, 0.31f), string.Empty, 11f, MutedColor,
+            skillText = CreateText("Active Skills", hudRect, new Vector2(0.52f, 0.08f),
+                new Vector2(0.78f, 0.31f), string.Empty, 9f, MutedColor,
                 TextAlignmentOptions.Left);
-            pointsText = CreateText("Skill Points", hudRect, new Vector2(0.8f, 0.22f),
-                new Vector2(0.98f, 0.76f), string.Empty, 13f, AccentColor,
+            pointsText = CreateText("Skill Points", hudRect, new Vector2(0.8f, 0.16f),
+                new Vector2(0.98f, 0.78f), string.Empty, 10f, AccentColor,
                 TextAlignmentOptions.Center, FontStyles.Bold);
         }
 

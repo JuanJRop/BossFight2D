@@ -41,6 +41,9 @@ namespace Project.Scripts.World
         [SerializeField] private Sprite[] ambientPropSprites;
         [SerializeField] private Sprite mineEntranceSprite;
         [SerializeField] private Sprite mineEntranceAltSprite;
+        [SerializeField] private Sprite mineCartSprite;
+        [SerializeField] private Sprite mineLadderSprite;
+        [SerializeField] private Sprite mineBeamSprite;
 
         [Header("Reserved destination")]
         [SerializeField] private string bossSceneName = "BossFight";
@@ -92,9 +95,11 @@ namespace Project.Scripts.World
         private TextMeshProUGUI transitionLabel;
         private GameObject tutorialOverlay;
         private GameObject objectiveHud;
+        private CanvasGroup objectiveHudGroup;
         private TextMeshProUGUI roomLabel;
         private TextMeshProUGUI lessonLabel;
         private TextMeshProUGUI deathCounter;
+        private float objectiveHudVisibleUntil;
         private RectTransform mapPanel;
         private float tutorialUnlockTime;
         private bool tutorialOpen;
@@ -163,10 +168,12 @@ namespace Project.Scripts.World
                 Time.timeScale = 1f;
                 if (tutorialOverlay != null) tutorialOverlay.SetActive(false);
                 if (objectiveHud != null) objectiveHud.SetActive(true);
+                objectiveHudVisibleUntil = Time.unscaledTime + 4.5f;
                 return;
             }
 
             if (Input.GetKeyDown(KeyCode.M)) ToggleMapSize();
+            UpdateRoomHudVisibility();
         }
 
         private void OnDestroy()
@@ -937,6 +944,8 @@ namespace Project.Scripts.World
             BuildMineRail(room);
             BuildAmbientProps(room);
             BuildTorches(room, palette);
+            int roomLayout = StableHash(room, 113, 23) % 5;
+            BuildRoomArchitecture(room, roomLayout);
 
             int entranceLayout = StableHash(room, 61, 13) % 3;
             if (mineEntranceSprite != null && (room == StartRoom || room == BossGatewayRoom || entranceLayout == 0))
@@ -949,6 +958,103 @@ namespace Project.Scripts.World
             {
                 CreatePixelProp("Mine Entrance Alternate", mineEntranceAltSprite,
                     new Vector2(12.4f, 7.8f), 4.8f, 4);
+            }
+        }
+
+        private void BuildRoomArchitecture(Vector2Int room, int layout)
+        {
+            WorldRoomType roomType = GetRoomType(room);
+            switch (roomType)
+            {
+                case WorldRoomType.Start:
+                    CreateRoomSprite("Camp Shelter", RuntimeCaveArt.Camp,
+                        new Vector2(-9.8f, -6.5f), 4);
+                    CreateRoomSprite("Campfire", RuntimeCaveArt.Campfire,
+                        new Vector2(-4.2f, -6.2f), 4);
+                    BuildPropCluster(new Vector2(-12.1f, -7.5f), StableHash(room, 127, 5), 3, 4.4f);
+                    break;
+                case WorldRoomType.PuzzleSequence:
+                    CreateRoomSprite("Water Crossing Bridge", RuntimeCaveArt.Bridge,
+                        GetWaterPosition(room) + new Vector2(0f, 0.15f), 4);
+                    CreateRoomSprite("Sequence Crystals", RuntimeCaveArt.CrystalCluster,
+                        new Vector2(11.2f, -6.2f), 4, 0f, 0.82f);
+                    BuildPropCluster(new Vector2(11.4f, -7.8f), StableHash(room, 127, 11), 3, 4.2f);
+                    break;
+                case WorldRoomType.PuzzleCircuit:
+                    CreateRoomSprite("Mine Workshop", RuntimeCaveArt.Workshop,
+                        new Vector2(-10.2f, 6.4f), 4);
+                    CreateRoomSprite("Circuit Crystals", RuntimeCaveArt.CrystalCluster,
+                        new Vector2(-10.8f, -6.3f), 4, 0f, 0.74f);
+                    BuildPropCluster(new Vector2(-12.0f, 7.8f), StableHash(room, 127, 17), 3, 4.0f);
+                    break;
+                case WorldRoomType.BossGateway:
+                    CreateRoomSprite("Boss Gate Structure", RuntimeCaveArt.BossGate,
+                        new Vector2(0f, 8.25f), 4);
+                    CreateRoomSprite("Gateway Fire Left", RuntimeCaveArt.Campfire,
+                        new Vector2(-5.7f, 7.0f), 4, 0f, 0.8f);
+                    CreateRoomSprite("Gateway Fire Right", RuntimeCaveArt.Campfire,
+                        new Vector2(5.7f, 7.0f), 4, 0f, 0.8f);
+                    break;
+                default:
+                    Vector2 outcropPosition = layout % 2 == 0
+                        ? new Vector2(-12.0f, 7.0f)
+                        : new Vector2(11.8f, -6.8f);
+                    CreateRoomSprite("Rock Outcrop", RuntimeCaveArt.RockOutcrop,
+                        outcropPosition, 2, 0f, 0.82f);
+                    CreateRoomSprite("Cave Crystal Cluster", RuntimeCaveArt.CrystalCluster,
+                        layout % 2 == 0 ? new Vector2(11.3f, 6.3f) : new Vector2(-11.0f, -6.4f),
+                        4, 0f, 0.7f);
+                    BuildPropCluster(layout % 2 == 0
+                        ? new Vector2(11.2f, -7.9f)
+                        : new Vector2(-11.8f, 7.8f), StableHash(room, 127, 29), 3, 4.1f);
+                    break;
+            }
+
+            BuildMineStructures(room, layout);
+        }
+
+        private void BuildMineStructures(Vector2Int room, int layout)
+        {
+            Vector2 beamPosition = layout % 2 == 0
+                ? new Vector2(-7.4f, 9.0f)
+                : new Vector2(7.5f, -8.8f);
+            if (mineBeamSprite != null)
+            {
+                CreatePixelProp("Timber Beam", mineBeamSprite, beamPosition, 3.9f, 4);
+            }
+
+            if (mineCartSprite != null && (layout == 1 || room == StartRoom || room == BossGatewayRoom))
+            {
+                Vector2 cartPosition = layout % 2 == 0
+                    ? new Vector2(4.6f, -7.6f)
+                    : new Vector2(-4.8f, 7.0f);
+                CreatePixelProp("Mine Cart", mineCartSprite, cartPosition, 3.4f, 4);
+            }
+
+            if (mineLadderSprite != null && (layout == 2 || room == BossGatewayRoom))
+            {
+                Vector2 ladderPosition = layout % 2 == 0
+                    ? new Vector2(13.1f, 4.5f)
+                    : new Vector2(-13.2f, -4.5f);
+                CreatePixelProp("Mine Ladder", mineLadderSprite, ladderPosition, 3.6f, 4);
+            }
+        }
+
+        private void BuildPropCluster(Vector2 center, int seed, int count, float scale)
+        {
+            if (ambientPropSprites == null || ambientPropSprites.Length == 0) return;
+            Vector2[] offsets =
+            {
+                new(-0.9f, 0f), new(0.1f, 0.35f), new(1.0f, -0.05f),
+                new(-0.35f, -0.55f), new(0.75f, 0.55f)
+            };
+            for (int index = 0; index < Mathf.Min(count, offsets.Length); index++)
+            {
+                int spriteIndex = Mathf.Abs(seed + index * 5) % ambientPropSprites.Length;
+                Sprite prop = ambientPropSprites[spriteIndex];
+                if (prop == null) continue;
+                CreatePixelProp($"Cave Prop Cluster {index}", prop,
+                    center + offsets[index], scale, 4);
             }
         }
 
@@ -1518,21 +1624,23 @@ namespace Project.Scripts.World
             canvasObject.AddComponent<GraphicRaycaster>();
 
             RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
-            objectiveHud = CreatePanel("Room HUD", canvasRect, new Vector2(0.28f, 0.84f),
-                new Vector2(0.72f, 0.975f), new Color(0.09f, 0.025f, 0.018f, 0.9f));
+            objectiveHud = CreatePanel("Room HUD", canvasRect, new Vector2(0.24f, 0.905f),
+                new Vector2(0.76f, 0.985f), new Color(0.09f, 0.025f, 0.018f, 0.76f));
+            objectiveHudGroup = objectiveHud.AddComponent<CanvasGroup>();
+            objectiveHudGroup.alpha = 0f;
             roomLabel = CreateText("Room Text", objectiveHud.transform as RectTransform,
-                new Vector2(0.04f, 0.68f), new Vector2(0.96f, 0.98f), string.Empty, 22f,
+                new Vector2(0.035f, 0.58f), new Vector2(0.965f, 0.96f), string.Empty, 16f,
                 new Color(1f, 0.88f, 0.68f), TextAlignmentOptions.Center);
             lessonLabel = CreateText("Room Lesson", objectiveHud.transform as RectTransform,
-                new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.67f), string.Empty, 14f,
+                new Vector2(0.035f, 0.06f), new Vector2(0.965f, 0.55f), string.Empty, 10f,
                 new Color(0.96f, 0.7f, 0.42f), TextAlignmentOptions.Center);
             objectiveHud.SetActive(false);
 
             GameObject deathPanel = CreatePanel("Death Counter", canvasRect,
-                new Vector2(0.025f, 0.91f), new Vector2(0.20f, 0.975f),
-                new Color(0.09f, 0.025f, 0.018f, 0.9f));
+                new Vector2(0.018f, 0.935f), new Vector2(0.16f, 0.985f),
+                new Color(0.09f, 0.025f, 0.018f, 0.72f));
             deathCounter = CreateText("Death Counter Text", deathPanel.transform as RectTransform,
-                new Vector2(0.08f, 0f), new Vector2(0.92f, 1f), string.Empty, 20f,
+                new Vector2(0.08f, 0f), new Vector2(0.92f, 1f), string.Empty, 15f,
                 new Color(1f, 0.62f, 0.38f), TextAlignmentOptions.Center);
             UpdateDeathCounter(RunSession.PlayerDeaths);
             BuildMap(canvasRect);
@@ -1569,15 +1677,15 @@ namespace Project.Scripts.World
         private void BuildMap(RectTransform canvasRect)
         {
             GameObject panel = CreatePanel("Exploration Map", canvasRect,
-                new Vector2(0.79f, 0.59f), new Vector2(0.975f, 0.95f),
-                new Color(0.055f, 0.018f, 0.012f, 0.94f));
+                new Vector2(0.83f, 0.72f), new Vector2(0.985f, 0.985f),
+                new Color(0.055f, 0.018f, 0.012f, 0.78f));
             mapPanel = panel.transform as RectTransform;
 
             CreateText("Map Title", mapPanel, new Vector2(0.08f, 0.87f), new Vector2(0.92f, 0.98f),
-                GameLoadout.IsSpanish ? "MAPA  ·  M" : "MAP  ·  M", 22f,
+                GameLoadout.IsSpanish ? "MAPA  ·  M" : "MAP  ·  M", 15f,
                 new Color(1f, 0.78f, 0.48f), TextAlignmentOptions.Center);
             CreateText("Map Legend", mapPanel, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.16f),
-                GameLoadout.IsSpanish ? "F TIRO  C COBERTURA\nA/E PUZLE  P PATRON" : "F AIM  C COVER\nA/E PUZZLE  P PATTERN", 11f,
+                GameLoadout.IsSpanish ? "F TIRO  C COBERTURA\nA/E PUZLE  P PATRON" : "F AIM  C COVER\nA/E PUZZLE  P PATTERN", 8f,
                 new Color(0.78f, 0.58f, 0.42f), TextAlignmentOptions.Center);
 
             foreach (RouteConnection connection in RouteConnections)
@@ -1627,7 +1735,7 @@ namespace Project.Scripts.World
                 typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             RectTransform cell = cellObject.GetComponent<RectTransform>();
             cell.SetParent(mapPanel, false);
-            float cellHalfSize = room == BossRoom ? 0.07f : 0.052f;
+            float cellHalfSize = room == BossRoom ? 0.08f : 0.05f;
             cell.anchorMin = center - Vector2.one * cellHalfSize;
             cell.anchorMax = center + Vector2.one * cellHalfSize;
             cell.offsetMin = Vector2.zero;
@@ -1639,7 +1747,7 @@ namespace Project.Scripts.World
             mapCells.Add(room, image);
 
             TextMeshProUGUI label = CreateText("Room State", cell, Vector2.zero, Vector2.one,
-                room == BossRoom ? "BOSS" : GetRoomMapSymbol(room), room == BossRoom ? 14f : 20f,
+                room == BossRoom ? "BOSS" : GetRoomMapSymbol(room), room == BossRoom ? 11f : 13f,
                 room == BossRoom ? new Color(1f, 0.2f, 0.08f) : new Color(0.38f, 0.28f, 0.22f),
                 TextAlignmentOptions.Center);
             mapCellLabels.Add(room, label);
@@ -1728,8 +1836,8 @@ namespace Project.Scripts.World
             }
             else
             {
-                mapPanel.anchorMin = new Vector2(0.79f, 0.59f);
-                mapPanel.anchorMax = new Vector2(0.975f, 0.95f);
+                mapPanel.anchorMin = new Vector2(0.83f, 0.72f);
+                mapPanel.anchorMax = new Vector2(0.985f, 0.985f);
             }
             mapPanel.offsetMin = Vector2.zero;
             mapPanel.offsetMax = Vector2.zero;
@@ -1810,6 +1918,7 @@ namespace Project.Scripts.World
         private void UpdateRoomHud()
         {
             if (roomLabel == null) return;
+            objectiveHudVisibleUntil = Time.unscaledTime + 4.5f;
             int roomNumber = GetRoomNumber(currentRoom);
             bool spanish = GameLoadout.IsSpanish;
             string roomName = GetRoomDisplayName(currentRoom, spanish);
@@ -1824,6 +1933,14 @@ namespace Project.Scripts.World
                     : $"LEARN: {lesson.EnglishMechanic}\nOBJECTIVE: {lesson.EnglishObjective}";
             }
             UpdateMap();
+        }
+
+        private void UpdateRoomHudVisibility()
+        {
+            if (objectiveHudGroup == null || objectiveHud == null || !objectiveHud.activeSelf) return;
+            float targetAlpha = Time.unscaledTime < objectiveHudVisibleUntil ? 1f : 0.22f;
+            objectiveHudGroup.alpha = Mathf.MoveTowards(objectiveHudGroup.alpha, targetAlpha,
+                2.8f * Time.unscaledDeltaTime);
         }
 
         private static RoomLesson GetRoomLesson(Vector2Int room)
@@ -2183,30 +2300,83 @@ namespace Project.Scripts.World
         private static Sprite waterPool;
         private static Sprite railHorizontal;
         private static Sprite torch;
+        private static Sprite camp;
+        private static Sprite bridge;
+        private static Sprite campfire;
+        private static Sprite rockOutcrop;
+        private static Sprite crystalCluster;
+        private static Sprite workshop;
+        private static Sprite bossGate;
         private static Texture2D waterTexture;
         private static Texture2D railTexture;
         private static Texture2D torchTexture;
+        private static Texture2D campTexture;
+        private static Texture2D bridgeTexture;
+        private static Texture2D campfireTexture;
+        private static Texture2D rockOutcropTexture;
+        private static Texture2D crystalClusterTexture;
+        private static Texture2D workshopTexture;
+        private static Texture2D bossGateTexture;
 
         public static Sprite WaterPool => waterPool != null ? waterPool : waterPool = BuildWaterPool();
         public static Sprite RailHorizontal => railHorizontal != null
             ? railHorizontal
             : railHorizontal = BuildRailHorizontal();
         public static Sprite Torch => torch != null ? torch : torch = BuildTorch();
+        public static Sprite Camp => camp != null ? camp : camp = BuildCamp();
+        public static Sprite Bridge => bridge != null ? bridge : bridge = BuildBridge();
+        public static Sprite Campfire => campfire != null ? campfire : campfire = BuildCampfire();
+        public static Sprite RockOutcrop => rockOutcrop != null
+            ? rockOutcrop
+            : rockOutcrop = BuildRockOutcrop();
+        public static Sprite CrystalCluster => crystalCluster != null
+            ? crystalCluster
+            : crystalCluster = BuildCrystalCluster();
+        public static Sprite Workshop => workshop != null ? workshop : workshop = BuildWorkshop();
+        public static Sprite BossGate => bossGate != null ? bossGate : bossGate = BuildBossGate();
 
         public static void Release()
         {
             if (waterPool != null) Object.Destroy(waterPool);
             if (railHorizontal != null) Object.Destroy(railHorizontal);
             if (torch != null) Object.Destroy(torch);
+            if (camp != null) Object.Destroy(camp);
+            if (bridge != null) Object.Destroy(bridge);
+            if (campfire != null) Object.Destroy(campfire);
+            if (rockOutcrop != null) Object.Destroy(rockOutcrop);
+            if (crystalCluster != null) Object.Destroy(crystalCluster);
+            if (workshop != null) Object.Destroy(workshop);
+            if (bossGate != null) Object.Destroy(bossGate);
             if (waterTexture != null) Object.Destroy(waterTexture);
             if (railTexture != null) Object.Destroy(railTexture);
             if (torchTexture != null) Object.Destroy(torchTexture);
+            if (campTexture != null) Object.Destroy(campTexture);
+            if (bridgeTexture != null) Object.Destroy(bridgeTexture);
+            if (campfireTexture != null) Object.Destroy(campfireTexture);
+            if (rockOutcropTexture != null) Object.Destroy(rockOutcropTexture);
+            if (crystalClusterTexture != null) Object.Destroy(crystalClusterTexture);
+            if (workshopTexture != null) Object.Destroy(workshopTexture);
+            if (bossGateTexture != null) Object.Destroy(bossGateTexture);
             waterPool = null;
             railHorizontal = null;
             torch = null;
+            camp = null;
+            bridge = null;
+            campfire = null;
+            rockOutcrop = null;
+            crystalCluster = null;
+            workshop = null;
+            bossGate = null;
             waterTexture = null;
             railTexture = null;
             torchTexture = null;
+            campTexture = null;
+            bridgeTexture = null;
+            campfireTexture = null;
+            rockOutcropTexture = null;
+            crystalClusterTexture = null;
+            workshopTexture = null;
+            bossGateTexture = null;
         }
 
         private static Sprite BuildWaterPool()
@@ -2313,6 +2483,238 @@ namespace Project.Scripts.World
             torchTexture.SetPixels(pixels);
             torchTexture.Apply();
             return CreateSprite(torchTexture, "Runtime Cave Torch Sprite");
+        }
+
+        private static Sprite BuildCamp()
+        {
+            const int width = 112;
+            const int height = 72;
+            campTexture = CreateTexture("Runtime Mine Camp", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+            Color shadow = new(0.08f, 0.025f, 0.035f, 0.82f);
+            Color woodDark = new(0.2f, 0.065f, 0.045f, 1f);
+            Color wood = new(0.54f, 0.2f, 0.1f, 1f);
+            Color woodLight = new(0.78f, 0.36f, 0.15f, 1f);
+            Color roof = new(0.29f, 0.09f, 0.1f, 1f);
+
+            FillRect(pixels, width, height, 7, 105, 4, 12, shadow);
+            FillRect(pixels, width, height, 12, 100, 10, 17, woodDark);
+            for (int x = 16; x < 98; x += 16)
+                FillRect(pixels, width, height, x, x + 3, 12, 17, woodLight);
+
+            FillRect(pixels, width, height, 17, 95, 48, 55, roof);
+            FillRect(pixels, width, height, 23, 89, 55, 62, roof);
+            FillRect(pixels, width, height, 31, 81, 62, 68, woodDark);
+            FillRect(pixels, width, height, 21, 91, 49, 53, wood);
+            FillRect(pixels, width, height, 27, 85, 55, 59, wood);
+            FillRect(pixels, width, height, 35, 77, 61, 65, woodLight);
+
+            FillRect(pixels, width, height, 20, 29, 17, 51, woodDark);
+            FillRect(pixels, width, height, 83, 92, 17, 51, woodDark);
+            FillRect(pixels, width, height, 25, 29, 21, 50, wood);
+            FillRect(pixels, width, height, 83, 87, 21, 50, wood);
+            FillRect(pixels, width, height, 32, 80, 17, 22, wood);
+            FillRect(pixels, width, height, 37, 75, 22, 48, new(0.07f, 0.025f, 0.03f, 1f));
+            FillRect(pixels, width, height, 41, 45, 29, 34, woodLight);
+            FillRect(pixels, width, height, 67, 71, 29, 34, woodLight);
+            return CreateSprite(campTexture, "Runtime Mine Camp Sprite");
+        }
+
+        private static Sprite BuildBridge()
+        {
+            const int width = 144;
+            const int height = 48;
+            bridgeTexture = CreateTexture("Runtime Water Bridge", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+            Color shadow = new(0.06f, 0.02f, 0.025f, 0.78f);
+            Color woodDark = new(0.2f, 0.07f, 0.045f, 1f);
+            Color wood = new(0.55f, 0.23f, 0.11f, 1f);
+            Color woodLight = new(0.8f, 0.39f, 0.16f, 1f);
+            Color metal = new(0.38f, 0.42f, 0.45f, 1f);
+
+            FillRect(pixels, width, height, 5, 139, 5, 12, shadow);
+            FillRect(pixels, width, height, 7, 137, 10, 15, metal);
+            FillRect(pixels, width, height, 7, 137, 33, 38, metal);
+            FillRect(pixels, width, height, 10, 134, 15, 34, woodDark);
+            FillRect(pixels, width, height, 12, 132, 18, 32, wood);
+            for (int x = 14; x < 132; x += 18)
+            {
+                FillRect(pixels, width, height, x, x + 4, 16, 35, woodDark);
+                FillRect(pixels, width, height, x + 1, x + 3, 19, 32, woodLight);
+            }
+            FillRect(pixels, width, height, 7, 13, 12, 37, woodDark);
+            FillRect(pixels, width, height, 131, 137, 12, 37, woodDark);
+            return CreateSprite(bridgeTexture, "Runtime Water Bridge Sprite");
+        }
+
+        private static Sprite BuildCampfire()
+        {
+            const int width = 48;
+            const int height = 48;
+            campfireTexture = CreateTexture("Runtime Campfire", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+            Color shadow = new(0.08f, 0.02f, 0.02f, 0.78f);
+            Color stone = new(0.34f, 0.28f, 0.27f, 1f);
+            Color stoneLight = new(0.62f, 0.48f, 0.36f, 1f);
+            Color ember = new(1f, 0.2f, 0.03f, 1f);
+            Color flame = new(1f, 0.63f, 0.08f, 1f);
+            Color flameCore = new(1f, 0.95f, 0.44f, 1f);
+
+            FillRect(pixels, width, height, 4, 44, 5, 13, shadow);
+            FillRect(pixels, width, height, 7, 15, 10, 18, stone);
+            FillRect(pixels, width, height, 15, 23, 7, 15, stoneLight);
+            FillRect(pixels, width, height, 24, 32, 6, 14, stone);
+            FillRect(pixels, width, height, 33, 41, 9, 17, stoneLight);
+            FillRect(pixels, width, height, 13, 36, 13, 17, new(0.28f, 0.08f, 0.04f, 1f));
+            FillRect(pixels, width, height, 15, 34, 15, 18, ember);
+
+            for (int y = 18; y < 38; y += 4)
+            {
+                int halfWidth = Mathf.Clamp((y - 14) / 3, 1, 6);
+                FillRect(pixels, width, height, 24 - halfWidth, 25 + halfWidth, y, y + 4, flame);
+            }
+            FillRect(pixels, width, height, 22, 27, 22, 35, flameCore);
+            FillRect(pixels, width, height, 20, 29, 27, 31, flameCore);
+            return CreateSprite(campfireTexture, "Runtime Campfire Sprite");
+        }
+
+        private static Sprite BuildRockOutcrop()
+        {
+            const int blockSize = 8;
+            string[] mask =
+            {
+                "     ####     ",
+                "   ########   ",
+                "  ##########  ",
+                "  ########### ",
+                "##############",
+                "##############",
+                " ###########  ",
+                "  ##########  ",
+                "   ########   ",
+                "     ####     "
+            };
+            int width = mask[0].Length * blockSize;
+            int height = mask.Length * blockSize;
+            rockOutcropTexture = CreateTexture("Runtime Rock Outcrop", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int cellX = x / blockSize;
+                    int cellY = mask.Length - 1 - y / blockSize;
+                    if (!IsActive(mask, cellX, cellY)) continue;
+
+                    bool edge = !IsActive(mask, cellX - 1, cellY) ||
+                                !IsActive(mask, cellX + 1, cellY) ||
+                                !IsActive(mask, cellX, cellY - 1) ||
+                                !IsActive(mask, cellX, cellY + 1);
+                    Color color = edge
+                        ? new Color(0.43f, 0.17f, 0.11f, 1f)
+                        : new Color(0.13f, 0.04f, 0.07f, 1f);
+                    if (!edge && (cellX * 5 + cellY * 9) % 7 == 0 && y % blockSize < 2)
+                        color = new Color(0.28f, 0.08f, 0.09f, 1f);
+                    pixels[y * width + x] = color;
+                }
+            }
+            rockOutcropTexture.SetPixels(pixels);
+            rockOutcropTexture.Apply();
+            return CreateSprite(rockOutcropTexture, "Runtime Rock Outcrop Sprite");
+        }
+
+        private static Sprite BuildCrystalCluster()
+        {
+            const int width = 56;
+            const int height = 56;
+            crystalClusterTexture = CreateTexture("Runtime Crystal Cluster", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+            Color shadow = new(0.07f, 0.02f, 0.08f, 0.82f);
+            Color blueDark = new(0.04f, 0.28f, 0.62f, 1f);
+            Color blue = new(0.08f, 0.68f, 0.92f, 1f);
+            Color glint = new(0.57f, 0.96f, 1f, 1f);
+            FillRect(pixels, width, height, 5, 51, 5, 13, shadow);
+            FillRect(pixels, width, height, 11, 19, 12, 35, blueDark);
+            FillRect(pixels, width, height, 12, 18, 17, 40, blue);
+            FillRect(pixels, width, height, 14, 16, 25, 42, glint);
+            FillRect(pixels, width, height, 22, 31, 12, 45, blueDark);
+            FillRect(pixels, width, height, 23, 30, 18, 50, blue);
+            FillRect(pixels, width, height, 25, 29, 28, 52, glint);
+            FillRect(pixels, width, height, 34, 43, 11, 32, blueDark);
+            FillRect(pixels, width, height, 35, 42, 15, 37, blue);
+            FillRect(pixels, width, height, 37, 40, 22, 39, glint);
+            FillRect(pixels, width, height, 8, 45, 9, 13, new(0.15f, 0.08f, 0.3f, 1f));
+            return CreateSprite(crystalClusterTexture, "Runtime Crystal Cluster Sprite");
+        }
+
+        private static Sprite BuildWorkshop()
+        {
+            const int width = 112;
+            const int height = 80;
+            workshopTexture = CreateTexture("Runtime Mine Workshop", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+            Color shadow = new(0.07f, 0.02f, 0.025f, 0.82f);
+            Color woodDark = new(0.18f, 0.055f, 0.04f, 1f);
+            Color wood = new(0.49f, 0.17f, 0.08f, 1f);
+            Color woodLight = new(0.76f, 0.32f, 0.13f, 1f);
+            Color metal = new(0.32f, 0.36f, 0.4f, 1f);
+
+            FillRect(pixels, width, height, 6, 106, 5, 13, shadow);
+            FillRect(pixels, width, height, 10, 102, 17, 24, woodDark);
+            FillRect(pixels, width, height, 14, 98, 20, 27, wood);
+            FillRect(pixels, width, height, 16, 96, 27, 33, woodLight);
+            FillRect(pixels, width, height, 14, 22, 27, 69, woodDark);
+            FillRect(pixels, width, height, 90, 98, 27, 69, woodDark);
+            FillRect(pixels, width, height, 18, 22, 31, 67, wood);
+            FillRect(pixels, width, height, 90, 94, 31, 67, wood);
+            FillRect(pixels, width, height, 22, 90, 61, 68, woodDark);
+            FillRect(pixels, width, height, 24, 88, 64, 67, woodLight);
+            FillRect(pixels, width, height, 27, 47, 38, 57, metal);
+            FillRect(pixels, width, height, 30, 44, 41, 53, new(0.08f, 0.2f, 0.28f, 1f));
+            FillRect(pixels, width, height, 62, 84, 38, 45, woodDark);
+            FillRect(pixels, width, height, 66, 80, 42, 49, woodLight);
+            FillRect(pixels, width, height, 68, 78, 49, 53, wood);
+            return CreateSprite(workshopTexture, "Runtime Mine Workshop Sprite");
+        }
+
+        private static Sprite BuildBossGate()
+        {
+            const int width = 96;
+            const int height = 112;
+            bossGateTexture = CreateTexture("Runtime Boss Gate", width, height);
+            Color[] pixels = CreateTransparentPixels(width * height);
+            Color shadow = new(0.06f, 0.015f, 0.025f, 0.88f);
+            Color stoneDark = new(0.22f, 0.07f, 0.08f, 1f);
+            Color stone = new(0.48f, 0.17f, 0.11f, 1f);
+            Color stoneLight = new(0.74f, 0.32f, 0.14f, 1f);
+            Color rune = new(1f, 0.18f, 0.05f, 1f);
+
+            FillRect(pixels, width, height, 7, 89, 5, 14, shadow);
+            FillRect(pixels, width, height, 12, 28, 13, 94, stoneDark);
+            FillRect(pixels, width, height, 68, 84, 13, 94, stoneDark);
+            FillRect(pixels, width, height, 18, 28, 20, 91, stone);
+            FillRect(pixels, width, height, 68, 78, 20, 91, stone);
+            FillRect(pixels, width, height, 20, 76, 85, 104, stoneDark);
+            FillRect(pixels, width, height, 26, 70, 91, 102, stone);
+            FillRect(pixels, width, height, 32, 64, 97, 102, stoneLight);
+            FillRect(pixels, width, height, 28, 68, 22, 82, new(0.055f, 0.01f, 0.02f, 1f));
+            FillRect(pixels, width, height, 34, 38, 38, 44, rune);
+            FillRect(pixels, width, height, 58, 62, 38, 44, rune);
+            FillRect(pixels, width, height, 42, 46, 52, 58, rune);
+            FillRect(pixels, width, height, 42, 46, 64, 70, rune);
+            FillRect(pixels, width, height, 22, 26, 32, 47, stoneLight);
+            FillRect(pixels, width, height, 70, 74, 32, 47, stoneLight);
+            return CreateSprite(bossGateTexture, "Runtime Boss Gate Sprite");
+        }
+
+        private static void FillRect(Color[] pixels, int width, int height,
+            int xMin, int xMax, int yMin, int yMax, Color color)
+        {
+            for (int y = Mathf.Max(0, yMin); y < Mathf.Min(height, yMax); y++)
+            {
+                for (int x = Mathf.Max(0, xMin); x < Mathf.Min(width, xMax); x++)
+                    pixels[y * width + x] = color;
+            }
         }
 
         private static Texture2D CreateTexture(string objectName, int width, int height)

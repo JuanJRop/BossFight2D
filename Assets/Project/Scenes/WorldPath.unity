@@ -185,6 +185,9 @@ MonoBehaviour:
   - {fileID: -5842972638856826616, guid: 3a3c7270710faf0499b933eaff687d7d, type: 3}
   mineEntranceSprite: {fileID: -2485108293020705562, guid: 9b750dfd601f98e48b50b72aadd8d3ba, type: 3}
   mineEntranceAltSprite: {fileID: -3723089984326435548, guid: 9b750dfd601f98e48b50b72aadd8d3ba, type: 3}
+  mineCartSprite: {fileID: -1477824744486089938, guid: 9b750dfd601f98e48b50b72aadd8d3ba, type: 3}
+  mineLadderSprite: {fileID: 4849332699756741400, guid: 9b750dfd601f98e48b50b72aadd8d3ba, type: 3}
+  mineBeamSprite: {fileID: -2036986220128342195, guid: 9b750dfd601f98e48b50b72aadd8d3ba, type: 3}
   bossSceneName: BossFight
   spawnDestructibles: 1
   destructiblesPerRoom: 5
