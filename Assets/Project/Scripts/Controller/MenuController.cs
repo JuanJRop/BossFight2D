@@ -34,6 +34,10 @@ namespace Project.Scripts.Controller
         private TMP_Text characterValue;
         private TMP_Text characterRole;
         private TMP_Text loadoutTitle;
+        private TMP_Text weaponLabel;
+        private TMP_Text weaponValue;
+        private TMP_Text weaponDescription;
+        private readonly Button[] weaponButtons = new Button[4];
         private TMP_Text startLabel;
         private TMP_Text optionsLabel;
         private TMP_Text optionsTitle;
@@ -86,6 +90,7 @@ namespace Project.Scripts.Controller
         public void StartGame()
         {
             RunSession.BeginNewRun();
+            RunSession.SelectClass(GameLoadout.StartingClass);
             PlayerPrefs.Save();
             Time.timeScale = 1f;
             SceneManager.LoadScene("WorldPath");
@@ -205,42 +210,37 @@ namespace Project.Scripts.Controller
                 new Vector2(0.92f, 0.95f), string.Empty, 22f, Cream,
                 TextAlignmentOptions.Center, FontStyles.Bold);
 
-            CreateText("Growth Label", card, new Vector2(0.1f, 0.71f),
-                new Vector2(0.9f, 0.79f), GameLoadout.IsSpanish ? "CLASES DISPONIBLES" : "AVAILABLE CLASSES",
+            weaponLabel = CreateText("Weapon Label", card, new Vector2(0.1f, 0.73f),
+                new Vector2(0.9f, 0.81f), string.Empty,
                 15f, Muted, TextAlignmentOptions.Center);
 
-            RunClassType[] classes =
+            PlayerWeapon[] weapons =
             {
-                RunClassType.Warrior,
-                RunClassType.Archer,
-                RunClassType.Mage,
-                RunClassType.Healer
+                PlayerWeapon.Sword,
+                PlayerWeapon.Bow,
+                PlayerWeapon.MageStaff,
+                PlayerWeapon.HealerStaff
             };
-            for (int index = 0; index < classes.Length; index++)
+            for (int index = 0; index < weapons.Length; index++)
             {
                 int column = index % 2;
                 int row = index / 2;
-                float left = 0.13f + column * 0.42f;
-                float bottom = 0.52f - row * 0.16f;
-                RectTransform swatch = CreateImage("Class Color " + classes[index], card,
-                    new Vector2(left, bottom + 0.018f), new Vector2(left + 0.055f, bottom + 0.11f),
-                    RunSession.GetClassColor(classes[index]));
-                swatch.GetComponent<Image>().raycastTarget = false;
-                CreateText("Class Name " + classes[index], card,
-                    new Vector2(left + 0.075f, bottom), new Vector2(left + 0.38f, bottom + 0.13f),
-                    RunSession.GetClassName(classes[index], GameLoadout.IsSpanish), 14f, Cream,
-                    TextAlignmentOptions.Left, FontStyles.Bold);
+                float left = 0.1f + column * 0.405f;
+                float bottom = 0.51f - row * 0.145f;
+                PlayerWeapon weapon = weapons[index];
+                weaponButtons[index] = CreateButton("Weapon " + weapon, card,
+                    new Vector2(left, bottom), new Vector2(left + 0.37f, bottom + 0.105f),
+                    string.Empty, () => SelectWeapon(weapon));
             }
 
             RectTransform divider = CreateImage("Growth Divider", card, new Vector2(0.1f, 0.29f),
                 new Vector2(0.9f, 0.295f), new Color(Border.r, Border.g, Border.b, 0.75f));
             divider.GetComponent<Image>().raycastTarget = false;
-            CreateText("Growth Footer", card, new Vector2(0.1f, 0.13f), new Vector2(0.9f, 0.24f),
-                GameLoadout.IsSpanish ? "CRECIMIENTO LIBRE DURANTE LA RUN" : "FREE GROWTH DURING THE RUN",
-                14f, Muted, TextAlignmentOptions.Center, FontStyles.Bold);
-            CreateText("Growth Hint", card, new Vector2(0.1f, 0.045f), new Vector2(0.9f, 0.12f),
-                GameLoadout.IsSpanish ? "P  ARBOL DE HABILIDADES" : "P  SKILL TREE",
-                13f, new Color(0.2f, 0.92f, 1f, 1f), TextAlignmentOptions.Center);
+            weaponValue = CreateText("Weapon Name", card, new Vector2(0.1f, 0.19f), new Vector2(0.9f, 0.27f),
+                string.Empty, 22f, Cream, TextAlignmentOptions.Center, FontStyles.Bold);
+            weaponDescription = CreateText("Weapon Description", card, new Vector2(0.11f, 0.075f),
+                new Vector2(0.89f, 0.18f), string.Empty, 13f, Muted, TextAlignmentOptions.Center);
+            weaponDescription.textWrappingMode = TextWrappingModes.Normal;
         }
 
         private void BuildActionBar()
@@ -346,11 +346,20 @@ namespace Project.Scripts.Controller
             RefreshLoadout(true);
         }
 
+        private void SelectWeapon(PlayerWeapon weapon)
+        {
+            GameLoadout.Weapon = weapon;
+            RefreshLoadout(false);
+        }
+
         private void RefreshLoadout(bool animateCharacter)
         {
             bool es = GameLoadout.IsSpanish;
             if (characterValue != null) characterValue.text = GameLoadout.CharacterName(es);
             if (characterRole != null) characterRole.text = GameLoadout.CharacterRole(es);
+            if (weaponValue != null) weaponValue.text = GameLoadout.WeaponName(es);
+            if (weaponDescription != null) weaponDescription.text = GameLoadout.WeaponDescription(es);
+            RefreshWeaponButtons(es);
 
             if (characterPreview != null && skins != null && skins.Length > 0)
             {
@@ -413,7 +422,8 @@ namespace Project.Scripts.Controller
             bool es = GameLoadout.IsSpanish;
             if (subtitleText != null) subtitleText.text = es ? "ELIGE TU CAZADOR Y PREPARA EL COMBATE" : "CHOOSE YOUR HUNTER AND PREPARE FOR BATTLE";
             if (characterLabel != null) characterLabel.text = es ? "PERSONAJE" : "CHARACTER";
-            if (loadoutTitle != null) loadoutTitle.text = es ? "CRECIMIENTO" : "PROGRESSION";
+            if (loadoutTitle != null) loadoutTitle.text = es ? "ESTILO DE COMBATE" : "COMBAT STYLE";
+            if (weaponLabel != null) weaponLabel.text = es ? "ARMA INICIAL" : "STARTING WEAPON";
             if (startLabel != null) startLabel.text = es ? "JUGAR" : "PLAY";
             if (optionsLabel != null) optionsLabel.text = es ? "OPCIONES" : "OPTIONS";
             if (optionsTitle != null) optionsTitle.text = es ? "OPCIONES" : "OPTIONS";
@@ -422,6 +432,45 @@ namespace Project.Scripts.Controller
             if (languageLabel != null) languageLabel.text = es ? "IDIOMA" : "LANGUAGE";
             if (languageValue != null) languageValue.text = es ? "ESPAÑOL" : "ENGLISH";
             UpdateSettingValues();
+        }
+
+        private void RefreshWeaponButtons(bool spanish)
+        {
+            PlayerWeapon[] weapons =
+            {
+                PlayerWeapon.Sword,
+                PlayerWeapon.Bow,
+                PlayerWeapon.MageStaff,
+                PlayerWeapon.HealerStaff
+            };
+
+            for (int index = 0; index < weaponButtons.Length; index++)
+            {
+                Button button = weaponButtons[index];
+                if (button == null) continue;
+
+                PlayerWeapon weapon = weapons[index];
+                TMP_Text text = button.GetComponentInChildren<TMP_Text>();
+                if (text != null) text.text = WeaponShortName(weapon, spanish);
+
+                Image image = button.GetComponent<Image>();
+                if (image != null)
+                {
+                    Color selectedColor = GameLoadout.Weapon == weapon ? GameLoadout.WeaponColor : Brick;
+                    image.color = selectedColor;
+                }
+            }
+        }
+
+        private static string WeaponShortName(PlayerWeapon weapon, bool spanish)
+        {
+            switch (weapon)
+            {
+                case PlayerWeapon.Bow: return spanish ? "ARCO" : "BOW";
+                case PlayerWeapon.MageStaff: return spanish ? "MAGO" : "MAGE";
+                case PlayerWeapon.HealerStaff: return "HEALER";
+                default: return spanish ? "ESPADA" : "SWORD";
+            }
         }
 
         private void UpdateSettingValues()

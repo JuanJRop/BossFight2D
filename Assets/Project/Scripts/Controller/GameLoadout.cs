@@ -1,4 +1,5 @@
 using UnityEngine;
+using Project.Scripts.Progression;
 
 namespace Project.Scripts.Controller
 {
@@ -13,9 +14,10 @@ namespace Project.Scripts.Controller
 
     public enum PlayerWeapon
     {
-        ArcRifle,
-        PulseSmg,
-        RailCannon
+        Sword,
+        Bow,
+        MageStaff,
+        HealerStaff
     }
 
     public enum PlayerAbility
@@ -42,9 +44,17 @@ namespace Project.Scripts.Controller
 
         public static PlayerWeapon Weapon
         {
-            get => (PlayerWeapon)Mathf.Clamp(PlayerPrefs.GetInt(WeaponKey, 0), 0, 2);
+            get => (PlayerWeapon)Mathf.Clamp(PlayerPrefs.GetInt(WeaponKey, 0), 0, 3);
             set => Save(WeaponKey, (int)value);
         }
+
+        public static RunClassType StartingClass => Weapon switch
+        {
+            PlayerWeapon.Bow => RunClassType.Archer,
+            PlayerWeapon.MageStaff => RunClassType.Mage,
+            PlayerWeapon.HealerStaff => RunClassType.Healer,
+            _ => RunClassType.Warrior
+        };
 
         public static PlayerAbility Ability
         {
@@ -123,37 +133,47 @@ namespace Project.Scripts.Controller
 
         public static float WeaponDamageMultiplier => Weapon switch
         {
-            PlayerWeapon.PulseSmg => 0.72f,
-            PlayerWeapon.RailCannon => 1.75f,
+            PlayerWeapon.Sword => 1.35f,
+            PlayerWeapon.Bow => 1.05f,
+            PlayerWeapon.MageStaff => 1.18f,
+            PlayerWeapon.HealerStaff => 0.9f,
             _ => 1f
         };
 
         public static float FireRateMultiplier => Weapon switch
         {
-            PlayerWeapon.PulseSmg => 0.62f,
-            PlayerWeapon.RailCannon => 1.85f,
+            PlayerWeapon.Sword => 1.18f,
+            PlayerWeapon.Bow => 0.82f,
+            PlayerWeapon.MageStaff => 1.05f,
+            PlayerWeapon.HealerStaff => 0.92f,
             _ => 1f
         };
 
         public static float MagazineMultiplier => Weapon switch
         {
-            PlayerWeapon.PulseSmg => 1.45f,
-            PlayerWeapon.RailCannon => 0.58f,
+            PlayerWeapon.Sword => 0.72f,
+            PlayerWeapon.Bow => 1.15f,
+            PlayerWeapon.MageStaff => 0.9f,
+            PlayerWeapon.HealerStaff => 1.35f,
             _ => 1f
         };
 
         public static float ReloadMultiplier => Weapon switch
         {
-            PlayerWeapon.PulseSmg => 0.88f,
-            PlayerWeapon.RailCannon => 1.18f,
+            PlayerWeapon.Sword => 0.95f,
+            PlayerWeapon.Bow => 0.85f,
+            PlayerWeapon.MageStaff => 1.08f,
+            PlayerWeapon.HealerStaff => 0.78f,
             _ => 1f
         };
 
         public static Color WeaponColor => Weapon switch
         {
-            PlayerWeapon.PulseSmg => new Color(0.15f, 0.95f, 1f, 1f),
-            PlayerWeapon.RailCannon => new Color(1f, 0.24f, 0.62f, 1f),
-            _ => new Color(0.72f, 0.48f, 1f, 1f)
+            PlayerWeapon.Sword => new Color(1f, 0.3f, 0.12f, 1f),
+            PlayerWeapon.Bow => new Color(0.32f, 1f, 0.48f, 1f),
+            PlayerWeapon.MageStaff => new Color(1f, 0.42f, 0.08f, 1f),
+            PlayerWeapon.HealerStaff => new Color(1f, 0.86f, 0.28f, 1f),
+            _ => Color.white
         };
 
         public static int AbilityProjectileCount => Ability switch
@@ -215,9 +235,18 @@ namespace Project.Scripts.Controller
 
         public static string WeaponName(bool spanish) => Weapon switch
         {
-            PlayerWeapon.PulseSmg => spanish ? "SUBFUSIL DE PULSO" : "PULSE SMG",
-            PlayerWeapon.RailCannon => spanish ? "CAÑÓN DE RIEL" : "RAIL CANNON",
-            _ => spanish ? "RIFLE DE ARCO" : "ARC RIFLE"
+            PlayerWeapon.Bow => spanish ? "ARCO" : "BOW",
+            PlayerWeapon.MageStaff => spanish ? "BASTON DE MAGO" : "MAGE STAFF",
+            PlayerWeapon.HealerStaff => spanish ? "BASTON HEALER" : "HEALER STAFF",
+            _ => spanish ? "ESPADA" : "SWORD"
+        };
+
+        public static string WeaponDescription(bool spanish) => Weapon switch
+        {
+            PlayerWeapon.Bow => spanish ? "Mas cadencia y movilidad para jugar a distancia." : "More fire rate and mobility for ranged play.",
+            PlayerWeapon.MageStaff => spanish ? "Magia ofensiva con proyectiles mas fuertes." : "Offensive magic with stronger projectiles.",
+            PlayerWeapon.HealerStaff => spanish ? "Menos dano, mas seguridad y recargas comodas." : "Lower damage, safer rhythm and smoother reloads.",
+            _ => spanish ? "Golpes potentes con menos municion." : "Heavy hits with lower ammo."
         };
 
         public static string AbilityName(bool spanish) => Ability switch
@@ -241,7 +270,7 @@ namespace Project.Scripts.Controller
 
         public static void CycleWeapon(int direction)
         {
-            Weapon = (PlayerWeapon)Cycle((int)Weapon, direction, 3);
+            Weapon = (PlayerWeapon)Cycle((int)Weapon, direction, 4);
         }
 
         public static void CycleAbility(int direction)

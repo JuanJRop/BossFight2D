@@ -10,8 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4275483969627992346}
   - component: {fileID: 609728637294627452}
+  - component: {fileID: 910100001}
   m_Layer: 0
-  m_Name: Ak47
+  m_Name: PlayerWeapon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27,7 +28,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.25770742, y: 0.2981511, z: 1}
+  m_LocalScale: {x: 0.42, y: 0.42, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7664654444335894423}
@@ -82,8 +83,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 7
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -1345243519282449277, guid: dfec414aa9f4ab345851b489f931fceb, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Sprite: {fileID: -3926759211464601419, guid: cc7832dfb21347942b16a4368f916aca, type: 3}
+  m_Color: {r: 1, g: 0.3, b: 0.12, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -92,6 +93,26 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &910100001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127143712331365063}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf740e3ac80e4fb08013ba910396eb9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Project.Characters.Player.PlayerScripts.Controller.PlayerWeaponVisual
+  weaponRenderer: {fileID: 609728637294627452}
+  swordSprite: {fileID: -3926759211464601419, guid: cc7832dfb21347942b16a4368f916aca, type: 3}
+  bowSprite: {fileID: -5883455936764719873, guid: cc7832dfb21347942b16a4368f916aca, type: 3}
+  mageStaffSprite: {fileID: 8817454751965551104, guid: cc7832dfb21347942b16a4368f916aca, type: 3}
+  healerStaffSprite: {fileID: 3974921216390489406, guid: cc7832dfb21347942b16a4368f916aca, type: 3}
+  swordScale: {x: 0.42, y: 0.42, z: 1}
+  bowScale: {x: 0.48, y: 0.48, z: 1}
+  staffScale: {x: 0.5, y: 0.5, z: 1}
 --- !u!1 &509412361503784350
 GameObject:
   m_ObjectHideFlags: 0
@@ -118,7 +139,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -4.12, y: 1.5, z: 0}
-  m_LocalScale: {x: 1.12, y: 1.12, z: 1}
+  m_LocalScale: {x: 1.35, y: 1.35, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8916566612559248761}
@@ -714,7 +735,7 @@ GameObject:
   - component: {fileID: 4627347935847658340}
   - component: {fileID: 111285263307275191}
   m_Layer: 0
-  m_Name: GunSpot
+  m_Name: WeaponSpot
   m_TagString: Untagged
   m_Icon: {fileID: 7148428337604731935, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0

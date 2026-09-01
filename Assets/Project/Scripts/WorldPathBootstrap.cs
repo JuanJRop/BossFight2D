@@ -18,7 +18,7 @@ namespace Project.Scripts.World
     [DefaultExecutionOrder(-600)]
     public sealed class WorldPathBootstrap : MonoBehaviour
     {
-        private const float MapDecorationScaleMultiplier = 1.28f;
+        private const float MapDecorationScaleMultiplier = 1.55f;
         private const int RoomHalfWidth = 18;
         private const int RoomHalfHeight = 12;
         private const int MinimumRoomX = -1;

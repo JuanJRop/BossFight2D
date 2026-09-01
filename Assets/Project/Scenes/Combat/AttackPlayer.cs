@@ -434,11 +434,15 @@ namespace Project.Characters.Player.PlayerScripts.Combat
 
         private void ApplySelectedLoadout()
         {
+            if (RunSession.SelectedClass == RunClassType.None)
+                RunSession.SelectClass(GameLoadout.StartingClass);
+
             RefreshProgressionStats();
+            PlayerWeaponVisual.ApplyAll(transform.root);
 
             if (firePoint == null) return;
             SpriteRenderer weaponRenderer = firePoint.GetComponentInParent<SpriteRenderer>();
-            if (weaponRenderer != null) weaponRenderer.color = RunSession.GetClassColor(RunSession.GetCombatClass());
+            if (weaponRenderer != null) weaponRenderer.color = GameLoadout.WeaponColor;
         }
 
         public void RefreshProgressionStats()
@@ -452,17 +456,18 @@ namespace Project.Characters.Player.PlayerScripts.Combat
                 baseStatsCaptured = true;
             }
 
-            weaponDamageMultiplier = RunSession.DamageMultiplier;
+            weaponDamageMultiplier = RunSession.DamageMultiplier * GameLoadout.WeaponDamageMultiplier;
             chargerCapacity = Mathf.Max(1f,
                 Mathf.Round(baseChargerCapacity *
+                    GameLoadout.MagazineMultiplier *
                     (1f + RunSession.GetSkillRank(RunSkillType.QuickDraw) * 0.16f)));
             chargerTime = Mathf.Max(0.25f,
-                baseChargerTime /
+                baseChargerTime * GameLoadout.ReloadMultiplier /
                 (1f + RunSession.GetSkillRank(RunSkillType.QuickDraw) * 0.08f));
             fireRate = Mathf.Max(0.04f,
-                baseFireRate * RunSession.AttackCooldownMultiplier);
+                baseFireRate * GameLoadout.FireRateMultiplier * RunSession.AttackCooldownMultiplier);
             autoShootRate = Mathf.Max(0.04f,
-                baseAutoShootRate * RunSession.AttackCooldownMultiplier);
+                baseAutoShootRate * GameLoadout.FireRateMultiplier * RunSession.AttackCooldownMultiplier);
         }
 
         private void ResolveEnemy()

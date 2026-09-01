@@ -91,7 +91,7 @@ namespace Project.Scripts.World
             enemyObject.tag = "Enemy";
             enemyObject.transform.SetParent(parent, false);
             enemyObject.transform.position = new Vector3(position.x, position.y, -0.05f);
-            enemyObject.transform.localScale = Vector3.one;
+            enemyObject.transform.localScale = Vector3.one * 1.18f;
 
             GameObject visualObject = new("Goblin Visual");
             visualObject.transform.SetParent(enemyObject.transform, false);
