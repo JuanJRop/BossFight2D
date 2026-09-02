@@ -1,0 +1,663 @@
+fileFormatVersion: 2
+guid: efbafd0b2e18a9e4b9ca7b95e7ec4bce
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 1921730103557020327
+    second: combat_icon_sheet_12_0
+  - first:
+      213: -7316925645568726146
+    second: combat_icon_sheet_12_1
+  - first:
+      213: -454227545941925740
+    second: combat_icon_sheet_12_2
+  - first:
+      213: -7892837972121574534
+    second: combat_icon_sheet_12_3
+  - first:
+      213: -3036312178607187354
+    second: combat_icon_sheet_12_4
+  - first:
+      213: 2011183682909462695
+    second: combat_icon_sheet_12_5
+  - first:
+      213: -7619537060257349470
+    second: combat_icon_sheet_12_6
+  - first:
+      213: 5233201482832666176
+    second: combat_icon_sheet_12_7
+  - first:
+      213: 7674898737314635111
+    second: combat_icon_sheet_12_8
+  - first:
+      213: -6199407892992042046
+    second: combat_icon_sheet_12_9
+  - first:
+      213: 1144649817162373503
+    second: combat_icon_sheet_12_10
+  - first:
+      213: -3229218523495375058
+    second: combat_icon_sheet_12_11
+  - first:
+      213: 1177062041927828667
+    second: combat_icon_sheet_12_12
+  - first:
+      213: 4911118992274910267
+    second: combat_icon_sheet_12_13
+  - first:
+      213: 3192860205970772240
+    second: combat_icon_sheet_12_14
+  - first:
+      213: 5733736779649064929
+    second: combat_icon_sheet_12_15
+  - first:
+      213: 6103620186353241120
+    second: combat_icon_sheet_12_16
+  - first:
+      213: -8444869059885033075
+    second: combat_icon_sheet_12_17
+  - first:
+      213: 3117097104027242913
+    second: combat_icon_sheet_12_18
+  - first:
+      213: 651485922265658501
+    second: combat_icon_sheet_12_19
+  - first:
+      213: -2830728302024776548
+    second: combat_icon_sheet_12_20
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_0
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 748
+        width: 357
+        height: 308
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7aad0b0f85b5baa10800000000000000
+      internalID: 1921730103557020327
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_1
+      rect:
+        serializedVersion: 2
+        x: 382
+        y: 745
+        width: 339
+        height: 311
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e7b2eef54ee057a90800000000000000
+      internalID: -7316925645568726146
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_2
+      rect:
+        serializedVersion: 2
+        x: 426
+        y: 1036
+        width: 7
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4902fec147242b9f0800000000000000
+      internalID: -454227545941925740
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_3
+      rect:
+        serializedVersion: 2
+        x: 563
+        y: 1044
+        width: 11
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a73aaf1bea1077290800000000000000
+      internalID: -7892837972121574534
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_4
+      rect:
+        serializedVersion: 2
+        x: 752
+        y: 753
+        width: 351
+        height: 313
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 66a1dee192adcd5d0800000000000000
+      internalID: -3036312178607187354
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_5
+      rect:
+        serializedVersion: 2
+        x: 1140
+        y: 742
+        width: 285
+        height: 333
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7a061e567e829eb10800000000000000
+      internalID: 2011183682909462695
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_6
+      rect:
+        serializedVersion: 2
+        x: 326
+        y: 743
+        width: 13
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2a0cf6ae967f14690800000000000000
+      internalID: -7619537060257349470
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_7
+      rect:
+        serializedVersion: 2
+        x: 360
+        y: 736
+        width: 13
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 04ed94e950110a840800000000000000
+      internalID: 5233201482832666176
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_8
+      rect:
+        serializedVersion: 2
+        x: 346
+        y: 730
+        width: 13
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 76d9bbcfcb7b28a60800000000000000
+      internalID: 7674898737314635111
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_9
+      rect:
+        serializedVersion: 2
+        x: 358
+        y: 378
+        width: 387
+        height: 360
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2cbd4700e5747f9a0800000000000000
+      internalID: -6199407892992042046
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_10
+      rect:
+        serializedVersion: 2
+        x: 1078
+        y: 0
+        width: 363
+        height: 738
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f79dd20b1fc92ef00800000000000000
+      internalID: 1144649817162373503
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_11
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 390
+        width: 359
+        height: 335
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e2f52fcacd28f23d0800000000000000
+      internalID: -3229218523495375058
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_12
+      rect:
+        serializedVersion: 2
+        x: 732
+        y: 649
+        width: 11
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bb444b7d0b3c55010800000000000000
+      internalID: 1177062041927828667
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_13
+      rect:
+        serializedVersion: 2
+        x: 748
+        y: 398
+        width: 319
+        height: 323
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b3c683804bcc72440800000000000000
+      internalID: 4911118992274910267
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_14
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 615
+        width: 7
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0115e5ad0715f4c20800000000000000
+      internalID: 3192860205970772240
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_15
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 431
+        width: 5
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1ef1392f833529f40800000000000000
+      internalID: 5733736779649064929
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_16
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 359
+        height: 407
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 02c0d7b983a64b450800000000000000
+      internalID: 6103620186353241120
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_17
+      rect:
+        serializedVersion: 2
+        x: 455
+        y: 394
+        width: 9
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d899dd6355ccdca80800000000000000
+      internalID: -8444869059885033075
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_18
+      rect:
+        serializedVersion: 2
+        x: 461
+        y: 394
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1a151ff0d47224b20800000000000000
+      internalID: 3117097104027242913
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_19
+      rect:
+        serializedVersion: 2
+        x: 736
+        y: 0
+        width: 343
+        height: 399
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 584ffcc9efa8a0900800000000000000
+      internalID: 651485922265658501
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: combat_icon_sheet_12_20
+      rect:
+        serializedVersion: 2
+        x: 362
+        y: 58
+        width: 380
+        height: 319
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c942b2e6b9b37b8d0800000000000000
+      internalID: -2830728302024776548
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      combat_icon_sheet_12_0: 1921730103557020327
+      combat_icon_sheet_12_1: -7316925645568726146
+      combat_icon_sheet_12_10: 1144649817162373503
+      combat_icon_sheet_12_11: -3229218523495375058
+      combat_icon_sheet_12_12: 1177062041927828667
+      combat_icon_sheet_12_13: 4911118992274910267
+      combat_icon_sheet_12_14: 3192860205970772240
+      combat_icon_sheet_12_15: 5733736779649064929
+      combat_icon_sheet_12_16: 6103620186353241120
+      combat_icon_sheet_12_17: -8444869059885033075
+      combat_icon_sheet_12_18: 3117097104027242913
+      combat_icon_sheet_12_19: 651485922265658501
+      combat_icon_sheet_12_2: -454227545941925740
+      combat_icon_sheet_12_20: -2830728302024776548
+      combat_icon_sheet_12_3: -7892837972121574534
+      combat_icon_sheet_12_4: -3036312178607187354
+      combat_icon_sheet_12_5: 2011183682909462695
+      combat_icon_sheet_12_6: -7619537060257349470
+      combat_icon_sheet_12_7: 5233201482832666176
+      combat_icon_sheet_12_8: 7674898737314635111
+      combat_icon_sheet_12_9: -6199407892992042046
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
